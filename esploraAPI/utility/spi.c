@@ -1,7 +1,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-#include "avrspi.h"
+#include "spi.h"
 
 /*
  * The following NOP introduces a small delay that can prevent the wait

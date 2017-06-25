@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "utility/ADCavrLib.h"
-#include "utility/avrspi.h"
+#include "utility/adc.h"
+#include "utility/spi.h"
 #include "utility/tone.h"
 #include "utility/systicktimer.h"
 #include "utility/gfx.h"

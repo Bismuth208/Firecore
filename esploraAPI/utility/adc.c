@@ -2,7 +2,7 @@
 #include <avr/io.h>
 #endif
 
-#include "ADCavrLib.h"
+#include "adc.h"
 
 #define FREE_RUN 0
 

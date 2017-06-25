@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 
 #include "systicktimer.h"
-#include "avrspi.h"
+#include "spi.h"
 #include "st7735.h"
 
 //-------------------------------------------------------------------------------------------//

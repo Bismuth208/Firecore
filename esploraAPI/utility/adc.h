@@ -7,7 +7,6 @@
 extern "C"{
 #endif
 
-
 void setPrescallerADC(uint8_t ps);
 void setChannelADC(uint8_t chADC);
 void initADC(void);
@@ -17,4 +16,4 @@ uint16_t readADC(void);
 } // extern "C"
 #endif
 
-#endif
+#endif /*_ADC_H*/

@@ -1,5 +1,5 @@
-#ifndef _AVRSPI_H
-#define _AVRSPI_H
+#ifndef _SPI_H
+#define _SPI_H
 
 #include <stdint.h>
 
@@ -32,4 +32,4 @@ void sendArrSPI(uint8_t *buf, uint16_t size);
 } // extern "C"
 #endif
 
-#endif
+#endif /*_SPI_H*/

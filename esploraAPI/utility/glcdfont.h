@@ -1,6 +1,5 @@
-#pragma once
-#ifndef FONT5X7_H
-#define FONT5X7_H
+#ifndef _FONT5X7_H
+#define _FONT5X7_H
 
 #ifdef __AVR__
  #include <avr/io.h>
@@ -271,4 +270,4 @@ static const unsigned char font[] PROGMEM = {
 	0x00, 0x3C, 0x3C, 0x3C, 0x3C,
 	0x00, 0x00, 0x00, 0x00, 0x00  // #255 NBSP
 };
-#endif  /* FONT5X7_H */
+#endif  /* _FONT5X7_H */
