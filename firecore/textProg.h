@@ -8,10 +8,13 @@
 extern const uint8_t emptyText[];
 extern const uint8_t pauseP0[];
 extern const uint8_t pressAtext[];
+extern const uint8_t versionP0[];
 extern const uint8_t creditP0[];
 extern const uint8_t gameOverP[];
 extern const uint8_t levelClearP[];
 extern const uint8_t victoryP[];
+extern const uint8_t scoreP[];
+extern const uint8_t maxScoreP[];
 
 extern const uint8_t buttonA[];
 extern const uint8_t buttonB[];

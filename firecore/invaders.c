@@ -114,7 +114,7 @@ void checkInVadersRay(void)
         if((alien[count].timeToShoot--) == 0) {  // decrease timeout to shoot; Captain Obvious :)
           setDeathRayState(&alien[count], true);
 #if ADD_SOUND
-          if(soundEnable) toneBuzz(500, 10);
+          if(soundEnable) toneBuzz(ALIEN_SOUND_FREQ, ALIEN_SOUND_LONG);
 #endif
         }
       }
@@ -148,7 +148,7 @@ void checkInVaders(void)
                                    ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H, currentBackGroundColor); 
  
               alien[countV].alive = false;    // actually now it dead
-              //score += SCORE_VAL;           // get cookies
+              score += SCORE_VAL;           // get cookies
               //hudStatus.updScore = true;    // update score later
               // check total respawns
               if(--totalRespawns <= 0) { // No more respawns left, all army defeated
@@ -199,6 +199,17 @@ void drawBoss(void)
   }    
 }
 
+void drawBossExplosion(void)
+{
+  for(uint8_t i=0; i<ALIEN_BOSS_EXPLOSIONS; i++) {
+    // reuse death ray
+    alienBoss.deathRay.pos.x = RN % ALIEN_SHIP_BOSS_PIC_W + alienBoss.posBase.x;
+    alienBoss.deathRay.pos.y = RN % ALIEN_SHIP_BOSS_PIC_H + alienBoss.posBase.y;
+
+    rocketEpxlosion(&alienBoss.deathRay);
+  }
+}
+
 void checkBossDamage(void)
 {
   int8_t countR;
@@ -206,7 +217,7 @@ void checkBossDamage(void)
   if(alienBoss.alive) {
     for(countR =0; countR < MAX_PEW_PEW; countR++) {
       if(playeRockets[countR].onUse) {
-        if(checkCollision(&playeRockets[countR].pos,ROCKET_W, ROCKET_H,
+        if(checkCollision(&playeRockets[countR].pos, ROCKET_W, ROCKET_H,
               &alienBoss.posBase, ALIEN_SHIP_BOSS_PIC_W, ALIEN_SHIP_BOSS_PIC_H)) {
 
           rocketEpxlosion(&playeRockets[countR]);
@@ -222,7 +233,7 @@ void checkBossDamage(void)
  
             alienBoss.alive = false;      // actually now it dead
             bossDie();                    // was it easy no?
-            //score += BOSS_SCORE_VAL;           // get cookies
+            score += BOSS_SCORE_VAL;      // get cookies
             //hudStatus.updScore = true;    // update score later
           }
         }
@@ -260,7 +271,7 @@ void checkBossFire(void)
       if((alienBoss.timeToShoot--) == 0) {  // decrease timeout to shoot; Captain Obvious :)
         setDeathRayState(&alienBoss, true);
 #if ADD_SOUND
-        if(soundEnable) toneBuzz(500, 10);
+        if(soundEnable) toneBuzz(ALIEN_SOUND_FREQ, ALIEN_SOUND_LONG);
 #endif
       }
     }
@@ -269,21 +280,6 @@ void checkBossFire(void)
 
 void bossDie(void)
 {
-  deleteAllTasks();
-  if((++curretLevel) >= MAX_WORLDS) { // is it was final boss?
-    victory();
-    addTask(getBtnStates, 50, true);
-    addTask(waitEnd, 250, true);
-  } else {
-    totalRespawns = ALIEN_KILLS_TO_BOSS;
-    if(++difficultyIncrement > MAX_DIFFICULT_INCREMENT) { // increase speed of all each lvl
-      difficultyIncrement = MAX_DIFFICULT_INCREMENT;
-    }
-
-    //currentBackGroundColor = getPicWord(nesPalette_ext, getPicByte(lvlColors + curretLevel));
-  
-    levelClear();
-    addTask(getBtnStates, 50, true);
-    addTask(waitOk, 400, true);
-  }
+  drawBossExplosion();
+  dropGift();
 }

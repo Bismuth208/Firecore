@@ -24,8 +24,10 @@ typedef struct {  // 5 bytes RAM
   };
 } rocket_t;
 
-typedef struct {  // 5 bytes RAM
-  position_t pos;
+typedef struct {  // 8 bytes RAM
+  position_t posBase;
+  position_t posNew;
+  bool state;
 } gift_t;
 
 typedef struct {

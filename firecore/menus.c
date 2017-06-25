@@ -131,16 +131,17 @@ void titleAction(void)
 {
   if(btnStates.aBtn) {
     baseStory();
-    //runEndlessMode();
   }
 }
 
 //---------------------------------------------------------------------------//
 void drawGalaxy(void)
 {
+  currentBackGroundColor = BACKGROUND_COLOR;
   screenSliderEffect(COLOR_BLACK);
   drawBMP_RLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, 
                    GALAXY_PIC_W, GALAXY_PIC_H, galaxyPic, GALAXY_PIC_SIZE);
+  currentBackGroundColor = getPicWord(nesPalette_ext, getPicByte(lvlColors + curretLevel));
 }
 
 //---------------------------------------------------------------------------//
@@ -272,12 +273,31 @@ void printMessage(const char *text)
   tftSetCursor(20, 40);
   tftSetTextColor(COLOR_WHITE);
   tftPrint_P(text);
+  tftSetTextSize(1);
+}
+
+void printScore(void)
+{
+  char buf[10];
+  tftSetCursor(40, 60); tftPrint_P(scoreP);
+  tftSetCursor(80, 60); tftPrint(itoa(score, buf, 10));
+
+  // draw hi score
+  tftSetCursor(40, 70); tftPrint_P(maxScoreP);
+
+  uint16_t hiScore = eeprom_read_word( (const uint16_t*) EE_ADDR_SCORE);
+  if(score > hiScore) {
+    eeprom_write_word( (uint16_t*) EE_ADDR_SCORE, score);   // save new score
+    hiScore = score;
+  }
+  tftSetCursor(80, 70); tftPrint(itoa(hiScore, buf, 10));
+  score = 0;
 }
 
 void gameOver(void)
 {
   printMessage(gameOverP);
-  tftSetTextSize(1);
+  printScore();
 
   deleteAllTasks();
   addTask(getBtnStates, 50, true);
@@ -285,38 +305,19 @@ void gameOver(void)
   resetBtnStates();
 
   curretLevel =0;
-  lowHealthState = false;
-  setLEDValue(LED_R, false);
-  initShip();
-  initInvaders();
-
-#if 0
-  char buf[10];
-
-  tftPrint(TFT_W/5, TFT_H/3, "Score: ");
-  tftPrint(TFT_W/3, TFT_H/2, itoa(score, buf, 10));
-
-  // draw hi score
-  tftSetTextSize(1);
-  tftPrint_P(TFT_W/3, TFT_H - 40, "Max: ");
-
-  uint16_t hiScore = eeprom_read_word( (const uint16_t*) EE_ADDR_SCORE);
-  if(score > hiScore) {
-    eeprom_write_word( (uint16_t*) EE_ADDR_SCORE, score);   // save new score
-    hiScore = score;
-  }
-  tftPrint(itoa(hiScore, buf, 10));
-  score = 0;
-#endif
+  levelBaseInit();
 }
 
 void levelClear(void)
 {
   printMessage(levelClearP);
-  initInvaders();
+  levelBaseInit();
 }
 
 void victory(void)
 {
   printMessage(victoryP);
+  printScore();
+  levelBaseInit();
+  curretLevel =0;
 }

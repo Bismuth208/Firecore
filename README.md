@@ -12,6 +12,8 @@ Game have:
 - level bosses;
 - primitive story;
 - qute vell performance;
+- save maximum score;
+*~~- explosions~~*;
 *~~- sounds~~*;
 *~~- a lot of random~~*;
 
@@ -25,6 +27,7 @@ Esplora board feature usage:
 - RGB LED used for warn player of ship's low health (it's flash red);
 - Light sensor, temperature sensor and microphone used to seed random fuction;
 
+Also game saves maximum score in *EEPROM*, so you can always beat yourself!
 
 Controls:
 - Fire: *Switch 4 button* (named as *A*);
@@ -43,7 +46,7 @@ To upload game to your board need to install *esploraAPI* folder to *Arduino's* 
 > TFT LCD: *ST7735* 160x128.
 
 Whole game writed on C (maybe somewhere can be a tiny of C++, but not for a long time...).
-At current moment game consume 22,620 bytes ROM and 659 RAM.
+At current moment game consume 25,078 bytes ROM and 672 RAM and 2 bytes of EEPROM;
 
 [To see how does it work check this link](https://www.youtube.com/channel/UCDXVQ9ZfQl8Ddeu_3qiwSiA "My YouTube channel")
 ***

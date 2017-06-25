@@ -20,8 +20,9 @@ void printTextSlow(const uint8_t *text)
   for(uint16_t count=0; count < strlen_P(text); count++) {
     tftPrintChar(pgm_read_byte(text + count));
 #if ADD_SOUND
-    if(soundEnable) toneBuzz(500, 1);
+    if(soundEnable) toneBuzz(1200, 20);
 #endif
+    _delayMS(40);
   }
 }
 
@@ -32,12 +33,8 @@ void drawTextWindow(const uint8_t *text, const uint8_t *btnText)
   tftSetCursor(TEXT_WINDOW_X, TEXT_WINDOW_Y);
   tftFillRect(0, 88,  159, 40, INDIGO_COLOR);  // Frame 0
   tftDrawRect(2, 90, 155, 35, COLOR_WHITE);    // Frame 1
-  
-  // set F_CPU to 500 kHz by ps = 64 (0x06)
-  setMainFreq(0x06);  // It is so epic retro !!!!
-  tftPrint_P(text);
-  //printTextSlow(text);
-  setMainFreq(0x00);
+   
+  printTextSlow(text); // It is so epic retro !!!!
   
   tftSetCursor(TEXT_OK_X, TEXT_OK_Y);
   tftPrint_P(btnText);
@@ -100,7 +97,7 @@ void rocketEpxlosion(rocket_t *pRocket)
   for(i = 0; i < 7; i++) { // remove smoke
     tftFillCircle(posX, posY, i*2, currentBackGroundColor);
 #if ADD_SOUND
-    if(soundEnable) toneBuzz(50*i, 2);
+    if(soundEnable) toneBuzz(60*i, 2);
 #endif
   }
 }
@@ -113,9 +110,7 @@ void drawShip(void)
   
   shipState = !shipState;
   movePicture(&ship.posBase, &ship.posNew, SHIP_PIC_W, SHIP_PIC_H);
-  
-  drawBMP_RLE_P(ship.posBase.x, ship.posBase.y, 
-                     SHIP_PIC_W, SHIP_PIC_H, pic, picSize);
+  drawBMP_RLE_P(ship.posBase.x, ship.posBase.y, SHIP_PIC_W, SHIP_PIC_H, pic, picSize);
 }
 
 void drawPlayerRockets(void)
@@ -127,11 +122,9 @@ void drawPlayerRockets(void)
                                      ROCKET_W, ROCKET_H, currentBackGroundColor);
       
       if((playeRockets[count].pos.x += PLAYER_ROCKET_SPEED) < TFT_W) {
-        
         drawBMP_RLE_P(playeRockets[count].pos.x, playeRockets[count].pos.y,
                                   ROCKET_W, ROCKET_H, rocketPic, ROCKET_PIC_SIZE);
       } else {
-        playeRockets[count].pos.x = ship.posBase.x + ROCKET_OFFSET_X;
         playeRockets[count].onUse = false;
       }
     }
@@ -168,6 +161,12 @@ void drawStart(void)
   }
   startState = !startState;
   tftPrint_P(pressAtext);
+
+  tftSetTextColor(0x020C);
+  tftSetCursor(0, 120);
+  tftPrint_P(versionP0);
+  tftSetCursor(64, 120);
+  tftPrint_P(creditP0);
 }
 
 void drawTitleText(void)
@@ -242,11 +241,10 @@ void drawBMP_RLE_P(int16_t x, int16_t y, uint8_t w, uint8_t h,
     
     // get color from colorTable by tmpInd color index
     repeatColor = getPicWord(nesPalette_ext, tmpInd);
-/*
     if(repeatColor == replaceColor) {
       repeatColor = currentBackGroundColor;
     }
-*/  
+
     do {
       --repeatTimes;
       pushColorFast(repeatColor);

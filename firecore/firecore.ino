@@ -10,8 +10,8 @@
  *  Arduino IDE:  1.6.6   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  22,362 (*)
- * Free RAM:      1901 bytes
+ * Program size:  25,078 (*)
+ * Free RAM:      1888 bytes
  *
  * Language:      C and C++
  * 
@@ -50,7 +50,7 @@ bool lowHealthState = false;
 bool shipState = false;
 bool pauseState = false;
 #if ADD_SOUND
-bool soundEnable = false;
+bool soundEnable = true;
 #endif
 
 int8_t menuItem =0;
@@ -67,7 +67,10 @@ uint16_t calJoysticY =0;
 
 uint8_t difficultyIncrement =0;
 
+uint16_t score;
+
 ship_t ship;
+gift_t gift;
 rocket_t playeRockets[MAX_PEW_PEW];
 hudStatus_t hudStatus = {1,1}; // need update all
 btnStatus_t btnStates = {0};
@@ -85,14 +88,14 @@ const uint8_t lvlCoordinates[] PROGMEM = {
 };
 
 const uint8_t lvlColors[] PROGMEM = {
+  0x1E,
   0x01,
-  0x00,
+  0x10,
   0x20,
-  0x21,
-  0x1E,  
+  0x3C,
   0x01,
-  0x0C,
   0x04,
+  0x1C,
   0x04
 };
 //---------------------------------------------------------------------------//
@@ -253,8 +256,8 @@ void checkFireButton(void)
         rocket_t *pRokets = &playeRockets[ship.weapon.rocketsLeft];
         if(pRokets->onUse == false) {
 #if ADD_SOUND
-          if(soundEnable) toneBuzz(50*rocketsLeft, 10);
-#endif         
+          if(soundEnable) toneBuzz(500, 10);
+#endif    
           pRokets->onUse = true;
           pRokets->pos.x = ship.posBase.x + ROCKET_OFFSET_X;
           pRokets->pos.y = ship.posBase.y + ROCKET_OFFSET_Y;
@@ -269,9 +272,9 @@ void checkOverHeatGun(void)
   if(hudStatus.updPew) {
     if(ship.weapon.overHeated) {
       ship.weapon.rocketsLeft += PLAYER_ROCKET_REFILL;
-#if ADD_SOUND
+#if 0
       if(soundEnable) {
-        toneBuzz(10*ship.weapon.rocketsLeft, 10);
+        toneBuzz(200+10*ship.weapon.rocketsLeft, 10);
       }
 #endif
     } else {  // Global cooldown
@@ -333,7 +336,7 @@ void checkShipHealth(void)
   }
   setLEDValue(LED_R, lowHealthState); // yyess... every time set this...
 
-  if(ship.health < 0) {
+  if(ship.health <= 0) {
     replaceTask(checkShipDamage, gameOver, 0, true);  // GameOver!
   }
 }
@@ -376,6 +379,92 @@ void moveShip(void)
   }
   //checkShipPosition(&ship.posNew.y, SHIP_MIN_POS_Y, SHIP_MAX_POS_Y);
 }
+
+void shipHyperJump(void)
+{
+  const uint8_t *pic = (shipState ? shipBaseHi : shipBaseLow);
+  uint16_t picSize = (shipState ? SHIP_BASE_HI_PIC_SIZE : SHIP_BASE_LOW_PIC_SIZE);
+  uint16_t posX;
+
+  for(posX = ship.posBase.x; posX < SHIP_MAX_POS_X; posX++) {
+    drawBMP_RLE_P(posX, ship.posBase.y, 
+                     SHIP_PIC_W, SHIP_PIC_H, pic, picSize);
+  }
+
+  ship.posBase.x = posX;
+  movePicture(&ship.posBase, &ship.posNew, SHIP_PIC_W, SHIP_PIC_H);
+}
+
+//---------------------------------------------------------------------------//
+void moveGift(void)
+{
+  if((gift.posNew.x -= GIFT_MOVE_SPEED) <= GIFT_MIN_POS_X) {
+    movePicture(&gift.posBase, &gift.posNew, GIFT_PIC_W, GIFT_PIC_H);
+    createNextLevel();
+  }
+}
+
+void drawGift(void)
+{
+  gift.state = !gift.state;
+  const uint8_t *pic = (gift.state ? giftPicHi : giftPicLow);
+
+  movePicture(&gift.posBase, &gift.posNew, GIFT_PIC_W, GIFT_PIC_H);
+  drawBMP_RLE_P(gift.posBase.x, gift.posBase.y, GIFT_PIC_W, GIFT_PIC_H, pic, GIFT_PIC_SIZE);
+}
+
+void checkGift(void)
+{
+  int8_t countR;
+
+  for(countR =0; countR < MAX_PEW_PEW; countR++) {
+    if(playeRockets[countR].onUse) {
+      if(checkCollision(&playeRockets[countR].pos, ROCKET_W, ROCKET_H,
+              &gift.posBase, GIFT_PIC_W, GIFT_PIC_H)) {
+
+        rocketEpxlosion(&playeRockets[countR]);
+
+        score += GIFT_BONUS_SCORE;
+
+        if((ship.health += GIFT_HEALTH_RESTORE) > SHIP_HEALTH) {
+          ship.health = SHIP_HEALTH;
+        }
+        createNextLevel();
+      }
+    }
+  }
+}
+
+// --------------------------------------------------------------- //
+void createNextLevel(void)
+{
+  shipHyperJump();
+
+  deleteAllTasks();
+  addTask(getBtnStates, 50, true);
+
+  if((++curretLevel) >= MAX_WORLDS) { // is it was final boss?
+    victory();
+    addTask(waitEnd, 400, true);
+  } else {
+    totalRespawns = ALIEN_KILLS_TO_BOSS + difficultyIncrement;
+    if(++difficultyIncrement > MAX_DIFFICULT_INCREMENT) { // increase speed of all each lvl
+      difficultyIncrement = MAX_DIFFICULT_INCREMENT;
+    }
+  
+    levelClear();
+    addTask(waitOk, 400, true);
+  }
+}
+
+void levelBaseInit(void)
+{
+  lowHealthState = false;
+  setLEDValue(LED_R, false);
+  initShip();
+  initInvaders();
+}
+
 // --------------------------------------------------------------- //
 
 void addTitleTasks(void)
@@ -437,6 +526,26 @@ void addBossTasks(void)
   addTask(checkBossDamage, 140, true);
   addTask(checkBossFire, 150, true);
 }
+
+void dropGift(void)
+{
+  // drop gift from the boss
+  gift.posNew.x = GIFT_BASE_POS_X;
+  gift.posNew.y = GIFT_BASE_POS_Y;
+  gift.state = false;
+
+  deleteAllTasks();
+  addTask(moveShip, 70, true);
+  addTask(drawShip, 70, true);
+  addTask(getBtnStates, 50, true);
+  addTask(checkFireButton, 75, true);
+  addTask(drawPlayerRockets, 40, true);
+  addTask(checkOverHeatGun, 100, true);
+
+  addTask(moveGift, 120, true);
+  addTask(drawGift, 150, true);
+  addTask(checkGift, 80, true);
+}
 // --------------------------------------------------------------- //
 
 void setMainFreq(uint8_t ps)
@@ -450,6 +559,16 @@ void setMainFreq(uint8_t ps)
 }
 
 // ------------- Init section ---------------------- //
+void readEEpromScore(void)
+{
+  uint8_t varCheck = eeprom_read_byte((const uint8_t*) EE_ADDR_MARK);
+
+  if(varCheck != HI_SCORE_MARK ) {
+    eeprom_write_word( (uint16_t*) EE_ADDR_SCORE, score);
+    eeprom_write_byte( ( uint8_t*) EE_ADDR_MARK, HI_SCORE_MARK);
+  }
+}
+
 void calibrateJoyStic(void)
 {
   calJoysticX = getStickVal(LINE_X);
@@ -472,6 +591,10 @@ void initShip(void)
   //ship.durability = ;
   ship.weapon.rocketsLeft = MAX_PEW_PEW;
   ship.weapon.overHeated = false;
+
+  for(uint8_t count =0; count < MAX_PEW_PEW; count++) {
+    playeRockets[count].onUse = false;
+  }
 }
 
 void initStars(void)
@@ -480,13 +603,6 @@ void initStars(void)
     stars[count].pos.x = RN % TFT_W;
     stars[count].pos.y = RN % (TFT_H-4);
     stars[count].color = RN % 80;
-  }
-}
-
-void initRockets(void)
-{
-  for(uint8_t count =0; count < MAX_PEW_PEW; count++) {
-    playeRockets[count].onUse = false;
   }
 }
 
@@ -504,19 +620,19 @@ void initBaseGameParams(void)
   initShip();
   initStars();
   initInvaders();
-  //initRockets();
-  calibrateJoyStic();
-  initTasksArr(&taskArr, &pArr[0], MAX_GAME_TASKS);
 }
 
 void initSys(void)
 {
   initEsplora();
   initBaseGameParams();
+  calibrateJoyStic();
+  readEEpromScore();
 
   tftSetRotation(1);
   tftFillScreen(currentBackGroundColor);
 
+  initTasksArr(&taskArr, &pArr[0], MAX_GAME_TASKS);
   addTask(drawRows, 10, true);
 }
 

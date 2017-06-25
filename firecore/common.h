@@ -60,7 +60,13 @@ extern "C"{
 
 #define continue() {CHECK_RULE}
 
-#define ADD_SOUND 0
+#define ADD_SOUND 1
+//---------------------------------------------------------------------------//
+
+#define EE_ADDR_SCORE         0x00 //((difficult-1)*2)  // adrr: 0x00 - 0x07 
+#define EE_ADDR_MARK          0x08
+#define HI_SCORE_MARK         0x41
+
 //---------------------------------------------------------------------------//
 
 #define BUTTON_A   SW_BTN_4_MUX
@@ -80,6 +86,19 @@ extern "C"{
 
 #define ROCKET_OFFSET_X  18
 #define ROCKET_OFFSET_Y  6
+//---------------------------------------------------------------------------//
+
+#define GIFT_HEALTH_RESTORE  SHIP_HEALTH/2 // he he he, add half-life :) 
+
+#define GIFT_MIN_POS_X   0
+
+#define GIFT_BASE_POS_X  140
+#define GIFT_BASE_POS_Y  RN % 100
+
+#define GIFT_MOVE_SPEED  2
+
+#define GIFT_BONUS_SCORE 300
+
 //---------------------------------------------------------------------------//
 
 #define SHIP_MIN_POS_X   0
@@ -161,6 +180,11 @@ extern "C"{
 
 #define ALIEN_BOSS_SPEED_MOVE  2
 #define ALIEN_BOSS_ROCKET_SPEED_MOVE  2
+
+#define ALIEN_SOUND_FREQ   2000
+#define ALIEN_SOUND_LONG   10
+
+#define ALIEN_BOSS_EXPLOSIONS  15
 //---------------------------------------------------------------------------//
 
 // worlds on galaxy map
@@ -219,6 +243,10 @@ extern stars_t stars[MAX_STARS];
 extern hudStatus_t hudStatus;
 extern uint8_t someCount;
 
+extern uint8_t totalRespawns;
+
+extern uint16_t score;
+
 extern uint8_t difficultyIncrement;
 
 extern uint8_t curretLevel;
@@ -244,6 +272,16 @@ void drawLevelSelect(void);
 
 void waitOk(void);
 void waitEnd(void);
+
+//---------------------------------------------------------------------------//
+void dropGift(void);
+void checkGift(void);
+void moveGift(void);
+void drawGift(void);
+
+
+void levelBaseInit(void);
+void createNextLevel(void);
 //---------------------------------------------------------------------------//
 
 void initInvaders(void);
