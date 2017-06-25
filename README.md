@@ -13,10 +13,9 @@ Game have:
 - primitive story;
 - qute vell performance;
 - save maximum score;
-*~~- explosions~~*;
-*~~- sounds~~*;
-*~~- a lot of random~~*;
-
+- *~~explosions~~*;
+- *~~sounds~~*;
+- *~~a lot of random~~*;
 
 Story describe:
 Invaders come to galaxy from nowhere, one of doges send a message to hero
@@ -39,11 +38,11 @@ To upload game to your board need to install *esploraAPI* folder to *Arduino's* 
 
 
 > Hardware:
-> *Arduino Esplora* board;
-> MCU: *ATmega32u4*;
-> ROM: 28kb;
-> RAM: 2,5kb;
-> TFT LCD: *ST7735* 160x128.
+> - *Arduino Esplora* board;
+> - MCU: *ATmega32u4*;
+> - ROM: 28kb;
+> - RAM: 2,5kb;
+> - TFT LCD: *ST7735* 160x128.
 
 Whole game writed on C (maybe somewhere can be a tiny of C++, but not for a long time...).
 At current moment game consume 25,078 bytes ROM and 672 RAM and 2 bytes of EEPROM;
