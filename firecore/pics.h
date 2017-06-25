@@ -45,6 +45,19 @@ extern const uint16_t nesPalette_ext[];
 extern const uint8_t rocketPic[];
 //---------------------------------------------------------------------------//
 
+// orig size 256 * 2 = 512
+// RLE compress ratio 4.12903
+#define GIFT_PIC_W      16
+#define GIFT_PIC_H      16
+#define GIFT_PIC_SIZE   153
+
+extern const uint8_t giftPicLow[];
+
+// orig size 256 * 2 = 512
+// RLE compress ratio 3.34641
+extern const uint8_t giftPicHi[];
+//---------------------------------------------------------------------------//
+
 #define DOGE_PIC_W     50
 #define DOGE_PIC_H     50
 #define DOGE_PIC_SIZE  976
@@ -64,11 +77,11 @@ extern const uint8_t galaxyPic[];
 //---------------------------------------------------------------------------//
 
 #define ALIEN_ROCKET_PIC_W     10
-#define ALIEN_ROCKET_PIC_H      5
-#define ALIEN_ROCKET_PIC_SIZE  36
+#define ALIEN_ROCKET_PIC_H      7
+#define ALIEN_ROCKET_PIC_SIZE  39
 
-// orig size 50 * 2 = 100
-// RLE compress ratio 2.77778
+// orig size 70 * 2 = 140
+// RLE compress ratio 3.58974
 extern const uint8_t alienRocketPic[];
 
 
