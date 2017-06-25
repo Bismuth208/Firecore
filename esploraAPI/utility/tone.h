@@ -6,7 +6,7 @@ extern "C"{
 #endif
 
 void initSound(void);
-void toneBuzz(uint16_t frequency, uint16_t duration);
+void toneBuzz(uint16_t frequency, unsigned long duration);
 
 #ifdef __cplusplus
 } // extern "C"

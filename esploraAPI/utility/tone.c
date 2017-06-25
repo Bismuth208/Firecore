@@ -16,10 +16,10 @@
 #define MAX_OCR_VAL     0xFFFF
 
 #ifndef F_CPU
-#define F_CPU 16000000L
+#define F_CPU 8000000L
 #endif
 
-volatile int32_t timer1_toggle_count;
+volatile long timer3_toggle_count;
 
 void initSound(void)
 {
@@ -33,11 +33,18 @@ void initSound(void)
 
 // 1 param - frequency Hz
 // 2 param - duration in milliseconds
-void toneBuzz(uint16_t frequency, uint16_t duration)
+void toneBuzz(uint16_t frequency, unsigned long duration)
 {
   uint8_t prescalarbits = 0x1; // 0b001
   uint32_t ocr = F_CPU / frequency / 2 - 1;
-  int32_t toggle_count = 2 * frequency * duration / 1000;
+  long toggle_count;
+  
+  // Calculate the toggle count
+  if (duration > 0) {
+    toggle_count = 2 * frequency * duration / 1000;
+  } else {
+    toggle_count = -1;
+  }
 
   if(ocr > MAX_OCR_VAL) {
     ocr = F_CPU / frequency / 2 / 64 - 1;
@@ -49,17 +56,17 @@ void toneBuzz(uint16_t frequency, uint16_t duration)
   //SOUND_PORT |= (1 << SOUND_PORT_PIN);            // Enable sound pin;
 
   OCR3A = ocr;                                    // Load value to OCR;
-  timer1_toggle_count = toggle_count;             // Set toggle count;
+  timer3_toggle_count = toggle_count;             // Set toggle count;
   TIMSK3 |= (1<<OCIE3A);                          // Enable ISR.
 }
 
 ISR(TIMER3_COMPA_vect)
 {
-  if(timer1_toggle_count != 0) {
+  if(timer3_toggle_count != 0) {
     SOUND_PORT ^= (1 << SOUND_PORT_PIN);
     
-    if(timer1_toggle_count > 0)
-      timer1_toggle_count--;
+    if(timer3_toggle_count > 0)
+      timer3_toggle_count--;
 
   } else {
     TIMSK3 &= ~(1<<OCIE3A);               // disable timer
