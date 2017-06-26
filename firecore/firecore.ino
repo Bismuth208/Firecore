@@ -10,7 +10,7 @@
  *  Arduino IDE:  1.6.6   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  25,078 (*)
+ * Program size:  24,282 (*)
  * Free RAM:      1888 bytes
  *
  * Language:      C and C++
@@ -98,6 +98,7 @@ const uint8_t lvlColors[] PROGMEM = {
   0x1C,
   0x04
 };
+
 //---------------------------------------------------------------------------//
 
 uint8_t randNum(void)
@@ -162,19 +163,19 @@ bool checkNewPosition(position_t *objOne, position_t *objTwo)
 void applyNewPosition(position_t *objOne, position_t *objTwo, uint16_t picW, uint16_t picH)
 {
   // clear previos position
-  tftFillRect(objOne->x, objOne->y, picW, picH, currentBackGroundColor);
+  tftFillRectFast(objOne, picW, picH);
   // store new position
   *objOne = *objTwo;
 }
 
-void movePicture(position_t *objOne, position_t *objTwo, uint16_t picW, uint16_t picH)
+void movePicture(objPosition_t *pObj, uint16_t picW, uint16_t picH)
 {
   // is position changed?
-  if((objOne->x != objTwo->x) || (objOne->y != objTwo->y)) {
+  if((pObj->Base.x != pObj->New.x) || (pObj->Base.y != pObj->New.y)) {
     // clear previos position
-    tftFillRect(objOne->x, objOne->y, picW, picH, currentBackGroundColor);
+    tftFillRectFast(&pObj->Base, picW, picH);
     // store new position
-    *objOne = *objTwo;
+    pObj->Base = pObj->New;
   }
 }
 
@@ -243,25 +244,27 @@ bool checkCollision(position_t *pObjOne, uint16_t objOneW, uint16_t objOneH,
 
 void checkFireButton(void)
 {
+  rocket_t *pRokets;
+
   if(btnStates.aBtn) {
     btnStates.aBtn = false;
     if(ship.weapon.overHeated) return;
       
-      if((ship.weapon.rocketsLeft -= PLAYER_ROCKET_COST) < 0) {
-        ship.weapon.overHeated = true;
-        tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y,
-                             SHIP_ENERGY_W, SHIP_ENERGY_H, COLOR_RED);
-      } else {
+      if((ship.weapon.rocketsLeft -= PLAYER_ROCKET_COST) > 0) {
         // store to local registers
-        rocket_t *pRokets = &playeRockets[ship.weapon.rocketsLeft];
+        pRokets = &playeRockets[ship.weapon.rocketsLeft];
         if(pRokets->onUse == false) {
 #if ADD_SOUND
           if(soundEnable) toneBuzz(500, 10);
 #endif    
           pRokets->onUse = true;
-          pRokets->pos.x = ship.posBase.x + ROCKET_OFFSET_X;
-          pRokets->pos.y = ship.posBase.y + ROCKET_OFFSET_Y;
+          pRokets->pos.x = ship.pos.Base.x + ROCKET_OFFSET_X;
+          pRokets->pos.y = ship.pos.Base.y + ROCKET_OFFSET_Y;
         }
+      } else {
+        ship.weapon.overHeated = true;
+        tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y,
+                             SHIP_ENERGY_W, SHIP_ENERGY_H, COLOR_RED);
       }
       hudStatus.updPew = true;
   }
@@ -306,23 +309,25 @@ void applyShipDamage(inVader_t *pAlien)
   hudStatus.updLife = true;        // update new life status later
 }
 
-void checkShipDamage(void)  //check damage from deathRay
+void checkShipDamage(void)  // check damage from deathRay
 {
+  inVader_t *pAlien = &alien[0];
   for(uint8_t countV=0; countV < MAX_ALIENS; countV++) {
-    if(alien[countV].deathRay.onUse) { // is it shoot already?
-      if(checkCollision(&alien[countV].deathRay.pos, ALIEN_ROCKET_PIC_W, ALIEN_ROCKET_PIC_H,
-           &ship.posBase, SHIP_PIC_W, SHIP_PIC_H)) {
-        applyShipDamage(&alien[countV]);        
+    if(pAlien->deathRay.onUse) { // is it shoot already?
+      if(checkCollision(&pAlien->deathRay.pos, ALIEN_ROCKET_PIC_W, ALIEN_ROCKET_PIC_H,
+           &ship.pos.Base, SHIP_PIC_W, SHIP_PIC_H)) {
+        applyShipDamage(pAlien);
       }
     }
+    ++pAlien;
   }
 }
 
-void checkShipBossDamage(void)  //check damage from boss deathRay
+void checkShipBossDamage(void)  // check damage from boss deathRay
 {
   if(alienBoss.deathRay.onUse) { // is it shoot already?
     if(checkCollision(&alienBoss.deathRay.pos, ALIEN_ROCKET_PIC_W, ALIEN_ROCKET_PIC_H,
-          &ship.posBase, SHIP_PIC_W, SHIP_PIC_H)) {
+          &ship.pos.Base, SHIP_PIC_W, SHIP_PIC_H)) {
       applyShipDamage(&alienBoss);
     }
   }
@@ -337,7 +342,7 @@ void checkShipHealth(void)
   setLEDValue(LED_R, lowHealthState); // yyess... every time set this...
 
   if(ship.health <= 0) {
-    replaceTask(checkShipDamage, gameOver, 0, true);  // GameOver!
+    gameOver();  // GameOver!
   }
 }
 
@@ -348,9 +353,9 @@ void moveShip(void)
   newValueXY = getStickVal(LINE_X);
   if(newValueXY != calJoysticX) {
     if(newValueXY < calJoysticX) {
-      ship.posNew.x += ship.speed;
+      ship.pos.New.x += ship.speed;
     } else {
-      ship.posNew.x -= ship.speed;
+      ship.pos.New.x -= ship.speed;
     } 
   }
   //applyShipDirection(&ship.posNew.x, calJoysticX, LINE_X);
@@ -358,24 +363,24 @@ void moveShip(void)
   newValueXY = getStickVal(LINE_Y);
   if(newValueXY != calJoysticY) {
     if(newValueXY > calJoysticY) {
-      ship.posNew.y += ship.speed;
+      ship.pos.New.y += ship.speed;
     } else {
-      ship.posNew.y -= ship.speed;
+      ship.pos.New.y -= ship.speed;
     } 
   }
   //applyShipDirection(&ship.posNew.y, calJoysticY, LINE_Y); 
 
-  if(ship.posNew.x < SHIP_MIN_POS_X) {
-    ship.posNew.x = SHIP_MIN_POS_X;
-  } else if(ship.posNew.x > SHIP_MAX_POS_X) {
-    ship.posNew.x = SHIP_MAX_POS_X;
+  if(ship.pos.New.x < SHIP_MIN_POS_X) {
+    ship.pos.New.x = SHIP_MIN_POS_X;
+  } else if(ship.pos.New.x > SHIP_MAX_POS_X) {
+    ship.pos.New.x = SHIP_MAX_POS_X;
   }
   //checkShipPosition(&ship.posNew.x, SHIP_MIN_POS_X, SHIP_MAX_POS_X);
 
-  if(ship.posNew.y < SHIP_MIN_POS_Y) {
-    ship.posNew.y = SHIP_MIN_POS_Y;
-  } else if(ship.posNew.y > SHIP_MAX_POS_Y) {
-    ship.posNew.y = SHIP_MAX_POS_Y;
+  if(ship.pos.New.y < SHIP_MIN_POS_Y) {
+    ship.pos.New.y = SHIP_MIN_POS_Y;
+  } else if(ship.pos.New.y > SHIP_MAX_POS_Y) {
+    ship.pos.New.y = SHIP_MAX_POS_Y;
   }
   //checkShipPosition(&ship.posNew.y, SHIP_MIN_POS_Y, SHIP_MAX_POS_Y);
 }
@@ -386,20 +391,19 @@ void shipHyperJump(void)
   uint16_t picSize = (shipState ? SHIP_BASE_HI_PIC_SIZE : SHIP_BASE_LOW_PIC_SIZE);
   uint16_t posX;
 
-  for(posX = ship.posBase.x; posX < SHIP_MAX_POS_X; posX++) {
-    drawBMP_RLE_P(posX, ship.posBase.y, 
-                     SHIP_PIC_W, SHIP_PIC_H, pic, picSize);
+  for(posX = ship.pos.Base.x; posX < SHIP_MAX_POS_X; posX++) {
+    drawBMP_RLE_P(posX, ship.pos.Base.y, SHIP_PIC_W, SHIP_PIC_H, pic, picSize);
   }
 
-  ship.posBase.x = posX;
-  movePicture(&ship.posBase, &ship.posNew, SHIP_PIC_W, SHIP_PIC_H);
+  ship.pos.Base.x = posX;
+  movePicture(&ship.pos, SHIP_PIC_W, SHIP_PIC_H);
 }
 
 //---------------------------------------------------------------------------//
 void moveGift(void)
 {
-  if((gift.posNew.x -= GIFT_MOVE_SPEED) <= GIFT_MIN_POS_X) {
-    movePicture(&gift.posBase, &gift.posNew, GIFT_PIC_W, GIFT_PIC_H);
+  if((gift.pos.New.x -= GIFT_MOVE_SPEED) <= GIFT_MIN_POS_X) {
+    movePicture(&gift.pos, GIFT_PIC_W, GIFT_PIC_H);
     createNextLevel();
   }
 }
@@ -409,21 +413,21 @@ void drawGift(void)
   gift.state = !gift.state;
   const uint8_t *pic = (gift.state ? giftPicHi : giftPicLow);
 
-  movePicture(&gift.posBase, &gift.posNew, GIFT_PIC_W, GIFT_PIC_H);
-  drawBMP_RLE_P(gift.posBase.x, gift.posBase.y, GIFT_PIC_W, GIFT_PIC_H, pic, GIFT_PIC_SIZE);
+  movePicture(&gift.pos, GIFT_PIC_W, GIFT_PIC_H);
+  drawBMP_RLE_P(gift.pos.Base.x, gift.pos.Base.y, GIFT_PIC_W, GIFT_PIC_H, pic, GIFT_PIC_SIZE);
 }
 
 void checkGift(void)
 {
   int8_t countR;
+  rocket_t *pRocket = &playeRockets[0];
 
   for(countR =0; countR < MAX_PEW_PEW; countR++) {
-    if(playeRockets[countR].onUse) {
-      if(checkCollision(&playeRockets[countR].pos, ROCKET_W, ROCKET_H,
-              &gift.posBase, GIFT_PIC_W, GIFT_PIC_H)) {
+    if(pRocket->onUse) {
+      if(checkCollision(&pRocket->pos, ROCKET_W, ROCKET_H, 
+                        &gift.pos.Base, GIFT_PIC_W, GIFT_PIC_H)) {
 
-        rocketEpxlosion(&playeRockets[countR]);
-
+        rocketEpxlosion(pRocket);
         score += GIFT_BONUS_SCORE;
 
         if((ship.health += GIFT_HEALTH_RESTORE) > SHIP_HEALTH) {
@@ -432,6 +436,7 @@ void checkGift(void)
         createNextLevel();
       }
     }
+    ++pRocket;
   }
 }
 
@@ -443,18 +448,22 @@ void createNextLevel(void)
   deleteAllTasks();
   addTask(getBtnStates, 50, true);
 
+  pFunc_t pfText, pfTask;
+
   if((++curretLevel) >= MAX_WORLDS) { // is it was final boss?
-    victory();
-    addTask(waitEnd, 400, true);
+    pfText = victory;
+    pfTask = waitEnd;
   } else {
     totalRespawns = ALIEN_KILLS_TO_BOSS + difficultyIncrement;
     if(++difficultyIncrement > MAX_DIFFICULT_INCREMENT) { // increase speed of all each lvl
       difficultyIncrement = MAX_DIFFICULT_INCREMENT;
     }
-  
-    levelClear();
-    addTask(waitOk, 400, true);
+    pfText = levelClear;
+    pfTask = waitOk;
   }
+
+  pfText();
+  addTask(pfTask, 400, true);
 }
 
 void levelBaseInit(void)
@@ -467,84 +476,47 @@ void levelBaseInit(void)
 
 // --------------------------------------------------------------- //
 
+// mother of God, what i've done...
+void addTasksArray(const taskParams_t * const *pArr, uint8_t size)
+{
+  const taskParams_t *pTask;
+  deleteAllTasks();
+  setMaxTasks(size);
+
+  while(size--) {
+    // get ponter to task structure
+    pTask = pgm_read_word(pArr++);
+    // get params from structure
+    addTask(pgm_read_word(&pTask->task), pgm_read_word(&pTask->timeout), true);
+  }
+}
+
 void addTitleTasks(void)
 {
-  addTask(titleAction, 200, true);
-  addTask(getBtnStates, 50, true);
-  addTask(drawStars, 50, true);
-  addTask(drawShip, 70, true);
-  addTask(drawStart, 500, true);
-  //addTask(updateRows, 1 SEC, true);
-  addTask(drawTitleText, 1 SEC, true);
+  addTasksArray(titleTasksArr, TITLE_TASKS_COUNT);
 }
 
 void addGameTasks(void)
 {
-  addTask(drawStars, 50, true);
-  addTask(moveShip, 70, true);
-  addTask(drawShip, 70, true);
-  addTask(checkShipDamage, 180, true);
+  ship.pos.New.x = SHIP_GAME_POS_X;
+  ship.pos.New.y = SHIP_GAME_POS_Y;
 
-  addTask(getBtnStates, 50, true);
-  addTask(checkFireButton, 75, true);
-  //addTask(checkSwitchWeapon, 150, true);
-  addTask(pauseMenu, 400, true);
-  addTask(drawPlayerRockets, 40, true);
-  addTask(checkOverHeatGun, 100, true);
-  addTask(checkShipHealth, 500, true);
-
-  addTask(drawSomeGUI, 500, true);
-
-  addTask(checkInVaders, 140, true);
-  addTask(drawInVaders, 150, true);
-  addTask(moveInVaders, 160, true);  // this is must be more than drawAliens()
-  addTask(checkInVadersRespawn, 1 SEC, true);
-  addTask(checkInVadersRay, 200, true);
-
-  ship.posNew.x = SHIP_GAME_POS_X;
-  ship.posNew.y = SHIP_GAME_POS_Y;
+  addTasksArray(gameTasksArr, GAME_TASKS_COUNT);
 }
 
 void addBossTasks(void)
 {
-  addTask(moveShip, 70, true);
-  addTask(drawShip, 70, true);
-  addTask(checkShipBossDamage, 130, true);
-
-  addTask(getBtnStates, 50, true);
-  addTask(checkFireButton, 75, true);
-  //addTask(checkSwitchWeapon, 150, true);
-  addTask(pauseMenu, 400, true);
-  addTask(drawPlayerRockets, 40, true);
-  addTask(checkOverHeatGun, 100, true);
-  addTask(checkShipHealth, 500, true);
-
-  addTask(drawSomeGUI, 500, true);
-
-  addTask(drawBoss, 130, true);
-  addTask(moveBossVertical, 150, true);
-  addTask(checkBossDamage, 140, true);
-  addTask(checkBossFire, 150, true);
+  addTasksArray(bossTasksArr, BOSS_TASKS_COUNT);
 }
 
 void dropGift(void)
 {
   // drop gift from the boss
-  gift.posNew.x = GIFT_BASE_POS_X;
-  gift.posNew.y = GIFT_BASE_POS_Y;
+  gift.pos.New.x = GIFT_BASE_POS_X;
+  gift.pos.New.y = GIFT_BASE_POS_Y;
   gift.state = false;
 
-  deleteAllTasks();
-  addTask(moveShip, 70, true);
-  addTask(drawShip, 70, true);
-  addTask(getBtnStates, 50, true);
-  addTask(checkFireButton, 75, true);
-  addTask(drawPlayerRockets, 40, true);
-  addTask(checkOverHeatGun, 100, true);
-
-  addTask(moveGift, 120, true);
-  addTask(drawGift, 150, true);
-  addTask(checkGift, 80, true);
+  addTasksArray(giftTasksArr, GIFT_TASKS_COUNT);
 }
 // --------------------------------------------------------------- //
 
@@ -561,11 +533,11 @@ void setMainFreq(uint8_t ps)
 // ------------- Init section ---------------------- //
 void readEEpromScore(void)
 {
-  uint8_t varCheck = eeprom_read_byte((const uint8_t*) EE_ADDR_MARK);
+  uint8_t varCheck = getSaveDataMark(EE_ADDR_MARK);
 
-  if(varCheck != HI_SCORE_MARK ) {
-    eeprom_write_word( (uint16_t*) EE_ADDR_SCORE, score);
-    eeprom_write_byte( ( uint8_t*) EE_ADDR_MARK, HI_SCORE_MARK);
+  if(varCheck != HI_SCORE_MARK ) { // no save data in EEPROM?
+    writeSaveData(EE_ADDR_SCORE, score);
+    writeSaveData(EE_ADDR_MARK, HI_SCORE_MARK);
   }
 }
 
@@ -583,8 +555,8 @@ void initGUI(void)
 
 void initShip(void)
 {
-  ship.posNew.x = SHIP_TITLE_POS_X;
-  ship.posNew.y = SHIP_TITLE_POS_Y;
+  ship.pos.New.x = SHIP_TITLE_POS_X;
+  ship.pos.New.y = SHIP_TITLE_POS_Y;
   ship.health = SHIP_HEALTH;
   ship.speed = SHIP_BASE_SPEED;
   //ship.power = ;
@@ -592,8 +564,10 @@ void initShip(void)
   ship.weapon.rocketsLeft = MAX_PEW_PEW;
   ship.weapon.overHeated = false;
 
+  rocket_t *pRocket = &playeRockets[0];
   for(uint8_t count =0; count < MAX_PEW_PEW; count++) {
-    playeRockets[count].onUse = false;
+    pRocket->onUse = false;
+    ++pRocket;
   }
 }
 

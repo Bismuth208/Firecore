@@ -11,6 +11,11 @@ typedef struct { // 4 bytes RAM
   int16_t y;
 } position_t;
 
+typedef struct {
+  position_t Base;
+  position_t New;
+} objPosition_t;
+
 typedef struct {  // 5 bytes RAM
   position_t pos;
   uint8_t color; // as we use NES palette, store only color id
@@ -25,8 +30,7 @@ typedef struct {  // 5 bytes RAM
 } rocket_t;
 
 typedef struct {  // 8 bytes RAM
-  position_t posBase;
-  position_t posNew;
+  objPosition_t pos;
   bool state;
 } gift_t;
 
@@ -41,9 +45,8 @@ typedef struct {
   };
 } weapon_t;
 
-typedef struct {  // 4 + 4 + 5 + 5 bytes RAM
-  position_t posBase;
-  position_t posNew;
+typedef struct {  // 8 + 5 + 5 bytes RAM
+  objPosition_t pos;
   weapon_t weapon;
   int16_t health;
   int8_t speed;
@@ -51,9 +54,8 @@ typedef struct {  // 4 + 4 + 5 + 5 bytes RAM
   //int16_t durability;
 } ship_t;
 
-typedef struct {  // 4 + 6 + 3 bytes RAM
-  position_t posBase;
-  position_t posNew;
+typedef struct {  // 8 + 6 + 5 bytes RAM
+  objPosition_t pos;
   struct {
     uint8_t state   :1;     // Pic what we draw
     uint8_t alive   :1;
@@ -92,6 +94,12 @@ typedef struct {
   uint8_t name[4]; // 3 for name 4 for '\n'
   uint16_t score;  // 65535 score val be enought right?
 } saveData_t;
+
+
+typedef struct {
+  pFunc_t task;
+  uint16_t timeout;
+} taskParams_t;
 
 //---------------------------------------------------------------------------//
 

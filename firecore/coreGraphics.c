@@ -109,43 +109,48 @@ void drawShip(void)
   uint16_t picSize = (shipState ? SHIP_BASE_HI_PIC_SIZE : SHIP_BASE_LOW_PIC_SIZE);
   
   shipState = !shipState;
-  movePicture(&ship.posBase, &ship.posNew, SHIP_PIC_W, SHIP_PIC_H);
-  drawBMP_RLE_P(ship.posBase.x, ship.posBase.y, SHIP_PIC_W, SHIP_PIC_H, pic, picSize);
+  movePicture(&ship.pos, SHIP_PIC_W, SHIP_PIC_H);
+  drawBMP_RLE_P(ship.pos.Base.x, ship.pos.Base.y, SHIP_PIC_W, SHIP_PIC_H, pic, picSize);
 }
 
 void drawPlayerRockets(void)
 {
+  rocket_t *pRocket = &playeRockets[0];
+
   for(uint8_t count =0; count < MAX_PEW_PEW; count++) {
-    if(playeRockets[count].onUse) {
+    if(pRocket->onUse) {
       // remove previous rocket image
-      tftFillRect(playeRockets[count].pos.x, playeRockets[count].pos.y, 
-                                     ROCKET_W, ROCKET_H, currentBackGroundColor);
+      tftFillRectFast(&pRocket->pos, ROCKET_W, ROCKET_H);
       
-      if((playeRockets[count].pos.x += PLAYER_ROCKET_SPEED) < TFT_W) {
-        drawBMP_RLE_P(playeRockets[count].pos.x, playeRockets[count].pos.y,
+      if((pRocket->pos.x += PLAYER_ROCKET_SPEED) < TFT_W) {
+        drawBMP_RLE_P(pRocket->pos.x, pRocket->pos.y,
                                   ROCKET_W, ROCKET_H, rocketPic, ROCKET_PIC_SIZE);
       } else {
-        playeRockets[count].onUse = false;
+        pRocket->onUse = false;
       }
     }
+    ++pRocket;
   }
 }
 // --------------------------------------------------------------- //
 
 void drawInVaders(void)
 {
-  for(uint8_t count=0; count < MAX_ALIENS; count++) {
-    if(alien[count].alive) { // ALIIIVEE! IT`S ALIIVEEE!
+  inVader_t *pAlien = &alien[0];
 
-      const uint8_t *pic = (alien[count].state ? alienShipHi : alienShipLow);
-      uint16_t picSize = (alien[count].state ? ALIEN_SHIP_HI_PIC_SIZE : ALIEN_SHIP_LOW_PIC_SIZE);
+  for(uint8_t count=0; count < MAX_ALIENS; count++) {
+    if(pAlien->alive) { // ALIIIVEE! IT`S ALIIVEEE!
+
+      const uint8_t *pic = (pAlien->state ? alienShipHi : alienShipLow);
+      uint16_t picSize = (pAlien->state ? ALIEN_SHIP_HI_PIC_SIZE : ALIEN_SHIP_LOW_PIC_SIZE);
       
-      alien[count].state = !alien[count].state;
-      movePicture(&alien[count].posBase, &alien[count].posNew, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H);
+      pAlien->state = !pAlien->state;
+      movePicture(&pAlien->pos, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H);
       
-      drawBMP_RLE_P(alien[count].posBase.x, alien[count].posBase.y,
+      drawBMP_RLE_P(pAlien->pos.Base.x, pAlien->pos.Base.y,
                        ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H, pic, picSize);
-    }    
+    }
+    ++pAlien;
   }
 }
 // --------------------------------------------------------------- //
@@ -186,7 +191,6 @@ void drawRows(void)
     titleRowLPosX = PIC_TITLE_L_BASE_X;
     titleRowRPosX = PIC_TITLE_R_BASE_X;
     
-    deleteAllTasks();
     addTitleTasks();
     drawTitleText();
   } else {
@@ -205,13 +209,24 @@ void drawRows(void)
 void screenSliderEffect(uint16_t color)
 {
   tftDrawFastVLine(TFT_W, 0, TFT_H, color);
-  for (int16_t i = TFT_W; i >= 0; i--) {
+  for(int16_t i = TFT_W; i >= 0; i--) {
     tftScrollSmooth(1, i, 4);
     tftDrawFastVLine(TFT_W-i-1, 0, TFT_H, color);
   }
   tftDrawFastVLine(0, 0, TFT_H, color);
 }
 // --------------------------------------------------------------- //
+void tftFillRectFast(position_t *pPos, uint8_t w, uint8_t h)
+{
+  // -1 == convert to display addr size
+  tftSetAddrWindow(pPos->x, pPos->y, pPos->x+w-1, pPos->y+h-1);
+
+  uint16_t dataSize = w*h;
+
+  while(dataSize--) {
+    pushColorFast(currentBackGroundColor);
+  }
+}
 
 void drawBMP_RLE_P(int16_t x, int16_t y, uint8_t w, uint8_t h,
                               const uint8_t *pPic, int16_t sizePic)
@@ -249,7 +264,7 @@ void drawBMP_RLE_P(int16_t x, int16_t y, uint8_t w, uint8_t h,
       --repeatTimes;
       pushColorFast(repeatColor);
     } while(repeatTimes);
-    
+
     ++pPic;
   }
 }

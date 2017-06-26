@@ -1,6 +1,8 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#include <stdbool.h>
+
 #include "types.h"
 
 #ifdef __cplusplus
@@ -15,9 +17,9 @@ extern "C"{
 
 #define MAX_GAME_TASKS        18
 
-#define STAR_STEP             6
-#define MAX_STARS             20      // how much stars we see on screen
-#define MAX_PEW_PEW           45      // Crysis, nanosuit voice: - "Maximum pew".
+#define STAR_STEP             6   // move speed for stars
+#define MAX_STARS             20  // how much stars we see on screen
+#define MAX_PEW_PEW           45  // Crysis, nanosuit voice: - "Maximum pew".
 
 
 #define PLAYER_ROCKET_SPEED   16  //(16/difficult)     // in future will be based on ship type
@@ -31,12 +33,13 @@ extern "C"{
 #define DAMAGE_TO_BOSS        10  //
 #define DAMAGE_TO_SHIP        20  //(20*difficult)     //
 
-#define DENGER_HEALTH_LVL     30
+#define DENGER_HEALTH_LVL     30  // when RGB LED  start to blink
 
 #define MAX_DIFFICULT_INCREMENT 4
 
 #define SCORE_VAL             20
 #define BOSS_SCORE_VAL       200
+#define GIFT_BONUS_SCORE     300
 
 #define RN             randNum()
 #define RAND_CODE      tftSetCP437(RN % 2);
@@ -44,8 +47,10 @@ extern "C"{
 #define DC(a)          tftDrawChar(a)
 
 // this macros remove monstro constructions...
-#define getConstCharPtr(a, b) (const uint8_t*)pgm_read_word(&(a[b]))
-#define getConstWordPtr(a, b) (const uint16_t*)pgm_read_word(&(a[b]))
+#define getWordData(a, b)   pgm_read_word(&(a[b]))
+
+#define getConstCharPtr(a, b) (const uint8_t*)getWordData(a, b)
+#define getConstWordPtr(a, b) (const uint16_t*)getWordData(a, b)
 
 #define RND_POS_X ((RN % 26) * 6)
 #define RND_POS_Y ((RN % 16) * 8)
@@ -67,6 +72,9 @@ extern "C"{
 #define EE_ADDR_MARK          0x08
 #define HI_SCORE_MARK         0x41
 
+#define getSaveDataMark(addr)     eeprom_read_byte((const uint8_t*)addr)
+#define readSaveData(addr)        eeprom_read_word((const uint16_t*)addr)
+#define writeSaveData(addr, val)  eeprom_write_word((uint16_t*)addr, val)
 //---------------------------------------------------------------------------//
 
 #define BUTTON_A   SW_BTN_4_MUX
@@ -96,8 +104,6 @@ extern "C"{
 #define GIFT_BASE_POS_Y  RN % 100
 
 #define GIFT_MOVE_SPEED  2
-
-#define GIFT_BONUS_SCORE 300
 
 //---------------------------------------------------------------------------//
 
@@ -302,9 +308,17 @@ void checkBossDamage(void);
 void checkBossFire(void);
 void bossDie(void);
 
+void checkShipBossDamage(void);
+
 //---------------------------------------------------------------------------//
 
 void initShip(void);
+void moveShip(void);
+void checkShipDamage(void);
+
+void checkFireButton(void);
+void checkOverHeatGun(void);
+void checkShipHealth(void);
 //---------------------------------------------------------------------------//
 
 // core graphics
@@ -321,6 +335,8 @@ void screenSliderEffect(uint16_t color);
 void drawBMP_RLE_P(int16_t x, int16_t y, uint8_t w, uint8_t h,
                               const uint8_t *pPic, int16_t sizePic);
 
+void tftFillRectFast(position_t *pPos, uint8_t w, uint8_t h);
+
 void rocketEpxlosion(rocket_t *pRocket);
 //---------------------------------------------------------------------------//
 
@@ -332,7 +348,7 @@ void checkShipPosition(uint16_t *pos, uint16_t max, uint16_t min);
 
 bool checkNewPosition(position_t *objOne, position_t *objTwo);
 void applyNewPosition(position_t *objOne, position_t *objTwo, uint16_t picW, uint16_t picH);
-void movePicture(position_t *objOne, position_t *objTwo, uint16_t picW, uint16_t picH);
+void movePicture(objPosition_t *pObj, uint16_t picW, uint16_t picH);
 
 uint8_t randNum(void);
 void setMainFreq(uint8_t ps);
@@ -344,6 +360,20 @@ bool checkCollision(position_t *pObjOne, uint16_t objOneW, uint16_t objOneH,
 void addGameTasks(void);
 void addTitleTasks(void);
 void pauseWindow(void);
+//---------------------------------------------------------------------------//
+
+
+#define TITLE_TASKS_COUNT  6
+#define GAME_TASKS_COUNT  16
+#define BOSS_TASKS_COUNT  14
+#define GIFT_TASKS_COUNT  9
+
+extern const taskParams_t * const titleTasksArr[];
+extern const taskParams_t * const gameTasksArr[];
+extern const taskParams_t * const bossTasksArr[];
+extern const taskParams_t * const giftTasksArr[];
+
+
 //---------------------------------------------------------------------------//
 
 #ifdef __cplusplus

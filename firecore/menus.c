@@ -11,6 +11,7 @@
 #endif
 
 // -------------------------- Main menu -------------------------- //
+#if 0
 void getMenuItem(void)
 {
   uint16_t newValueXY =0;
@@ -57,8 +58,6 @@ void menuAction(void)
 #endif
     
     if(fPtr != NULL) {
-      deleteAllTasks();
-      resetBtnStates();
       fPtr();
     }
   }
@@ -92,6 +91,8 @@ void selectionMenu(void)
   addTask(drawMenuItemSelector, 200, true);
   addTask(menuAction, 400, true);
 }
+#endif
+//---------------------------------------------------------------------------//
 
 void action(){SLOW_CPU;for(;;){RAND_CODE;DC(RNDCLR(RND_POS_X,RND_POS_Y));}}
 
@@ -130,6 +131,7 @@ void pauseWindow(void)
 void titleAction(void)
 {
   if(btnStates.aBtn) {
+    resetBtnStates();
     baseStory();
   }
 }
@@ -156,7 +158,6 @@ void baseStory(void)
   deleteAllTasks();
   addTask(getBtnStates, 50, true);
   addTask(drawStory, 250, true);
-  resetBtnStates();
 }
 
 void drawStory(void)
@@ -210,9 +211,8 @@ void drawLevelSelect(void)
                      (shipState ? COLOR_RED : COLOR_WHITE )); // Home planet
   
   if(btnStates.aBtn) {
-    deleteAllTasks();
-    addGameTasks();
     resetBtnStates();
+    addGameTasks();    
     screenSliderEffect(currentBackGroundColor);
   }
 }
@@ -220,7 +220,6 @@ void drawLevelSelect(void)
 
 void runEndlessMode(void)
 {
-  deleteAllTasks();
   addGameTasks();
   resetBtnStates();
   screenSliderEffect(currentBackGroundColor);
@@ -239,7 +238,7 @@ void drawSomeGUI(void)
 */
 
   if(hudStatus.updLife) {
-    tftFillRect(0, SHIP_ENERGY_POS_Y, ship.health/4 - 4, SHIP_ENERGY_H, COLOR_WHITE);   // 180/4 - 4 = 43 ...
+    tftFillRect(0, SHIP_ENERGY_POS_Y, ship.health/4 - 4, SHIP_ENERGY_H, COLOR_WHITE);
     hudStatus.updLife = false;
   }
 /*
@@ -252,9 +251,9 @@ void drawSomeGUI(void)
 void waitEnd(void)
 {
   if(btnStates.bBtn) {
+    resetBtnStates();
     deleteAllTasks();
     addTask(drawRows, 10, true);
-    resetBtnStates();
     tftFillScreen(currentBackGroundColor);
   }
 }
@@ -285,9 +284,9 @@ void printScore(void)
   // draw hi score
   tftSetCursor(40, 70); tftPrint_P(maxScoreP);
 
-  uint16_t hiScore = eeprom_read_word( (const uint16_t*) EE_ADDR_SCORE);
+  uint16_t hiScore = readSaveData(EE_ADDR_SCORE);
   if(score > hiScore) {
-    eeprom_write_word( (uint16_t*) EE_ADDR_SCORE, score);   // save new score
+    writeSaveData(EE_ADDR_SCORE, score);  // save new score
     hiScore = score;
   }
   tftSetCursor(80, 70); tftPrint(itoa(hiScore, buf, 10));
