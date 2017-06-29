@@ -11,7 +11,7 @@
 #define T(a) task##a
 #define TASK(a,b)    const taskParams_t T(a)[] PROGMEM = {a, b}
 #define TASK_P(a)    (taskParams_t*)&T(a)
-#define TASK_ARR(a)  const taskParams_t * const a##TasksArr[] PROGMEM
+#define TASK_ARR(a)  tasksArr_t a##TasksArr[] PROGMEM
 
 //---------------------------------------------------------------------------//
 // Thanks to macro below, only one pointer copy of each task are possible
@@ -48,6 +48,10 @@ TASK(checkBossFire, 150);
 TASK(moveGift, 120);
 TASK(drawGift, 150);
 TASK(checkGift, 80);
+
+TASK(drawCurrentShipSelection, 250);
+TASK(getShipItem, 250);
+TASK(checkShipSelect, 400);
 //---------------------------------------------------------------------------//
 
 TASK_ARR( title ) = {
@@ -108,4 +112,13 @@ TASK_ARR( gift ) = {
   TASK_P(moveGift),
   TASK_P(drawGift),
   TASK_P(checkGift)
+};
+//---------------------------------------------------------------------------//
+
+TASK_ARR( shipSel ) = {
+  TASK_P(getBtnStates),
+  TASK_P(drawShip),
+  TASK_P(drawCurrentShipSelection),
+  TASK_P(getShipItem),
+  TASK_P(checkShipSelect)
 };

@@ -12,6 +12,10 @@ const uint8_t creditP0[] PROGMEM = {"2017 @Bismuth208"};
 const uint8_t scoreP[] PROGMEM = {"Score: "};
 const uint8_t maxScoreP[] PROGMEM = {"Max: "};
 
+const uint8_t selectShipP[] PROGMEM = {"Select ship"};
+const uint8_t shipSpeedStatP[] PROGMEM = {"Speed: "};
+const uint8_t shipPowerStatP[] PROGMEM = {"Power: "};
+const uint8_t shipDurabStatP[] PROGMEM = {"Armor: "};
 
 
 const uint8_t gameOverP[] PROGMEM = {"Game Over"};

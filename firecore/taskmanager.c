@@ -14,11 +14,12 @@
  * 
  * Minimal time unit: 1 millis
  * Maximum tasks:     254 (0xFF reserved as NULL)
- * RAM per task:      9 bytes
+ * RAM per task:      9 bytes (for AVR only!)
  * Language:          C
  * 
  * Author: Antonov Alexandr (Bismuth208)
- * Date:   7 Dec, 2015 
+ * Date:      7 Dec, 2015
+ * Last edit: 29 June, 2017
  * e-mail: bismuth20883@gmail.com
  * 
  * 1 tab = 2 spaces
@@ -127,7 +128,7 @@ void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec)
   // After, place task and timeout to new index in array.
     
 #if USE_MEM_PANIC
-  if (PAC < MAX_TASKS) { // less than 254 tasks
+  if(PAC < MAX_TASKS) { // less than 254 tasks
       PAC++;   // increase total tasks
   } else {
       panic(OVER_LIMIT_FAIL | ADD_FAIL);
@@ -145,16 +146,14 @@ void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec)
   }
 #endif
 
-  if (PAA != NULL) {
+  if(PAA != NULL) {
     // aaand place params to new index
     // why -1? because we can`t allocate 0 bytes :)
-    PAA[PAC-1].pTaskFunc = pTask;
-    PAA[PAC-1].timeToRunTask = timeToCheckTask;
-    PAA[PAC-1].previousMillis = TIMER_FUNC;
-    PAA[PAC-1].execute = exec;
-
-  // So sad what this is C++ style :(
-  /* PAA[PAC-1] = {pTask, timeToCheckTask, TIMER_FUNC, exec}; */
+    taskStatesArr_t *ptr = &PAA[PAC-1]; // reduce instructions by acces pointer
+    ptr->pTaskFunc = pTask;
+    ptr->timeToRunTask = timeToCheckTask;
+    ptr->previousMillis = TIMER_FUNC;
+    ptr->execute = exec;
     
 #if USE_MEM_PANIC   
   } else {
@@ -201,16 +200,15 @@ void addTaskToArr(taskStates_t *pTasksArr, pFunc_t pTask,
   }
 #endif
 
-  if (pTasksArr->pArr != NULL) {
+  if(pTasksArr->pArr != NULL) {
     // aaand place params to new index
     // why -1? because we can`t allocate 0 bytes :)
-    pTasksArr->pArr[pTasksArr->tasksCount-1].pTaskFunc = pTask;
-    pTasksArr->pArr[pTasksArr->tasksCount-1].timeToRunTask = timeToCheckTask;
-    pTasksArr->pArr[pTasksArr->tasksCount-1].previousMillis = TIMER_FUNC;
-    pTasksArr->pArr[pTasksArr->tasksCount-1].execute = exec;
+    taskStatesArr_t *ptr = &pTasksArr->pArr[pTasksArr->tasksCount-1]; // same as addTask()
+    ptr->pTaskFunc = pTask;
+    ptr->timeToRunTask = timeToCheckTask;
+    ptr->previousMillis = TIMER_FUNC;
+    ptr->execute = exec;
     
-    // So sad what this is C++ style :(
-    /* pTasksArr->pArr[pTasksArr->tasksCount-1] = {pTask, timeToCheckTask, TIMER_FUNC, exec}; */
 #if USE_MEM_PANIC
   } else {
     deleteAllTasks();
@@ -232,10 +230,16 @@ void deleteAllTasks(void)
   free(PAA);
   PAA = NULL;
 #else
-  for(uint8_t count = 0; count < maxTasks; count++) {
-    PAA[count].pTaskFunc = NULL;
+
+  uint8_t *pBuf = PAA;
+#ifdef __AVR__
+  uint16_t size = maxTasks *9; // 9 == sizeof(taskStates_t) for AVR only!
+  while(size--) {
+#else
+  for(uint8_t count = 0; count < maxTasks * sizeof(taskStates_t); count++) {
+#endif /* __AVR__ */
+    *pBuf++ = 0x00;
   }
-  //memset(PAA, 0x00, maxTasks * sizeof(tTaskStatesArr));
 #endif
   PAC = 0;
   resetTaskCount = true;
@@ -466,6 +470,7 @@ void rmSameTasks(void)
  */
 uint8_t searchTask(pFunc_t pTask)
 {
+  /*
   if(PAC <= 2) {
     if(PAA[0].pTaskFunc == pTask) {
       return 0;
@@ -473,6 +478,7 @@ uint8_t searchTask(pFunc_t pTask)
       return 1;
     }
   }
+  */
   
   for(uint8_t count=0; count < PAC; count++) {
     if(PAA[count].pTaskFunc == pTask) {

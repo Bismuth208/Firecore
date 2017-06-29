@@ -33,9 +33,11 @@ extern "C"{
 #define DAMAGE_TO_BOSS        10  //
 #define DAMAGE_TO_SHIP        20  //(20*difficult)     //
 
+#define PLAYER_ROCKET_CD_REFILL 2  // Global cooldown
+
 #define DENGER_HEALTH_LVL     30  // when RGB LED  start to blink
 
-#define MAX_DIFFICULT_INCREMENT 4
+#define MAX_DIFFICULT_INCREMENT 2
 
 #define SCORE_VAL             20
 #define BOSS_SCORE_VAL       200
@@ -88,15 +90,31 @@ extern "C"{
 #define getStickVal(a)  getJoyStickValue(a)
 //---------------------------------------------------------------------------//
 
-#define MIN_MENU_ITEM  0
-#define MAX_MENU_ITEM  2
+#define SHIPS_ICON_STEP 53
+#define SHIPS_ICON_NUM 3
+
+#define BASE_STATS_POS_X  50
+#define BASE_STATS_POS_Y  60
+
+#define MIN_SHIP_ITEM  1
+#define MAX_SHIP_ITEM  3
+//---------------------------------------------------------------------------//
 
 
 #define ROCKET_OFFSET_X  18
 #define ROCKET_OFFSET_Y  6
 //---------------------------------------------------------------------------//
 
-#define GIFT_HEALTH_RESTORE  SHIP_HEALTH/2 // he he he, add half-life :) 
+
+#define PAUSE_TEXT_POS_X 50
+#define PAUSE_TEXT_POS_Y 40
+
+#define PAUSE_TEXT_W  90 
+#define PAUSE_TEXT_H  25 
+
+//---------------------------------------------------------------------------//
+
+#define GIFT_HEALTH_RESTORE  SHIP_HEALTH>>1 // >>1 same as /2; he he he, add half-life :) 
 
 #define GIFT_MIN_POS_X   0
 
@@ -107,13 +125,18 @@ extern "C"{
 
 //---------------------------------------------------------------------------//
 
+#define SHIP_BASE_SPEED  6
+#define SHIP_BASE_DAMAGE 35
+#define SHIP_BASE_DURAB  50
+
+//---------------------------------------------------------------------------//
+
 #define SHIP_MIN_POS_X   0
 #define SHIP_MIN_POS_Y   0
 
 #define SHIP_MAX_POS_X   TFT_W - SHIP_PIC_W
 #define SHIP_MAX_POS_Y   TFT_H - SHIP_PIC_H
 
-#define SHIP_BASE_SPEED  5
 
 #define SHIP_ENERGY_POS_X  112
 #define SHIP_ENERGY_POS_Y  125
@@ -125,6 +148,9 @@ extern "C"{
 
 #define SHIP_GAME_POS_X  0
 #define SHIP_GAME_POS_Y  64
+
+#define SHIP_SELECT_POS_X  110
+#define SHIP_SELECT_POS_Y  60
 //---------------------------------------------------------------------------//
 
 #define PIC_ROWS_STEP    1
@@ -311,6 +337,17 @@ void bossDie(void);
 void checkShipBossDamage(void);
 
 //---------------------------------------------------------------------------//
+void addShipSelectTasks(void);
+void drawShipSelectionMenu(void);
+void drawCurrentShipSelection(void);
+void getShipItem(void);
+void getShipStates(shipStats_t *pShipStates);
+void checkShipSelect(void);
+
+//---------------------------------------------------------------------------//
+
+void shipHyperJump(void);
+
 
 void initShip(void);
 void moveShip(void);
@@ -332,10 +369,13 @@ void drawTitleText(void);
 void drawRows(void);
 void screenSliderEffect(uint16_t color);
 
+void drawFrame(uint16_t posX, uint16_t posY,
+	            uint8_t w, uint8_t h, uint16_t clr1, uint16_t clr2);
+
 void drawBMP_RLE_P(int16_t x, int16_t y, uint8_t w, uint8_t h,
                               const uint8_t *pPic, int16_t sizePic);
 
-void tftFillRectFast(position_t *pPos, uint8_t w, uint8_t h);
+void fillRectFast(int16_t x, int16_t y, uint8_t w, uint8_t h);
 
 void rocketEpxlosion(rocket_t *pRocket);
 //---------------------------------------------------------------------------//
@@ -343,6 +383,7 @@ void rocketEpxlosion(rocket_t *pRocket);
 // Helpfull functions
 void getBtnStates(void);
 void resetBtnStates(void);
+uint8_t getJoyStickValue(uint8_t pin);
 
 void checkShipPosition(uint16_t *pos, uint16_t max, uint16_t min);
 
@@ -355,6 +396,8 @@ void setMainFreq(uint8_t ps);
 
 bool checkCollision(position_t *pObjOne, uint16_t objOneW, uint16_t objOneH,
                     position_t *pObjTwo, uint16_t objTwoW, uint16_t objTwoH);
+
+long map(long x, long in_min, long in_max, long out_min, long out_max);
 //---------------------------------------------------------------------------//
 
 void addGameTasks(void);
@@ -367,12 +410,13 @@ void pauseWindow(void);
 #define GAME_TASKS_COUNT  16
 #define BOSS_TASKS_COUNT  14
 #define GIFT_TASKS_COUNT  9
+#define SHIP_SEL_TASKS_COUNT  5
 
-extern const taskParams_t * const titleTasksArr[];
-extern const taskParams_t * const gameTasksArr[];
-extern const taskParams_t * const bossTasksArr[];
-extern const taskParams_t * const giftTasksArr[];
-
+extern tasksArr_t titleTasksArr[];
+extern tasksArr_t gameTasksArr[];
+extern tasksArr_t bossTasksArr[];
+extern tasksArr_t giftTasksArr[];
+extern tasksArr_t shipSelTasksArr[];
 
 //---------------------------------------------------------------------------//
 

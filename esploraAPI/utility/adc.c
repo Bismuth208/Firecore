@@ -4,8 +4,6 @@
 
 #include "adc.h"
 
-#define FREE_RUN 0
-
 void setPrescallerADC(uint8_t ps)
 {
   ADCSRA &= ~(1 << ADEN);
@@ -46,7 +44,7 @@ void setPrescallerADC(uint8_t ps)
 
 void setChannelADC(uint8_t chADC)
 {
-  //Select ADC Channel ch must be 0-7
+  // Select ADC Channel ch must be 0-7
   ADMUX |= (chADC & 0b00000111);
   
   if (chADC <= 5) {
@@ -57,39 +55,28 @@ void setChannelADC(uint8_t chADC)
   }
 }
 
-void initADC()
+void initADC(void)
 {
   // set the analog reference (high two bits of ADMUX) and select the
   // channel (low 4 bits).  this also sets ADLAR (left-adjust result)
   // to 0 (the default).
   ADMUX |= (1<<REFS0); //Voltage reference from Avcc (5v)
-  //ADMUX &= ~(1<<REFS1);
-  
-  //ADC set to 64
-  setPrescallerADC(5); 
 
-#if FREE_RUN
-  ADCSRB &= ~((1<<ADTS2)|(1<<ADTS1)|(1<<ADTS0));    //ADC in free-running mode
-  ADCSRA |= (1<<ADATE);               //Signal source, in this case is the free-running
-  ADCSRA |= (1<<ADSC);                //Start converting
-#endif
+  // ADC set to 64
+  setPrescallerADC(5);
   
   // AIN1, AIN0 Digital Input Disable
   DIDR1 |= (1<<AIN1D) | (1<<AIN0D);
 }
 
-uint16_t readADC()
+uint16_t readADC(void)
 {
-#if FREE_RUN
-  return ADC;
-#else
   //Start Single conversion
-   ADCSRA |= (1<<ADSC);
+  ADCSRA |= (1<<ADSC);
 
-   //Wait for conversion to complete
-   // ADSC is cleared when the conversion finished
-   while(ADCSRA & (1<<ADSC));
+  // Wait for conversion to complete
+  // ADSC is cleared when the conversion finished
+  while(ADCSRA & (1<<ADSC));
    
   return ADC;
-#endif  
 }

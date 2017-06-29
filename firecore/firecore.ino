@@ -10,8 +10,9 @@
  *  Arduino IDE:  1.6.6   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  24,282 (*)
- * Free RAM:      1888 bytes
+ * Program size:  24,828 (*)
+ * Used RAM:      508 bytes
+ * Free RAM:      2052 bytes
  *
  * Language:      C and C++
  * 
@@ -92,13 +93,12 @@ const uint8_t lvlColors[] PROGMEM = {
   0x01,
   0x10,
   0x20,
-  0x3C,
+  0x30,
   0x01,
   0x04,
-  0x1C,
+  0x10,
   0x04
 };
-
 //---------------------------------------------------------------------------//
 
 uint8_t randNum(void)
@@ -107,6 +107,11 @@ uint8_t randNum(void)
   nextInt ^= (nextInt >> 5);
   nextInt ^= (randNumA++ >> 2);
   return nextInt;
+}
+
+long map(long x, long in_min, long in_max, long out_min, long out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 // ------------------------ Poll constols ------------------------ //
@@ -140,7 +145,7 @@ uint8_t getJoyStickValue(uint8_t pin)
 
   // approximate newValuePin data, and encode to ASCII 
   // (just because it works and i left it as is)
-  return (newValuePin * 9 / 1024) + 48;
+  return ((newValuePin * 9) >> 10) + 48; // '>>10' same as '/1024'
 }
 
 void waitReleaseBtn(uint8_t btn)
@@ -163,7 +168,7 @@ bool checkNewPosition(position_t *objOne, position_t *objTwo)
 void applyNewPosition(position_t *objOne, position_t *objTwo, uint16_t picW, uint16_t picH)
 {
   // clear previos position
-  tftFillRectFast(objOne, picW, picH);
+  fillRectFast(objOne->x, objOne->y, picW, picH);
   // store new position
   *objOne = *objTwo;
 }
@@ -173,19 +178,20 @@ void movePicture(objPosition_t *pObj, uint16_t picW, uint16_t picH)
   // is position changed?
   if((pObj->Base.x != pObj->New.x) || (pObj->Base.y != pObj->New.y)) {
     // clear previos position
-    tftFillRectFast(&pObj->Base, picW, picH);
+    fillRectFast(pObj->Base.x, pObj->Base.y, picW, picH);
     // store new position
     pObj->Base = pObj->New;
   }
 }
 
-void checkShipPosition(int16_t *pos, int16_t max, int16_t min)
+int16_t checkShipPosition(int16_t pos, int16_t min, int16_t max)
 { 
-  if(*pos < min) {
-    *pos = min;
-  } else if(*pos > max) {
-    *pos = max;
+  if(pos < min) {
+    pos = min;
+  } else if(pos > max) {
+    pos = max;
   }
+  return pos;
 }
 
 void applyShipDirection(uint16_t *pos, uint16_t valOne, uint8_t line)
@@ -193,9 +199,9 @@ void applyShipDirection(uint16_t *pos, uint16_t valOne, uint8_t line)
   uint16_t newValueXY = getStickVal(line);
   if(newValueXY != valOne) {
     if(newValueXY < valOne) {
-      *pos += ship.speed;
+      *pos += ship.states.speed;
     } else {
-      *pos -= ship.speed;
+      *pos -= ship.states.speed;
     } 
   }  
 }
@@ -258,8 +264,8 @@ void checkFireButton(void)
           if(soundEnable) toneBuzz(500, 10);
 #endif    
           pRokets->onUse = true;
-          pRokets->pos.x = ship.pos.Base.x + ROCKET_OFFSET_X;
-          pRokets->pos.y = ship.pos.Base.y + ROCKET_OFFSET_Y;
+          pRokets->pos.x = ship.pos.Base.x + ROCKET_OFFSET_X; // \__ start position
+          pRokets->pos.y = ship.pos.Base.y + ROCKET_OFFSET_Y; // /
         }
       } else {
         ship.weapon.overHeated = true;
@@ -281,9 +287,8 @@ void checkOverHeatGun(void)
       }
 #endif
     } else {  // Global cooldown
-      ship.weapon.rocketsLeft += 2;
-      tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y, 
-                       SHIP_ENERGY_W, SHIP_ENERGY_H, currentBackGroundColor);
+      ship.weapon.rocketsLeft += PLAYER_ROCKET_CD_REFILL;
+      fillRectFast(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y, SHIP_ENERGY_W, SHIP_ENERGY_H);
     }
 
     if(ship.weapon.rocketsLeft >= MAX_PEW_PEW) {
@@ -304,7 +309,7 @@ void applyShipDamage(inVader_t *pAlien)
   pAlien->timeToShoot = RAND_SHOOT_TIME;
 
   // clear previous level
-  tftFillRect(0, SHIP_ENERGY_POS_Y, ship.health/4 - 4, SHIP_ENERGY_H, COLOR_RED);
+  tftFillRect(0, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_RED);
   ship.health -= DAMAGE_TO_SHIP;   // absorb damage
   hudStatus.updLife = true;        // update new life status later
 }
@@ -314,8 +319,8 @@ void checkShipDamage(void)  // check damage from deathRay
   inVader_t *pAlien = &alien[0];
   for(uint8_t countV=0; countV < MAX_ALIENS; countV++) {
     if(pAlien->deathRay.onUse) { // is it shoot already?
-      if(checkCollision(&pAlien->deathRay.pos, ALIEN_ROCKET_PIC_W, ALIEN_ROCKET_PIC_H,
-           &ship.pos.Base, SHIP_PIC_W, SHIP_PIC_H)) {
+      if(checkCollision(&pAlien->deathRay.pos, DEATHRAY_PIC_W, DEATHRAY_PIC_H,
+                                    &ship.pos.Base, SHIP_PIC_W, SHIP_PIC_H)) {
         applyShipDamage(pAlien);
       }
     }
@@ -327,7 +332,7 @@ void checkShipBossDamage(void)  // check damage from boss deathRay
 {
   if(alienBoss.deathRay.onUse) { // is it shoot already?
     if(checkCollision(&alienBoss.deathRay.pos, ALIEN_ROCKET_PIC_W, ALIEN_ROCKET_PIC_H,
-          &ship.pos.Base, SHIP_PIC_W, SHIP_PIC_H)) {
+                                    &ship.pos.Base, SHIP_PIC_W, SHIP_PIC_H)) {
       applyShipDamage(&alienBoss);
     }
   }
@@ -338,24 +343,27 @@ void checkShipHealth(void)
 {
   if(ship.health <  DENGER_HEALTH_LVL) {
     lowHealthState = !lowHealthState;
-  }
-  setLEDValue(LED_R, lowHealthState); // yyess... every time set this...
+    setLEDValue(LED_R, lowHealthState); // yyess... every time set this...
 
-  if(ship.health <= 0) {
-    gameOver();  // GameOver!
+    if(ship.health <= 0) {
+      gameOver();  // GameOver!
+    }
   }
 }
 
 void moveShip(void)
 {
   uint16_t newValueXY =0; // store temp value
+  int16_t posX = ship.pos.New.x;
+  int16_t posY = ship.pos.New.y;
+  uint8_t speed = ship.states.speed;
 
   newValueXY = getStickVal(LINE_X);
   if(newValueXY != calJoysticX) {
     if(newValueXY < calJoysticX) {
-      ship.pos.New.x += ship.speed;
+      posX += speed;
     } else {
-      ship.pos.New.x -= ship.speed;
+      posX -= speed;
     } 
   }
   //applyShipDirection(&ship.posNew.x, calJoysticX, LINE_X);
@@ -363,47 +371,32 @@ void moveShip(void)
   newValueXY = getStickVal(LINE_Y);
   if(newValueXY != calJoysticY) {
     if(newValueXY > calJoysticY) {
-      ship.pos.New.y += ship.speed;
+      posY += speed;
     } else {
-      ship.pos.New.y -= ship.speed;
+      posY -= speed;
     } 
   }
   //applyShipDirection(&ship.posNew.y, calJoysticY, LINE_Y); 
 
-  if(ship.pos.New.x < SHIP_MIN_POS_X) {
-    ship.pos.New.x = SHIP_MIN_POS_X;
-  } else if(ship.pos.New.x > SHIP_MAX_POS_X) {
-    ship.pos.New.x = SHIP_MAX_POS_X;
-  }
-  //checkShipPosition(&ship.posNew.x, SHIP_MIN_POS_X, SHIP_MAX_POS_X);
-
-  if(ship.pos.New.y < SHIP_MIN_POS_Y) {
-    ship.pos.New.y = SHIP_MIN_POS_Y;
-  } else if(ship.pos.New.y > SHIP_MAX_POS_Y) {
-    ship.pos.New.y = SHIP_MAX_POS_Y;
-  }
-  //checkShipPosition(&ship.posNew.y, SHIP_MIN_POS_Y, SHIP_MAX_POS_Y);
+  ship.pos.New.x = checkShipPosition(posX, SHIP_MIN_POS_X, SHIP_MAX_POS_X);
+  ship.pos.New.y = checkShipPosition(posY, SHIP_MIN_POS_Y, SHIP_MAX_POS_Y);
 }
 
 void shipHyperJump(void)
 {
-  const uint8_t *pic = (shipState ? shipBaseHi : shipBaseLow);
-  uint16_t picSize = (shipState ? SHIP_BASE_HI_PIC_SIZE : SHIP_BASE_LOW_PIC_SIZE);
-  uint16_t posX;
-
-  for(posX = ship.pos.Base.x; posX < SHIP_MAX_POS_X; posX++) {
-    drawBMP_RLE_P(posX, ship.pos.Base.y, SHIP_PIC_W, SHIP_PIC_H, pic, picSize);
+  while((ship.pos.Base.x++) < SHIP_MAX_POS_X) {
+    // this pic used to left red track on screen
+    drawBMP_RLE_P(ship.pos.Base.x, ship.pos.Base.y, SHIP_PIC_W, SHIP_PIC_H, 
+                                          shipBaseLow, SHIP_BASE_LOW_PIC_SIZE);
   }
-
-  ship.pos.Base.x = posX;
-  movePicture(&ship.pos, SHIP_PIC_W, SHIP_PIC_H);
+  movePicture(&ship.pos, SHIP_PIC_W, SHIP_PIC_H); // remove ship from screen
 }
 
 //---------------------------------------------------------------------------//
 void moveGift(void)
 {
-  if((gift.pos.New.x -= GIFT_MOVE_SPEED) <= GIFT_MIN_POS_X) {
-    movePicture(&gift.pos, GIFT_PIC_W, GIFT_PIC_H);
+  if((gift.pos.New.x -= GIFT_MOVE_SPEED) >= TFT_W) {
+    movePicture(&gift.pos, GIFT_PIC_W, GIFT_PIC_H); // remove gift from screen
     createNextLevel();
   }
 }
@@ -413,16 +406,15 @@ void drawGift(void)
   gift.state = !gift.state;
   const uint8_t *pic = (gift.state ? giftPicHi : giftPicLow);
 
-  movePicture(&gift.pos, GIFT_PIC_W, GIFT_PIC_H);
+  movePicture(&gift.pos, GIFT_PIC_W, GIFT_PIC_H); // clear previous position
   drawBMP_RLE_P(gift.pos.Base.x, gift.pos.Base.y, GIFT_PIC_W, GIFT_PIC_H, pic, GIFT_PIC_SIZE);
 }
 
 void checkGift(void)
 {
-  int8_t countR;
   rocket_t *pRocket = &playeRockets[0];
 
-  for(countR =0; countR < MAX_PEW_PEW; countR++) {
+  for(uint8_t countR =0; countR < MAX_PEW_PEW; countR++) {
     if(pRocket->onUse) {
       if(checkCollision(&pRocket->pos, ROCKET_W, ROCKET_H, 
                         &gift.pos.Base, GIFT_PIC_W, GIFT_PIC_H)) {
@@ -445,9 +437,6 @@ void createNextLevel(void)
 {
   shipHyperJump();
 
-  deleteAllTasks();
-  addTask(getBtnStates, 50, true);
-
   pFunc_t pfText, pfTask;
 
   if((++curretLevel) >= MAX_WORLDS) { // is it was final boss?
@@ -463,6 +452,8 @@ void createNextLevel(void)
   }
 
   pfText();
+  deleteAllTasks();
+  addTask(getBtnStates, 50, true);
   addTask(pfTask, 400, true);
 }
 
@@ -477,15 +468,14 @@ void levelBaseInit(void)
 // --------------------------------------------------------------- //
 
 // mother of God, what i've done...
-void addTasksArray(const taskParams_t * const *pArr, uint8_t size)
+void addTasksArray(tasksArr_t *pArr, uint8_t size)
 {
   const taskParams_t *pTask;
   deleteAllTasks();
-  setMaxTasks(size);
+  setMaxTasks(size); // less tasks more perfomance
 
   while(size--) {
-    // get ponter to task structure
-    pTask = pgm_read_word(pArr++);
+    pTask = pgm_read_word(pArr++); // get ponter to task structure
     // get params from structure
     addTask(pgm_read_word(&pTask->task), pgm_read_word(&pTask->timeout), true);
   }
@@ -506,6 +496,7 @@ void addGameTasks(void)
 
 void addBossTasks(void)
 {
+  ship.states.power = DAMAGE_TO_BOSS;
   addTasksArray(bossTasksArr, BOSS_TASKS_COUNT);
 }
 
@@ -517,6 +508,13 @@ void dropGift(void)
   gift.state = false;
 
   addTasksArray(giftTasksArr, GIFT_TASKS_COUNT);
+}
+
+void addShipSelectTasks(void)
+{
+  ship.pos.New.x = SHIP_SELECT_POS_X;
+  ship.pos.New.y = SHIP_SELECT_POS_Y;
+  addTasksArray(shipSelTasksArr, SHIP_SEL_TASKS_COUNT);
 }
 // --------------------------------------------------------------- //
 
@@ -558,15 +556,12 @@ void initShip(void)
   ship.pos.New.x = SHIP_TITLE_POS_X;
   ship.pos.New.y = SHIP_TITLE_POS_Y;
   ship.health = SHIP_HEALTH;
-  ship.speed = SHIP_BASE_SPEED;
-  //ship.power = ;
-  //ship.durability = ;
   ship.weapon.rocketsLeft = MAX_PEW_PEW;
   ship.weapon.overHeated = false;
 
   rocket_t *pRocket = &playeRockets[0];
   for(uint8_t count =0; count < MAX_PEW_PEW; count++) {
-    pRocket->onUse = false;
+    pRocket->onUse = false; // fix problem at new levels
     ++pRocket;
   }
 }
@@ -606,15 +601,14 @@ void initSys(void)
   tftSetRotation(1);
   tftFillScreen(currentBackGroundColor);
 
-  initTasksArr(&taskArr, &pArr[0], MAX_GAME_TASKS);
-  addTask(drawRows, 10, true);
+  initTasksArr(&taskArr, &pArr[0], 1); // at start moment need only 1 task
+  addTask(drawRows, 10, true); // this task
 }
 
 //------------------------- yep, here's how it all began... -------------------//
-int main(void)
+__attribute__((OS_main)) int main(void)
 {
   initSys();
-  runTasks(); 
-  return 0;
+  runTasks();
 }
 //-----------------------------------------------------------------------------//

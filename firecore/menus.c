@@ -10,88 +10,127 @@
 #define NULL (void *)0
 #endif
 
+int8_t currentShip = 2;
+int8_t previousShip =0;
+bool iconState = false;
+
 // -------------------------- Main menu -------------------------- //
-#if 0
-void getMenuItem(void)
+void drawShipSelectionMenu(void)
+{
+  uint16_t posX =0;
+  screenSliderEffect(currentBackGroundColor);
+
+  for(uint8_t count=0; count<SHIPS_ICON_NUM; count++) {
+    drawFrame(posX, 0, 51, 51, INDIGO_COLOR, COLOR_WHITE);
+    drawBMP_RLE_P(posX, 1, DOGE_PIC_W, DOGE_PIC_H, cityDogePic, DOGE_PIC_SIZE);
+    posX += SHIPS_ICON_STEP;
+  }
+  
+  // make frame for ship
+  tftDrawRect(SHIP_SELECT_POS_X-5, SHIP_SELECT_POS_Y-5,
+                 SHIP_PIC_W+10, SHIP_PIC_H+10, COLOR_WHITE);
+  drawTextWindow(selectShipP, buttonA);
+  addShipSelectTasks();
+}
+
+void drawCurrentShipSelection(void)
+{
+  iconState = !iconState;
+
+  uint16_t posX = SHIPS_ICON_STEP*(currentShip-1);
+  uint16_t color = iconState ? COLOR_WHITE : COLOR_BLACK;
+
+  tftDrawRect(posX, 0, 51, 51, color);
+
+  if(currentShip != previousShip) {
+    drawFrame(0, 55, 100, 30, INDIGO_COLOR, COLOR_WHITE);
+    tftPrintAt_P(4, 58, shipSpeedStatP);
+    tftPrintAt_P(4, 66, shipPowerStatP);
+    tftPrintAt_P(4, 74, shipDurabStatP);
+
+    previousShip = currentShip;
+    getShipStates(&ship.states);
+
+    uint8_t lineSize = map(ship.states.speed, 0, SHIP_BASE_SPEED, 0, 40);
+    tftDrawFastHLine(BASE_STATS_POS_X, BASE_STATS_POS_Y, lineSize, COLOR_WHITE);
+
+    lineSize = map(ship.states.power, 0, SHIP_BASE_DAMAGE, 0, 40);
+    tftDrawFastHLine(BASE_STATS_POS_X, BASE_STATS_POS_Y+8, lineSize, COLOR_WHITE);
+
+    lineSize = map(ship.states.durability, 0, SHIP_BASE_DURAB, 0, 40);
+    tftDrawFastHLine(BASE_STATS_POS_X, BASE_STATS_POS_Y+16, lineSize, COLOR_WHITE);
+
+
+  }
+}
+
+void getShipItem(void)
 {
   uint16_t newValueXY =0;
   
-  newValueXY = getJoyStickValue(Y_J_MUX_VAL);
+  newValueXY = getJoyStickValue(X_J_MUX_VAL);
   if(newValueXY != calJoysticY) {
-    if(newValueXY > calJoysticY) {
-      ++menuItem;
+    if(newValueXY < calJoysticY) {
+      ++currentShip;
     } else {
-      --menuItem;
+      --currentShip;
     }
   }
   
-  if(menuItem < MIN_MENU_ITEM) {
-    menuItem = MIN_MENU_ITEM;
-  } else if(menuItem > MAX_MENU_ITEM) {
-    menuItem = MAX_MENU_ITEM;
+  if(currentShip < MIN_SHIP_ITEM) {
+    currentShip = MIN_SHIP_ITEM;
+  } else if(currentShip > MAX_SHIP_ITEM) {
+    currentShip = MAX_SHIP_ITEM;
   }
 }
 
-void drawMenuItemSelector(void)
+void getShipStates(shipStats_t *pShipStates)
 {
-  uint8_t selectorPosY = menuItem*50;
-  drawBMP_RLE_P(selectorPosY, 5, ROCKET_W, ROCKET_H, rocketPic, ROCKET_PIC_SIZE);
+    switch(currentShip) {
+      case 1: { // speed
+        pShipStates->speed = SHIP_BASE_SPEED;
+        pShipStates->power = SHIP_BASE_DAMAGE-10;
+        pShipStates->durability = SHIP_BASE_DURAB-15;
+      } break;
+
+      case 2: { // power
+        pShipStates->speed = SHIP_BASE_SPEED-1;
+        pShipStates->power = SHIP_BASE_DAMAGE;
+        pShipStates->durability = SHIP_BASE_DURAB-10;
+      } break;
+
+      case 3: { // durability
+        pShipStates->speed = SHIP_BASE_SPEED-2;
+        pShipStates->power = SHIP_BASE_DAMAGE-5;
+        pShipStates->durability = SHIP_BASE_DURAB;
+      } break;
+/*
+      case 4: { // unclock after saving the galaxy
+        pShipStates->speed = SHIP_BASE_SPEED;
+        pShipStates->power = SHIP_BASE_DAMAGE;
+        pShipStates->durability = SHIP_BASE_DURAB;
+      } break;
+*/
+    }
 }
 
-void menuAction(void)
+void checkShipSelect(void)
 {
   if(btnStates.aBtn) {
-    btnStates.aBtn = false;
-    pFunc_t fPtr = NULL;
-    
-    if(menuItem == 0) {
-      fPtr = addGameTasks;
-    }
-#if 0
-    if(menuItem == 1) {
-      addEndlessTasks();
-    }
-    
-    if(menuItem == 2) {
-      addTitleTasks();
-    }
-#endif
-    
-    if(fPtr != NULL) {
-      fPtr();
-    }
+    resetBtnStates();
+    getShipStates(&ship.states);
+    previousShip =0;
+    baseStory();
   }
 }
 
-void selectionMenu(void)
+//---------------------------------------------------------------------------//
+void drawFrame(uint16_t posX, uint16_t posY, uint8_t w, uint8_t h, uint16_t clr1, uint16_t clr2)
 {
-  uint8_t count, countY = 30;
-  
-  screenSliderEffect(currentBackGroundColor);
-  
-  // set F_CPU to 2 MHz by ps = 8 (0x03)
-  setMainFreq(0x03);
-  
-  for(count=5; count < 7; count++) {
-    // draw buttons
-    tftFillRoundRect(26, countY, 120, 32, 5, COLOR_WHITE);
-    tftDrawRoundRect(25, countY+1, 121, 30, 5, COLOR_BLACK);
-    //drawButton(55, countY, 193, 32, 5, COLOR_WHITE, COLOR_BLACK);
-    
-    //tftPrint_P(TFT_W/5, countY+6, PGRW_CP(modePA, count-5));
-    
-    countY += 50;
-  }
-  
-  // set F_CPU back to 16 MHz by ps = 0 (0x00)
-  setMainFreq(0x00);
-  
-  deleteAllTasks();
-  addTask(getMenuItem, 75, true);
-  addTask(drawMenuItemSelector, 200, true);
-  addTask(menuAction, 400, true);
+  tftFillRect(posX, posY, w, h, clr1);          // Frame 0
+  tftDrawRect(posX+1, posY+1, w-2, h-2, clr2);  // Frame 1
 }
-#endif
+
 //---------------------------------------------------------------------------//
 
 void action(){SLOW_CPU;for(;;){RAND_CODE;DC(RNDCLR(RND_POS_X,RND_POS_Y));}}
@@ -112,7 +151,7 @@ void pauseMenu(void)
       enableAllTasks();
       resetBtnStates();
       // remove "Pause" text
-      tftFillRect(TFT_W/3, TFT_H/3, 90, 25, currentBackGroundColor);
+      fillRectFast(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, PAUSE_TEXT_W, PAUSE_TEXT_H);
       //continue();
     }
   }
@@ -121,8 +160,7 @@ void pauseMenu(void)
 void pauseWindow(void)
 {
   tftSetTextSize(3);
-  tftSetCursor(TFT_W/3, TFT_H/3);
-  tftPrint_P(pauseP0);
+  tftPrintAt_P(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, pauseP0);
   tftSetTextSize(1);
 }
 
@@ -132,7 +170,9 @@ void titleAction(void)
 {
   if(btnStates.aBtn) {
     resetBtnStates();
-    baseStory();
+    shipHyperJump();
+    //baseStory();
+    drawShipSelectionMenu();
   }
 }
 
@@ -238,7 +278,7 @@ void drawSomeGUI(void)
 */
 
   if(hudStatus.updLife) {
-    tftFillRect(0, SHIP_ENERGY_POS_Y, ship.health/4 - 4, SHIP_ENERGY_H, COLOR_WHITE);
+    tftFillRect(0, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_WHITE);
     hudStatus.updLife = false;
   }
 /*
@@ -269,27 +309,25 @@ void waitOk(void)
 void printMessage(const char *text)
 {
   tftSetTextSize(2);
-  tftSetCursor(20, 40);
   tftSetTextColor(COLOR_WHITE);
-  tftPrint_P(text);
+  tftPrintAt_P(20, 40, text);
   tftSetTextSize(1);
 }
 
 void printScore(void)
 {
   char buf[10];
-  tftSetCursor(40, 60); tftPrint_P(scoreP);
-  tftSetCursor(80, 60); tftPrint(itoa(score, buf, 10));
+  tftPrintAt_P(40, 60, scoreP);
+  tftPrintAt(80, 60, itoa(score, buf, 10));
 
   // draw hi score
-  tftSetCursor(40, 70); tftPrint_P(maxScoreP);
-
   uint16_t hiScore = readSaveData(EE_ADDR_SCORE);
   if(score > hiScore) {
     writeSaveData(EE_ADDR_SCORE, score);  // save new score
     hiScore = score;
   }
-  tftSetCursor(80, 70); tftPrint(itoa(hiScore, buf, 10));
+  tftPrintAt_P(40, 70, maxScoreP);
+  tftPrintAt(80, 70, itoa(hiScore, buf, 10));
   score = 0;
 }
 

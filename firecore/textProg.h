@@ -16,6 +16,11 @@ extern const uint8_t victoryP[];
 extern const uint8_t scoreP[];
 extern const uint8_t maxScoreP[];
 
+extern const uint8_t selectShipP[];
+extern const uint8_t shipSpeedStatP[];
+extern const uint8_t shipPowerStatP[];
+extern const uint8_t shipDurabStatP[];
+
 extern const uint8_t buttonA[];
 extern const uint8_t buttonB[];
 extern const uint8_t buttonX[];

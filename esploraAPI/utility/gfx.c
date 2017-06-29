@@ -204,7 +204,7 @@ void tftDrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color)
   int16_t dx = x1 - x0;
   int16_t dy = abs(y1 - y0);
   
-  int16_t err = dx / 2;
+  int16_t err = dx >> 1; // >> 1 same as /2
   int16_t ystep;
   
   int16_t xbegin = x0;
@@ -379,11 +379,11 @@ void tftFillTriangle ( int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x
 
 void tftDrawBitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color)
 {
-  int16_t i, j, byteWidth = (w + 7) / 8;
+  int16_t i, j, byteWidth = (w + 7) >> 3; // >> 3 same as / 8
   
   for(j=0; j<h; j++) {
     for(i=0; i<w; i++ ) {
-      if(pgm_read_byte(bitmap + j * byteWidth + i / 8) & (128 >> (i & 7))) {
+      if(pgm_read_byte(bitmap + j * byteWidth + (i >> 3)) & (128 >> (i & 7))) {
         tftDrawPixel(x+i, y+j, color);
       }
     }
@@ -395,11 +395,11 @@ void tftDrawBitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16
 // foreground color and bg as the background color.
 void tftDrawBitmapBG(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color, uint16_t bg)
 {
-  int16_t i, j, byteWidth = (w + 7) / 8;
+  int16_t i, j, byteWidth = (w + 7) >> 3; // >> 3 same as / 8
   
   for(j=0; j<h; j++) {
     for(i=0; i<w; i++ ) {
-      if(pgm_read_byte(bitmap + j * byteWidth + i / 8) & (128 >> (i & 7))) {
+      if(pgm_read_byte(bitmap + j * byteWidth + (i >> 3)) & (128 >> (i & 7))) {
         tftDrawPixel(x+i, y+j, color);
       } else {
       	tftDrawPixel(x+i, y+j, bg);
@@ -413,11 +413,11 @@ void tftDrawBitmapBG(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int
 //C Array can be directly used with this function
 void tftDrawXBitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color)
 {
-  int16_t i, j, byteWidth = (w + 7) / 8;
+  int16_t i, j, byteWidth = (w + 7) >> 3; // >> 3 same as / 8
   
   for(j=0; j<h; j++) {
     for(i=0; i<w; i++ ) {
-      if(pgm_read_byte(bitmap + j * byteWidth + i / 8) & (1 << (i % 8))) {
+      if(pgm_read_byte(bitmap + j * byteWidth + (i >> 3)) & (1 << (i % 8))) {
         tftDrawPixel(x+i, y+j, color);
       }
     }
@@ -427,18 +427,29 @@ void tftDrawXBitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int1
 //=================================== Print section ========================//
 void tftPrint(const char *str)
 {
-  uint16_t size = strlen(str);
-  
-  while (size--) {
+  while(*str != '\0') {
     tftPrintChar(*str++);
   }
 }
 
 void tftPrint_P(const char *str)
 {
-  for(uint16_t count=0; count < strlen_P(str); count++) {
-    tftPrintChar(pgm_read_byte(str + count));
+  uint8_t tmpChar;
+  while((tmpChar=pgm_read_byte(str++)) != '\0') {
+    tftPrintChar(tmpChar);
   }
+}
+
+void tftPrintAt(int16_t x, int16_t y, const char *str)
+{
+  tftSetCursor(x, y);
+  tftPrint(str);
+}
+
+void tftPrintAt_P(int16_t x, int16_t y, const char *str)
+{
+  tftSetCursor(x, y);
+  tftPrint_P(str);
 }
 
 void tftPrintCharAt(int16_t x, int16_t y, uint8_t c)

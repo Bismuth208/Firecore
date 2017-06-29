@@ -14,15 +14,19 @@ uint8_t titleRowLPosX = PIC_TITLE_L_BASE_X;
 //uint8_t maxStars = MAX_STARS;
 stars_t stars[MAX_STARS];
 bool startState = true;
+
+//inVader_t *pAlien;
+//uint8_t maxAliens;
 //---------------------------------------------------------------------------//
 void printTextSlow(const uint8_t *text)
 {
-  for(uint16_t count=0; count < strlen_P(text); count++) {
-    tftPrintChar(pgm_read_byte(text + count));
+  uint8_t tmpChar;
+  while((tmpChar=pgm_read_byte(text++)) != '\0') {
+    tftPrintChar(tmpChar);
 #if ADD_SOUND
     if(soundEnable) toneBuzz(1200, 20);
 #endif
-    _delayMS(40);
+    _delayMS(40); // make retro effect
   }
 }
 
@@ -31,31 +35,29 @@ void drawTextWindow(const uint8_t *text, const uint8_t *btnText)
   tftSetTextSize(1);
   tftSetTextColor(COLOR_WHITE);
   tftSetCursor(TEXT_WINDOW_X, TEXT_WINDOW_Y);
-  tftFillRect(0, 88,  159, 40, INDIGO_COLOR);  // Frame 0
-  tftDrawRect(2, 90, 155, 35, COLOR_WHITE);    // Frame 1
-   
+
+  drawFrame(TEXT_FRAME_X, TEXT_FRAME_Y,  TEXT_FRAME_W, TEXT_FRAME_H, INDIGO_COLOR, COLOR_WHITE);
   printTextSlow(text); // It is so epic retro !!!!
   
-  tftSetCursor(TEXT_OK_X, TEXT_OK_Y);
-  tftPrint_P(btnText);
+  tftPrintAt_P(TEXT_OK_X, TEXT_OK_Y, btnText);
 }
 
 void drawStars(void)
 {
-  int16_t tmpPosX, tmpPosY;
+  uint8_t tmpPosX, tmpPosY;
   
   // Arrrrrghh!!!!
   // How to make it faster?!?!
-  
+
   // draw stars and blow your mind, if still not
   for(uint8_t count=0; count < MAX_STARS; count++) {
     tmpPosX = stars[count].pos.x;
     tmpPosY = stars[count].pos.y;
     
-    tftDrawPixel(tmpPosX, tmpPosY, currentBackGroundColor); // clear previous star
+    fillRectFast(tmpPosX, tmpPosY, 1, 1); // clear previous star
     
     // now move them
-    if((tmpPosX -= STAR_STEP) < 0) {
+    if((tmpPosX -= STAR_STEP) > TFT_W) {
       tmpPosX = TFT_W;
       stars[count].pos.y = RN % (TFT_H-4);
       stars[count].color = RN % 80;
@@ -77,9 +79,8 @@ void rocketEpxlosion(rocket_t *pRocket)
   pRocket->onUse = false;
   uint16_t posX = pRocket->pos.x;
   uint16_t posY = pRocket->pos.y;
-  uint8_t i;
 
-  for(i = 0; i < 5; i++) { // base formation
+  for(uint8_t i = 0; i < 5; i++) { // base formation
     tftFillCircle(posX, posY, i*2, COLOR_WHITE);
     tftDrawCircle(posX, posY, i*2, COLOR_ORANGE);
 #if ADD_SOUND
@@ -87,14 +88,14 @@ void rocketEpxlosion(rocket_t *pRocket)
 #endif
   }
 
-  for(i = 5; i > 0; i--) { // something ?
+  for(uint8_t i = 5; i > 0; i--) { // something ?
     tftDrawCircle(posX, posY, i*2, COLOR_YELLOW);
 #if ADD_SOUND
     if(soundEnable)  toneBuzz(100*i, 2);
 #endif
   }
 
-  for(i = 0; i < 7; i++) { // remove smoke
+  for(uint8_t i = 0; i < 7; i++) { // remove smoke
     tftFillCircle(posX, posY, i*2, currentBackGroundColor);
 #if ADD_SOUND
     if(soundEnable) toneBuzz(60*i, 2);
@@ -120,7 +121,7 @@ void drawPlayerRockets(void)
   for(uint8_t count =0; count < MAX_PEW_PEW; count++) {
     if(pRocket->onUse) {
       // remove previous rocket image
-      tftFillRectFast(&pRocket->pos, ROCKET_W, ROCKET_H);
+      fillRectFast(pRocket->pos.x, pRocket->pos.y, ROCKET_W, ROCKET_H);
       
       if((pRocket->pos.x += PLAYER_ROCKET_SPEED) < TFT_W) {
         drawBMP_RLE_P(pRocket->pos.x, pRocket->pos.y,
@@ -157,21 +158,17 @@ void drawInVaders(void)
 
 void drawStart(void)
 {
-  tftSetCursor(60, 100);
-  
   if(startState) {
     tftSetTextColor(COLOR_WHITE);
   } else {
     tftSetTextColor(currentBackGroundColor);
   }
   startState = !startState;
-  tftPrint_P(pressAtext);
+  tftPrintAt_P(60, 100, pressAtext);
 
   tftSetTextColor(0x020C);
-  tftSetCursor(0, 120);
-  tftPrint_P(versionP0);
-  tftSetCursor(64, 120);
-  tftPrint_P(creditP0);
+  tftPrintAt_P(0, 120, versionP0);
+  tftPrintAt_P(64, 120, creditP0);
 }
 
 void drawTitleText(void)
@@ -216,11 +213,10 @@ void screenSliderEffect(uint16_t color)
   tftDrawFastVLine(0, 0, TFT_H, color);
 }
 // --------------------------------------------------------------- //
-void tftFillRectFast(position_t *pPos, uint8_t w, uint8_t h)
+void fillRectFast(int16_t x, int16_t y, uint8_t w, uint8_t h)
 {
   // -1 == convert to display addr size
-  tftSetAddrWindow(pPos->x, pPos->y, pPos->x+w-1, pPos->y+h-1);
-
+  tftSetAddrWindow(x, y, x+w-1, y+h-1);
   uint16_t dataSize = w*h;
 
   while(dataSize--) {

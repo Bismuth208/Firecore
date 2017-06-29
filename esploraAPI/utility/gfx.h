@@ -80,6 +80,8 @@ void tftSetCP437(bool x);
 
 void tftPrint(const char *str);
 void tftPrint_P(const char *str);
+void tftPrintAt(int16_t x, int16_t y, const char *str);
+void tftPrintAt_P(int16_t x, int16_t y, const char *str);
 void tftPrintChar(uint8_t c);
 void tftPrintCharAt(int16_t x, int16_t y, uint8_t c);
     

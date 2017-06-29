@@ -82,7 +82,7 @@ void initAccelerometerIO(void)
 void initEsplora(void)
 {
   // disable USB for 32u4
-  USBCON &= ~(1<<USBE);
+  USBCON = 0;
   
   // init Perephirial
   initSysTickTimer();

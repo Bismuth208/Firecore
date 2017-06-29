@@ -69,10 +69,10 @@ extern const uint8_t cityDogePic[];
 
 #define GALAXY_PIC_W     160
 #define GALAXY_PIC_H     70
-#define GALAXY_PIC_SIZE  6957
+#define GALAXY_PIC_SIZE  6956
 
 // orig size 11200 * 2 = 22400
-// RLE compress ratio 3.21978
+// RLE compress ratio 3.22024
 extern const uint8_t galaxyPic[];
 //---------------------------------------------------------------------------//
 
@@ -83,6 +83,20 @@ extern const uint8_t galaxyPic[];
 // orig size 70 * 2 = 140
 // RLE compress ratio 3.58974
 extern const uint8_t alienRocketPic[];
+
+
+#define DEATHRAY_PIC_W 8
+#define DEATHRAY_PIC_H 8
+
+// orig size 64 * 2 = 128
+// RLE compress ratio 2.37037
+#define DEATHRAY_HI_PIC_SIZE 54
+extern const uint8_t deathRayHiPic[];
+
+// orig size 64 * 2 = 128
+// RLE compress ratio 3.36842
+#define DEATHRAY_LOW_PIC_SIZE 38
+extern const uint8_t deathRayLowPic[];
 
 
 #define ALIEN_SHIP_PIC_W   32
@@ -115,16 +129,16 @@ extern const uint8_t reapersCity[];
 //---------------------------------------------------------------------------//
 
 #define SHIP_PIC_W   32
-#define SHIP_PIC_H   18
-#define SHIP_BASE_HI_PIC_SIZE 264
+#define SHIP_PIC_H   16
+#define SHIP_BASE_HI_PIC_SIZE 245
 
-// orig size 576 * 2 = 1152
-// RLE compress ratio 4.36364
+// orig size 512 * 2 = 1024
+// RLE compress ratio 4.17959
 extern const uint8_t shipBaseHi[];
 
-// orig size 576 * 2 = 1152
-// RLE compress ratio 4.28253
-#define SHIP_BASE_LOW_PIC_SIZE 269
+// orig size 512 * 2 = 1024
+// RLE compress ratio 4.28452
+#define SHIP_BASE_LOW_PIC_SIZE 239
 extern const uint8_t shipBaseLow[];
 //---------------------------------------------------------------------------//
 

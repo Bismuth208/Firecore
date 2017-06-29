@@ -7,11 +7,11 @@ extern "C"{
 
 //---------------------------------------------------------------------------//
 typedef struct { // 4 bytes RAM
-  int16_t x;
-  int16_t y;
+  uint8_t x;
+  uint8_t y;
 } position_t;
 
-typedef struct {
+typedef struct {  // need for collision check
   position_t Base;
   position_t New;
 } objPosition_t;
@@ -25,7 +25,8 @@ typedef struct {  // 5 bytes RAM
   position_t pos;
   struct {
     uint8_t onUse   :1;
-    uint8_t freeRam :7;
+    uint8_t state   :1;
+    uint8_t freeRam :6;
   };
 } rocket_t;
 
@@ -35,23 +36,27 @@ typedef struct {  // 8 bytes RAM
 } gift_t;
 
 typedef struct {
-  int8_t  bombsLeft;
+  int8_t bombsLeft;
   int16_t rocketsLeft;
   struct {
     uint8_t overHeated    :1;
     uint8_t state         :1;
-    uint8_t bombsUnlocked :1;
-    uint8_t freeRam       :5;
+    //uint8_t bombsUnlocked :1;
+    uint8_t freeRam       :6;
   };
 } weapon_t;
+
+typedef struct {
+  int8_t speed;
+  int8_t power;
+  int8_t durability;
+} shipStats_t;
 
 typedef struct {  // 8 + 5 + 5 bytes RAM
   objPosition_t pos;
   weapon_t weapon;
+  shipStats_t states;
   int16_t health;
-  int8_t speed;
-  //int16_t power;
-  //int16_t durability;
 } ship_t;
 
 typedef struct {  // 8 + 6 + 5 bytes RAM
@@ -64,9 +69,14 @@ typedef struct {  // 8 + 6 + 5 bytes RAM
   int16_t health;
   uint16_t timeToShoot;
   uint8_t respawnTime;  // 255 sec will be enougth... If call checkInVadersRespawn 1 time in sec...
-  //uint8_t respawnCount;
   rocket_t deathRay;
 } inVader_t;
+/*
+typedef struct {
+  inVader_t alienBoss;
+  rocket_t deathRays[4];
+} inVaderBoss_t;
+*/
 
 typedef struct {  // 1 byte RAM
   struct {
@@ -100,6 +110,8 @@ typedef struct {
   pFunc_t task;
   uint16_t timeout;
 } taskParams_t;
+
+typedef const taskParams_t * const tasksArr_t;
 
 //---------------------------------------------------------------------------//
 
