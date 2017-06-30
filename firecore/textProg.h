@@ -3,7 +3,7 @@
 
 //---------------------------------------------------------------------------//
 
-#define STORY_DOGE_TEXT_SIZE  5
+#define STORY_DOGE_TEXT_SIZE  6
 
 extern const uint8_t emptyText[];
 extern const uint8_t pauseP0[];

@@ -18,7 +18,7 @@
 
 //---------------------------------------------------------------------------//
 /*
- * Palette based on Typical Famicom NES (Dendy) Palette.
+ * Palette based on Typical Famicom\NES (Dendy) Palette.
  * Consist of 80 colors (actually 75; 5 transparent colors 0x0F-0x4F).
  *
  * 8 Gray colors 0x0D-0x3D; 0x1E-0x4E
@@ -46,33 +46,29 @@ extern const uint8_t rocketPic[];
 //---------------------------------------------------------------------------//
 
 // orig size 256 * 2 = 512
-// RLE compress ratio 4.12903
+// RLE compress ratio 3.79259
 #define GIFT_PIC_W      16
 #define GIFT_PIC_H      16
-#define GIFT_PIC_SIZE   153
+#define GIFT_PIC_SIZE   135
 
-extern const uint8_t giftPicLow[];
-
-// orig size 256 * 2 = 512
-// RLE compress ratio 3.34641
-extern const uint8_t giftPicHi[];
+extern const uint8_t giftPic[];
 //---------------------------------------------------------------------------//
 
 #define DOGE_PIC_W     50
 #define DOGE_PIC_H     50
-#define DOGE_PIC_SIZE  976
+#define DOGE_PIC_SIZE  954
 
 // orig size 2500 * 2 = 5000
-// RLE compress ratio 5.12295
+// RLE compress ratio 5.24109
 extern const uint8_t cityDogePic[];
 //---------------------------------------------------------------------------//
 
 #define GALAXY_PIC_W     160
 #define GALAXY_PIC_H     70
-#define GALAXY_PIC_SIZE  6956
+#define GALAXY_PIC_SIZE  6715
 
 // orig size 11200 * 2 = 22400
-// RLE compress ratio 3.22024
+// RLE compress ratio 3.33582
 extern const uint8_t galaxyPic[];
 //---------------------------------------------------------------------------//
 
@@ -118,14 +114,6 @@ extern const uint8_t alienShipLow[];
 // orig size 660 * 2 = 1320
 // RLE compress ratio 4.25806
 extern const uint8_t bossShip[];
-//---------------------------------------------------------------------------//
-
-#define REAPER_PIC_W     50
-#define REAPER_PIC_H     50
-#define REAPER_PIC_SIZE  1021
-
-// Picture compressed by RLE
-extern const uint8_t reapersCity[];
 //---------------------------------------------------------------------------//
 
 #define SHIP_PIC_W   32

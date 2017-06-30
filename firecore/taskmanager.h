@@ -161,6 +161,17 @@ typedef struct {            // (2(*) + tasksCount * taskStatesArr_t) + 1 bytes R
   // 1 or 3 bytes align here
   // whole size: avr = 4 bytes, arm = 8 bytes.
 } taskStates_t;
+
+#ifdef __AVR__
+// for AVR only!
+typedef union  {
+  uint16_t pFunc;
+  struct {
+    uint8_t pFuncHi;
+    uint8_t pFuncLow;
+  };
+} addrCompare_t;
+#endif
 #pragma pack(pop)
   
 // * On AVR arch only.

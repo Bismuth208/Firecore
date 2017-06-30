@@ -15,7 +15,7 @@ extern "C"{
 #define TFT_H    128
 //---------------------------------------------------------------------------//
 
-#define MAX_GAME_TASKS        18
+#define MAX_GAME_TASKS        16
 
 #define STAR_STEP             6   // move speed for stars
 #define MAX_STARS             20  // how much stars we see on screen
@@ -48,6 +48,8 @@ extern "C"{
 #define SLOW_CPU       setMainFreq(0x04);
 #define DC(a)          tftDrawChar(a)
 
+#define RAND_STAR_CLR  (((RN % 3)+1)<<4) | (RN % 0x8)
+
 // this macros remove monstro constructions...
 #define getWordData(a, b)   pgm_read_word(&(a[b]))
 
@@ -60,7 +62,7 @@ extern "C"{
 // from (10 to 38) / x seconds; The higher the difficulty the more fires
 // where x - (1 sec / (time to call checkInVadersRay()))
 // for example if time = 500, when x = 2; if time = 250, when x = 4;
-#define RAND_SHOOT_TIME (RN % 5 + 3)
+#define RAND_SHOOT_TIME (RN % 6 + 4)
 
 //from (1 to 5)  seconds;
 #define RAND_RESPAWN_TIME (RN % 4 + 1)
@@ -134,8 +136,8 @@ extern "C"{
 #define SHIP_MIN_POS_X   0
 #define SHIP_MIN_POS_Y   0
 
-#define SHIP_MAX_POS_X   TFT_W - SHIP_PIC_W
-#define SHIP_MAX_POS_Y   TFT_H - SHIP_PIC_H
+#define SHIP_MAX_POS_X   TFT_W - SHIP_PIC_W - 6
+#define SHIP_MAX_POS_Y   TFT_H - SHIP_PIC_H - 6
 
 
 #define SHIP_ENERGY_POS_X  112
@@ -305,6 +307,8 @@ void drawLevelSelect(void);
 void waitOk(void);
 void waitEnd(void);
 
+void drawStaticNoise(void);
+
 //---------------------------------------------------------------------------//
 void dropGift(void);
 void checkGift(void);
@@ -354,7 +358,6 @@ void moveShip(void);
 void checkShipDamage(void);
 
 void checkFireButton(void);
-void checkOverHeatGun(void);
 void checkShipHealth(void);
 //---------------------------------------------------------------------------//
 
@@ -403,13 +406,14 @@ long map(long x, long in_min, long in_max, long out_min, long out_max);
 void addGameTasks(void);
 void addTitleTasks(void);
 void pauseWindow(void);
+void baseTitleTask(void);
 //---------------------------------------------------------------------------//
 
 
 #define TITLE_TASKS_COUNT  6
-#define GAME_TASKS_COUNT  16
-#define BOSS_TASKS_COUNT  14
-#define GIFT_TASKS_COUNT  9
+#define GAME_TASKS_COUNT  15
+#define BOSS_TASKS_COUNT  13
+#define GIFT_TASKS_COUNT  8
 #define SHIP_SEL_TASKS_COUNT  5
 
 extern tasksArr_t titleTasksArr[];

@@ -17,7 +17,7 @@
 // Thanks to macro below, only one pointer copy of each task are possible
 
 TASK(getBtnStates, 50);
-TASK(checkFireButton, 75);
+TASK(checkFireButton, 100);
 
 TASK(titleAction, 200);
 TASK(drawStars, 50);
@@ -31,7 +31,6 @@ TASK(moveShip, 70);
 TASK(checkShipDamage, 180);
 TASK(checkShipBossDamage, 130);
 TASK(drawPlayerRockets, 40);
-TASK(checkOverHeatGun, 100);
 TASK(checkShipHealth, 500);
 
 TASK(checkInVaders, 80);
@@ -52,6 +51,8 @@ TASK(checkGift, 80);
 TASK(drawCurrentShipSelection, 250);
 TASK(getShipItem, 250);
 TASK(checkShipSelect, 400);
+
+//TASK(drawStaticNoise, 50);
 //---------------------------------------------------------------------------//
 
 TASK_ARR( title ) = {
@@ -73,7 +74,6 @@ TASK_ARR( game ) = {
   TASK_P(checkFireButton),
   TASK_P(pauseMenu),
   TASK_P(drawPlayerRockets),
-  TASK_P(checkOverHeatGun),
   TASK_P(checkShipHealth),
   TASK_P(drawSomeGUI),
   TASK_P(checkInVaders),
@@ -92,7 +92,6 @@ TASK_ARR( boss )= {
   TASK_P(checkFireButton),
   TASK_P(pauseMenu),
   TASK_P(drawPlayerRockets),
-  TASK_P(checkOverHeatGun),
   TASK_P(checkShipHealth),
   TASK_P(drawSomeGUI),
   TASK_P(drawBoss),
@@ -108,7 +107,6 @@ TASK_ARR( gift ) = {
   TASK_P(getBtnStates),
   TASK_P(checkFireButton),
   TASK_P(drawPlayerRockets),
-  TASK_P(checkOverHeatGun),
   TASK_P(moveGift),
   TASK_P(drawGift),
   TASK_P(checkGift)

@@ -32,12 +32,12 @@ typedef struct {  // 5 bytes RAM
 
 typedef struct {  // 8 bytes RAM
   objPosition_t pos;
-  bool state;
+  //bool state;
 } gift_t;
 
 typedef struct {
-  int8_t bombsLeft;
-  int16_t rocketsLeft;
+  //int8_t bombsLeft;
+  uint8_t rocketsLeft;
   struct {
     uint8_t overHeated    :1;
     uint8_t state         :1;
@@ -61,6 +61,7 @@ typedef struct {  // 8 + 5 + 5 bytes RAM
 
 typedef struct {  // 8 + 6 + 5 bytes RAM
   objPosition_t pos;
+  rocket_t deathRay;
   struct {
     uint8_t state   :1;     // Pic what we draw
     uint8_t alive   :1;
@@ -69,11 +70,10 @@ typedef struct {  // 8 + 6 + 5 bytes RAM
   int16_t health;
   uint16_t timeToShoot;
   uint8_t respawnTime;  // 255 sec will be enougth... If call checkInVadersRespawn 1 time in sec...
-  rocket_t deathRay;
 } inVader_t;
 /*
 typedef struct {
-  inVader_t alienBoss;
+  inVader_t base;
   rocket_t deathRays[4];
 } inVaderBoss_t;
 */

@@ -31,16 +31,27 @@ void setDeathRayState(inVader_t *pAlien, bool state)
   pAlien->deathRay.state = ((RN % 2) ? false : true);
 }
 
+void moveEnemyV(position_t *pPos, uint8_t moveSize)
+{
+  if(ship.pos.Base.y > pPos->y) {
+    pPos->y += moveSize + difficultyIncrement;
+  } else if(ship.pos.Base.y < pPos->y) {
+    pPos->y -= moveSize + difficultyIncrement;
+  }
+}
+
 void initInvaders(void)
 {
   bool aliveState;
+  inVader_t *pAlien = &alien[0];
 
   for(uint8_t count =0; count < MAX_ALIENS; count++) {  // Yeah, hate me for this!
-    alien[count].state = ((RN % 2) ? false : true);
+    pAlien->state = ((RN % 2) ? false : true);
     aliveState = ((RN % 2) ? false : true);
 
-    setInvaderValue(&alien[count], aliveState);
-    setDeathRayState(&alien[count], false);
+    setInvaderValue(pAlien, aliveState);
+    setDeathRayState(pAlien, false);
+    ++pAlien;
   }
 }
 
@@ -51,19 +62,35 @@ void moveInVaders(void)
   for(uint8_t count=0; count < MAX_ALIENS; count++) {
     if(pAlien->alive) {
 
-      if(pAlien->state) { // move every second move...
-        if(ship.pos.Base.y > pAlien->pos.New.y) {
-          pAlien->pos.New.y += difficultyIncrement + 1;
-        } else if(ship.pos.Base.y < pAlien->pos.New.y) {
-          pAlien->pos.New.y -= difficultyIncrement + 1;
-        }
+      if(pAlien->state) {
+        moveEnemyV(&pAlien->pos.New, 1);
       }
 
       if((--pAlien->pos.New.x) > TFT_W) {
-        pAlien->pos.New.x = ALIEN_MOVE_ZONE_X_MIN;
         pAlien->alive = false;
+        pAlien->pos.New.x = ALIEN_MOVE_ZONE_X_MIN; // fix overflow for fillRectFast
         fillRectFast(pAlien->pos.New.x, pAlien->pos.New.y, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H);
       }
+    }
+    ++pAlien;
+  }
+}
+
+void drawInVaders(void)
+{
+  inVader_t *pAlien = &alien[0];
+
+  for(uint8_t count=0; count < MAX_ALIENS; count++) {
+    if(pAlien->alive) { // ALIIIVEE! IT`S ALIIVEEE!
+
+      const uint8_t *pic = (pAlien->state ? alienShipHi : alienShipLow);
+      uint16_t picSize = (pAlien->state ? ALIEN_SHIP_HI_PIC_SIZE : ALIEN_SHIP_LOW_PIC_SIZE);
+      
+      pAlien->state = !pAlien->state;
+      movePicture(&pAlien->pos, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H);
+      
+      drawBMP_RLE_P(pAlien->pos.Base.x, pAlien->pos.Base.y,
+                       ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H, pic, picSize);
     }
     ++pAlien;
   }
@@ -153,7 +180,7 @@ void checkInVaders(void)
     if(pRocket->onUse) {
       for(countV=0; countV < MAX_ALIENS; countV++) {
         if(pAlien->alive) {
-          if(checkCollision(&pRocket->pos,ROCKET_W, ROCKET_H,
+          if(checkCollision(&pRocket->pos, ROCKET_W, ROCKET_H,
                        &pAlien->pos.Base, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H)) {
 
             rocketEpxlosion(pRocket);
@@ -192,19 +219,14 @@ void bossInit(void)
   setInvaderValue(&alienBoss, true);
   setDeathRayState(&alienBoss, false);
   alienBoss.health = ALIEN_BOSS_HEALTH;
+  //alienBoss.state = true; // fix for vertical move
 
   addBossTasks();
 }
 
 void moveBossVertical(void)
 {
-  //if(alienBoss.state) { // move every second move...
-    if(ship.pos.Base.y > alienBoss.pos.New.y) {
-      alienBoss.pos.New.y += (ALIEN_BOSS_SPEED_MOVE + difficultyIncrement);
-    } else if(ship.pos.Base.y < alienBoss.pos.New.y) {
-      alienBoss.pos.New.y -= (ALIEN_BOSS_SPEED_MOVE + difficultyIncrement);
-    }
-  //}
+  moveEnemyV(&alienBoss.pos.New, ALIEN_BOSS_SPEED_MOVE);
 }
 
 void drawBoss(void)
@@ -231,7 +253,7 @@ void drawBossExplosion(void)
 
 void checkBossDamage(void)
 {
-  int8_t countR;
+  uint8_t countR;
   rocket_t *pRocket = &playeRockets[0];
 
   if(alienBoss.alive) {
@@ -266,14 +288,7 @@ void checkBossFire(void)
   if(alienBoss.deathRay.onUse) { // is it shoot already?
     // clear previous shoot
     fillRectFast(alienBoss.deathRay.pos.x, alienBoss.deathRay.pos.y, ALIEN_ROCKET_PIC_W, ALIEN_ROCKET_PIC_H);
-
-    //if(alienBoss.state) { // move every second move...
-      if(ship.pos.Base.y > alienBoss.deathRay.pos.y) {
-        alienBoss.deathRay.pos.y += (ALIEN_BOSS_ROCKET_SPEED_MOVE + difficultyIncrement);
-      } else if(ship.pos.Base.y < alienBoss.deathRay.pos.y) {
-        alienBoss.deathRay.pos.y -= (ALIEN_BOSS_ROCKET_SPEED_MOVE + difficultyIncrement);
-      }
-    //}
+    moveEnemyV(&alienBoss.deathRay.pos, ALIEN_BOSS_ROCKET_SPEED_MOVE);
         
     if((alienBoss.deathRay.pos.x -= DEATH_RAY_SPEED) < TFT_W) { 
         drawBMP_RLE_P(alienBoss.deathRay.pos.x, alienBoss.deathRay.pos.y,

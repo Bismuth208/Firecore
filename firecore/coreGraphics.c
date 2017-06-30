@@ -60,7 +60,7 @@ void drawStars(void)
     if((tmpPosX -= STAR_STEP) > TFT_W) {
       tmpPosX = TFT_W;
       stars[count].pos.y = RN % (TFT_H-4);
-      stars[count].color = RN % 80;
+      stars[count].color = RAND_STAR_CLR;
     }
     
     tftDrawPixel(tmpPosX, tmpPosY, getPicWord(nesPalette_ext, stars[count].color));
@@ -131,27 +131,6 @@ void drawPlayerRockets(void)
       }
     }
     ++pRocket;
-  }
-}
-// --------------------------------------------------------------- //
-
-void drawInVaders(void)
-{
-  inVader_t *pAlien = &alien[0];
-
-  for(uint8_t count=0; count < MAX_ALIENS; count++) {
-    if(pAlien->alive) { // ALIIIVEE! IT`S ALIIVEEE!
-
-      const uint8_t *pic = (pAlien->state ? alienShipHi : alienShipLow);
-      uint16_t picSize = (pAlien->state ? ALIEN_SHIP_HI_PIC_SIZE : ALIEN_SHIP_LOW_PIC_SIZE);
-      
-      pAlien->state = !pAlien->state;
-      movePicture(&pAlien->pos, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H);
-      
-      drawBMP_RLE_P(pAlien->pos.Base.x, pAlien->pos.Base.y,
-                       ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H, pic, picSize);
-    }
-    ++pAlien;
   }
 }
 // --------------------------------------------------------------- //

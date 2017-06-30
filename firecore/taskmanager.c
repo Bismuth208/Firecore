@@ -64,7 +64,7 @@ fDrawFastVLine_t fpDrawFastVLine = NULL;
 
 //------------------- Main loop reincarnation -------------------------------//
 /**
- * @brief  Init: main cycle
+ * @brief  main cycle
  * @param  None
  * @retval None
  */
@@ -152,7 +152,7 @@ void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec)
     taskStatesArr_t *ptr = &PAA[PAC-1]; // reduce instructions by acces pointer
     ptr->pTaskFunc = pTask;
     ptr->timeToRunTask = timeToCheckTask;
-    ptr->previousMillis = TIMER_FUNC;
+    ptr->previousMillis = 0;//TIMER_FUNC;
     ptr->execute = exec;
     
 #if USE_MEM_PANIC   
@@ -206,7 +206,7 @@ void addTaskToArr(taskStates_t *pTasksArr, pFunc_t pTask,
     taskStatesArr_t *ptr = &pTasksArr->pArr[pTasksArr->tasksCount-1]; // same as addTask()
     ptr->pTaskFunc = pTask;
     ptr->timeToRunTask = timeToCheckTask;
-    ptr->previousMillis = TIMER_FUNC;
+    ptr->previousMillis = 0;//TIMER_FUNC;
     ptr->execute = exec;
     
 #if USE_MEM_PANIC
@@ -470,21 +470,29 @@ void rmSameTasks(void)
  */
 uint8_t searchTask(pFunc_t pTask)
 {
-  /*
-  if(PAC <= 2) {
-    if(PAA[0].pTaskFunc == pTask) {
-      return 0;
-    } else {
-      return 1;
-    }
-  }
-  */
+#ifdef __AVR__
+  addrCompare_t tmpOne, tmpTwo;
   
+  tmpOne.pFunc = (uint16_t)pTask; // tmpOne.pFunc use only r21,r20
+  taskStatesArr_t *ptr = &PAA[0]; // store pointer to X register
+
+  for(uint8_t count=0; count < PAC; count++) {
+    tmpTwo.pFunc = (uint16_t)ptr->pTaskFunc;
+    // compare addr separetly, reque less instructions
+    if(tmpOne.pFuncHi == tmpTwo.pFuncHi) { // compare r24,r21
+      if(tmpOne.pFuncLow == tmpTwo.pFuncLow) { // compare r25,r20
+        return count; // ok, this is it!
+      }
+    }
+    ++ptr;
+  }
+#else
   for(uint8_t count=0; count < PAC; count++) {
     if(PAA[count].pTaskFunc == pTask) {
       return count; // ok, this is it!
     }
   }
+#endif
 
   return NULL_TASK;  // no such func
 }

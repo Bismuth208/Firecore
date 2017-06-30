@@ -59,8 +59,6 @@ void drawCurrentShipSelection(void)
 
     lineSize = map(ship.states.durability, 0, SHIP_BASE_DURAB, 0, 40);
     tftDrawFastHLine(BASE_STATS_POS_X, BASE_STATS_POS_Y+16, lineSize, COLOR_WHITE);
-
-
   }
 }
 
@@ -161,7 +159,7 @@ void pauseWindow(void)
 {
   tftSetTextSize(3);
   tftPrintAt_P(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, pauseP0);
-  tftSetTextSize(1);
+  //tftSetTextSize(1);
 }
 
 //---------------------------------------------------------------------------//
@@ -171,7 +169,6 @@ void titleAction(void)
   if(btnStates.aBtn) {
     resetBtnStates();
     shipHyperJump();
-    //baseStory();
     drawShipSelectionMenu();
   }
 }
@@ -179,7 +176,7 @@ void titleAction(void)
 //---------------------------------------------------------------------------//
 void drawGalaxy(void)
 {
-  currentBackGroundColor = BACKGROUND_COLOR;
+  //currentBackGroundColor = BACKGROUND_COLOR;
   screenSliderEffect(COLOR_BLACK);
   drawBMP_RLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, 
                    GALAXY_PIC_W, GALAXY_PIC_H, galaxyPic, GALAXY_PIC_SIZE);
@@ -200,6 +197,19 @@ void baseStory(void)
   addTask(drawStory, 250, true);
 }
 
+void drawStaticNoise(void)
+{
+  uint16_t *ptr = (uint16_t*)0x8000;
+  uint16_t dataSize = 2500;
+
+  tftSetAddrWindow(7, 36, 6+DOGE_PIC_W, 35+DOGE_PIC_H);
+
+  while(dataSize--){
+    ptr += RN;
+    pushColorFast(pgm_read_word(ptr));
+  }
+}
+
 void drawStory(void)
 {
   tftDrawCircle(WORLD_8_POS_X, WORLD_8_POS_Y, CIRCLE_PONITER_MAP_SIZE,
@@ -212,6 +222,9 @@ void drawStory(void)
     if(dogeDialogs < STORY_DOGE_TEXT_SIZE) {
       drawTextWindow(getConstCharPtr(dogePA, dogeDialogs), buttonB);
       dogeDialogs++;
+      if(dogeDialogs == 6) {
+        addTask(drawStaticNoise, 50, true);
+      }
     } else {
       dogeDialogs =0;
       prepareLevelSelect();
@@ -293,8 +306,7 @@ void waitEnd(void)
   if(btnStates.bBtn) {
     resetBtnStates();
     deleteAllTasks();
-    addTask(drawRows, 10, true);
-    tftFillScreen(currentBackGroundColor);
+    baseTitleTask();
   }
 }
 
@@ -311,12 +323,13 @@ void printMessage(const char *text)
   tftSetTextSize(2);
   tftSetTextColor(COLOR_WHITE);
   tftPrintAt_P(20, 40, text);
-  tftSetTextSize(1);
 }
 
 void printScore(void)
 {
   char buf[10];
+
+  tftSetTextSize(1);
   tftPrintAt_P(40, 60, scoreP);
   tftPrintAt(80, 60, itoa(score, buf, 10));
 
@@ -331,9 +344,18 @@ void printScore(void)
   score = 0;
 }
 
+void done(const char *text) // fantasy end, bad name for function...
+{
+  tftSetTextSize(2);
+  tftSetTextColor(COLOR_WHITE);
+  tftPrintAt_P(20, 40, text);
+
+  levelBaseInit();
+}
+
 void gameOver(void)
 {
-  printMessage(gameOverP);
+  done(gameOverP);
   printScore();
 
   deleteAllTasks();
@@ -342,19 +364,16 @@ void gameOver(void)
   resetBtnStates();
 
   curretLevel =0;
-  levelBaseInit();
 }
 
 void levelClear(void)
 {
-  printMessage(levelClearP);
-  levelBaseInit();
+  done(levelClearP);
 }
 
 void victory(void)
 {
-  printMessage(victoryP);
+  done(victoryP);
   printScore();
-  levelBaseInit();
   curretLevel =0;
 }
