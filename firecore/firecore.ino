@@ -2,7 +2,7 @@
  * Simple game.
  * Defend whole galaxy from Aliens.
  * 
- * Game end when ship's life will empty or main boss defeated
+ * Game end when ship's life will empty or last level boss defeated
  * 
  *                    
  * 
@@ -10,16 +10,16 @@
  *  Arduino IDE:  1.6.6   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  24,184
- *  pics:         10,132
- *  code:         14,022
- * Used RAM:      487 bytes
- * Free RAM:      2073 bytes
+ * Program size:  24,396
+ *  pics:         10,324
+ *  code:         14,072
+ * Used RAM:      354 bytes
+ * Free RAM:      2206 bytes
  *
  * Language:      C and C++
  * 
  * Author: Antonov Alexandr (Bismuth208)
- * Date:   2 June, 2017 
+ * Date:   2 June, 2017
  * e-mail: bismuth20883@gmail.com
  * 
  *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
@@ -54,6 +54,8 @@ bool pauseState = false;
 bool soundEnable = true;
 #endif
 
+bool weaponLasers = false;
+
 int8_t menuItem =0;
 uint8_t dogeDialogs =0;
 uint8_t curretLevel =0;
@@ -68,13 +70,16 @@ uint16_t calJoysticY =0;
 
 uint8_t difficultyIncrement =0;
 
-uint16_t score;
+uint16_t score =0;
 
 ship_t ship;
 gift_t gift;
-rocket_t playeRockets[MAX_PEW_PEW];
-hudStatus_t hudStatus = {1,1}; // need update all
+rocket_t playerRockets[MAX_PEW_PEW];
+rocket_t playerLasers[MAX_PEW_PEW];
+hudStatus_t hudStatus = {1,1,0}; // need update all
 btnStatus_t btnStates = {0};
+
+rocket_t *pRocketGlobal;
 
 const uint8_t lvlCoordinates[] PROGMEM = {
   WORLD_0_POS_X, WORLD_0_POS_Y,
@@ -91,12 +96,12 @@ const uint8_t lvlCoordinates[] PROGMEM = {
 const uint8_t lvlColors[] PROGMEM = {
   0x1E,
   0x01,
-  0x10,
-  0x20,
-  0x30,
+  0x1E,
+  0x2E,
+  0x3E,
   0x01,
   0x04,
-  0x10,
+  0x00,
   0x04
 };
 //---------------------------------------------------------------------------//
@@ -109,13 +114,14 @@ uint8_t randNum(void)
   return nextInt;
 }
 
-long map(long x, long in_min, long in_max, long out_min, long out_max)
+int32_t mapVal(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max)
 {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 // ------------------------ Poll constols ------------------------ //
-void getBtnStates(void)
+// poll periodically buttons states
+void updateBtnStates(void)
 {
   if(buttonIsPressed(BUTTON_A)) {
     btnStates.aBtn = true;
@@ -132,6 +138,32 @@ void getBtnStates(void)
   if(buttonIsPressed(BUTTON_Y)) {
     btnStates.yBtn = true;
   }
+}
+
+bool getBtnState(uint8_t btn)
+{
+  bool state = false;
+
+  switch(btn)
+  {
+   case BUTTON_A: {
+    state = btnStates.aBtn;
+   } break;
+
+   case BUTTON_B: {
+    state = btnStates.bBtn;
+   } break;
+
+   case BUTTON_X: {
+    state = btnStates.xBtn;
+   } break;
+
+   case BUTTON_Y: {
+    state = btnStates.yBtn;
+   } break;
+  }
+
+  return state;
 }
 
 void resetBtnStates(void)
@@ -206,16 +238,16 @@ void applyShipDirection(uint16_t *pos, uint16_t valOne, uint8_t line)
   }  
 }
 
-bool checkCollision(position_t *pObjOne, uint16_t objOneW, uint16_t objOneH,
-                    position_t *pObjTwo, uint16_t objTwoW, uint16_t objTwoH)
+bool checkCollision(position_t *pObjOne, uint8_t objOneW, uint8_t objOneH,
+                    position_t *pObjTwo, uint8_t objTwoW, uint8_t objTwoH)
 {
   /* ----------- Check X position ----------- */
-  //uint16_t objOnePosEndX = (pObjOne->x + objOneW);
+  uint16_t objOnePosEndX = (pObjOne->x + objOneW);
   //bool xCollision = false;
 
-  if((pObjOne->x + objOneW) >= pObjTwo->x) { // objOnePosEndX
-    //uint16_t objTwoPosEndX = (pObjTwo->x + objTwoW);
-    if(pObjOne->x >= (pObjTwo->x + objTwoW)) { // objTwoPosEndX
+  if(objOnePosEndX >= pObjTwo->x) {
+    uint16_t objTwoPosEndX = (pObjTwo->x + objTwoW);
+    if(pObjOne->x >= objTwoPosEndX) {
       return false; // nope, different X positions
     }
     // ok, objects on same X lines; Go next...
@@ -226,12 +258,12 @@ bool checkCollision(position_t *pObjOne, uint16_t objOneW, uint16_t objOneH,
 
   /* ---------------------------------------- */
   /* ----------- Check Y position ----------- */
-  //uint16_t objOnePosEndY = (pObjOne->y + objOneH);
+  uint16_t objOnePosEndY = (pObjOne->y + objOneH);
   //bool yCollision = false;
   
-  if((pObjOne->y + objOneH) >= pObjTwo->y) { // objOnePosEndY
-    //uint16_t objTwoPosEndY = (pObjTwo->y + objTwoH);
-    if(pObjOne->y <= (pObjTwo->y + objTwoH)) { // objTwoPosEndY
+  if(objOnePosEndY>= pObjTwo->y) {
+    uint16_t objTwoPosEndY = (pObjTwo->y + objTwoH);
+    if(pObjOne->y <= objTwoPosEndY) {
       // ok, objects on same Y lines; Go next...
       //yCollision = true;
       
@@ -246,26 +278,25 @@ bool checkCollision(position_t *pObjOne, uint16_t objOneW, uint16_t objOneH,
   }
 }
 
+// fast and low cost memset
+void memset_F(void *pvDest, uint8_t src, size_t size)
+{
+  uint8_t *dest = (uint8_t*)pvDest;
+  while(size--) {
+    *dest++ = src;
+  }
+}
 // --------------------------------------------------------------- //
 
 void checkFireButton(void)
 {
   rocket_t *pRokets;
 
-  if(btnStates.aBtn) {
-    btnStates.aBtn = false;
-    if(ship.weapon.overHeated) {
-      ship.weapon.rocketsLeft += PLAYER_ROCKET_REFILL;
-      if(ship.weapon.rocketsLeft > MAX_PEW_PEW) {
-         ship.weapon.rocketsLeft = MAX_PEW_PEW;
-         ship.weapon.overHeated = false;
-      }
-      return;
-    }
-      
+  if(getBtnState(BUTTON_A)) {
+    resetBtnStates();
     if((ship.weapon.rocketsLeft -= PLAYER_ROCKET_COST) < MAX_PEW_PEW) {
       // store to local registers
-      pRokets = &playeRockets[ship.weapon.rocketsLeft];
+      pRokets = &pRocketGlobal[ship.weapon.rocketsLeft];
       if(pRokets->onUse == false) {
 #if ADD_SOUND
         if(soundEnable) toneBuzz(500, 10);
@@ -275,8 +306,7 @@ void checkFireButton(void)
         pRokets->pos.y = ship.pos.Base.y + ROCKET_OFFSET_Y; // /
       }
     } else {
-      ship.weapon.rocketsLeft = 0;
-      ship.weapon.overHeated = true;
+      ship.weapon.rocketsLeft = MAX_PEW_PEW;
     }
   }
 }
@@ -288,35 +318,11 @@ void applyShipDamage(inVader_t *pAlien)
   pAlien->timeToShoot = RAND_SHOOT_TIME;
 
   // clear previous level
-  tftFillRect(0, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_RED);
+  tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y,
+                    (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_RED);
   ship.health -= DAMAGE_TO_SHIP;   // absorb damage
   hudStatus.updLife = true;        // update new life status later
 }
-
-void checkShipDamage(void)  // check damage from deathRay
-{
-  inVader_t *pAlien = &alien[0];
-  for(uint8_t countV=0; countV < MAX_ALIENS; countV++) {
-    if(pAlien->deathRay.onUse) { // is it shoot already?
-      if(checkCollision(&pAlien->deathRay.pos, DEATHRAY_PIC_W, DEATHRAY_PIC_H,
-                                    &ship.pos.Base, SHIP_PIC_W, SHIP_PIC_H)) {
-        applyShipDamage(pAlien);
-      }
-    }
-    ++pAlien;
-  }
-}
-
-void checkShipBossDamage(void)  // check damage from boss deathRay
-{
-  if(alienBoss.deathRay.onUse) { // is it shoot already?
-    if(checkCollision(&alienBoss.deathRay.pos, ALIEN_ROCKET_PIC_W, ALIEN_ROCKET_PIC_H,
-                                    &ship.pos.Base, SHIP_PIC_W, SHIP_PIC_H)) {
-      applyShipDamage(&alienBoss);
-    }
-  }
-}
-//---------------------------------------------------------------------------//
 
 void checkShipHealth(void)
 {
@@ -329,6 +335,7 @@ void checkShipHealth(void)
     }
   }
 }
+//---------------------------------------------------------------------------//
 
 void moveShip(void)
 {
@@ -361,14 +368,23 @@ void moveShip(void)
   ship.pos.New.y = checkShipPosition(posY, SHIP_MIN_POS_Y, SHIP_MAX_POS_Y);
 }
 
-void shipHyperJump(void)
+void swapWeapon(void)
 {
-  while((ship.pos.Base.x++) < SHIP_MAX_POS_X) {
-    // this pic used to left red track on screen
-    drawBMP_RLE_P(ship.pos.Base.x, ship.pos.Base.y, SHIP_PIC_W, SHIP_PIC_H, 
-                                          shipBaseLow, SHIP_BASE_LOW_PIC_SIZE);
+  if(getBtnState(BUTTON_X)) {
+    resetBtnStates();
+    if(weaponLasers) {
+      pRocketGlobal = &playerLasers[0];
+      ship.states.power -= WEAPON_ROCKET_DMG;
+      ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level); 
+      ship.weapon.picSize = pgm_read_byte(laserPicsSize + ship.weapon.level);
+    } else {
+      pRocketGlobal = &playerRockets[0];
+      ship.states.power += WEAPON_ROCKET_DMG;
+      ship.weapon.pPic = rocketPic;
+      ship.weapon.picSize = ROCKET_PIC_SIZE;
+    }
+    weaponLasers = !weaponLasers;
   }
-  movePicture(&ship.pos, SHIP_PIC_W, SHIP_PIC_H); // remove ship from screen
 }
 
 //---------------------------------------------------------------------------//
@@ -380,23 +396,18 @@ void moveGift(void)
   }
 }
 
-void drawGift(void)
-{
-  movePicture(&gift.pos, GIFT_PIC_W, GIFT_PIC_H); // clear previous position
-  drawBMP_RLE_P(gift.pos.Base.x, gift.pos.Base.y, GIFT_PIC_W, GIFT_PIC_H, giftPic, GIFT_PIC_SIZE);
-}
-
 void checkGift(void)
 {
-  rocket_t *pRocket = &playeRockets[0];
+  rocket_t *pRocket = pRocketGlobal;
 
   for(uint8_t countR =0; countR < MAX_PEW_PEW; countR++) {
     if(pRocket->onUse) {
-      if(checkCollision(&pRocket->pos, ROCKET_W, ROCKET_H, 
+      if(checkCollision(&pRocket->pos, LASER_PIC_W, LASER_PIC_H, 
                         &gift.pos.Base, GIFT_PIC_W, GIFT_PIC_H)) {
 
         rocketEpxlosion(pRocket);
         score += GIFT_BONUS_SCORE;
+        hudStatus.updScore = true;    // update score later
 
         if((ship.health += GIFT_HEALTH_RESTORE) > SHIP_HEALTH) {
           ship.health = SHIP_HEALTH;
@@ -414,18 +425,21 @@ void createNextLevel(void)
 {
   shipHyperJump();
   deleteAllTasks();
-  addTask(getBtnStates, 50, true);
+  //addTask(updateBtnStates, 50, true);
+  addTask_P(T(&updateBtnStates));
 
   if((++curretLevel) >= MAX_WORLDS) { // is it was final boss?
     victory();
-    addTask(waitEnd, 400, true);
+    //addTask(waitEnd, 400, true);
+    addTask_P(T(&waitEnd));
   } else {
     totalRespawns = ALIEN_KILLS_TO_BOSS + difficultyIncrement;
     if(++difficultyIncrement > MAX_DIFFICULT_INCREMENT) { // increase speed of all each lvl
       difficultyIncrement = MAX_DIFFICULT_INCREMENT;
     }
     levelClear();
-    addTask(waitOk, 400, true);
+    //addTask(waitOk, 400, true);
+    addTask_P(T(&waitOk));
   }  
 }
 
@@ -442,14 +456,12 @@ void levelBaseInit(void)
 // mother of God, what i've done...
 void addTasksArray(tasksArr_t *pArr, uint8_t size)
 {
-  const taskParams_t *pTask;
   deleteAllTasks();
   setMaxTasks(size); // less tasks more perfomance
 
   while(size--) {
-    pTask = pgm_read_word(pArr++); // get ponter to task structure
-    // get params from structure
-    addTask(pgm_read_word(&pTask->task), pgm_read_word(&pTask->timeout), true);
+    // get ponter to task structure and load params from structure
+    addTask_P(pgm_read_word(pArr++));
   }
 }
 
@@ -464,6 +476,10 @@ void addGameTasks(void)
   ship.pos.New.y = SHIP_GAME_POS_Y;
 
   addTasksArray(gameTasksArr, GAME_TASKS_COUNT);
+
+  //disableTask(moveGift);
+  //disableTask(drawGift);
+  //disableTask(checkGift);
 }
 
 void addBossTasks(void)
@@ -472,13 +488,21 @@ void addBossTasks(void)
   addTasksArray(bossTasksArr, BOSS_TASKS_COUNT);
 }
 
-void dropGift(void)
+void addGiftTasks(void)
 {
   // drop gift from the boss
   gift.pos.New.x = GIFT_BASE_POS_X;
   gift.pos.New.y = GIFT_BASE_POS_Y;
   //gift.state = false;
-
+/*
+  if(RN % 2) {
+    pPic = giftWeaponPic;
+    picSize = GIFT_WEAPON_PIC_SIZE;
+  } else {
+    pPic = giftHeartPic;
+    picSize = GIFT_HEART_PIC_SIZE;
+  }
+*/
   addTasksArray(giftTasksArr, GIFT_TASKS_COUNT);
 }
 
@@ -492,7 +516,7 @@ void addShipSelectTasks(void)
 void baseTitleTask(void)
 {
   tftFillScreen(currentBackGroundColor);
-  addTask(drawRows, 10, true);
+  addTask_P(T(&drawRows));
 }
 // --------------------------------------------------------------- //
 
@@ -507,14 +531,19 @@ void setMainFreq(uint8_t ps)
 }
 
 // ------------- Init section ---------------------- //
-void readEEpromScore(void)
+void readScore(void)
 {
   uint8_t varCheck = getSaveDataMark(EE_ADDR_MARK);
 
   if(varCheck != HI_SCORE_MARK ) { // no save data in EEPROM?
-    writeSaveData(EE_ADDR_SCORE, score);
-    writeSaveData(EE_ADDR_MARK, HI_SCORE_MARK);
+    resetScore();
   }
+}
+
+void resetScore(void)
+{
+  writeSaveData(EE_ADDR_SCORE, score);
+  writeSaveData(EE_ADDR_MARK, HI_SCORE_MARK);
 }
 
 void calibrateJoyStic(void)
@@ -523,31 +552,25 @@ void calibrateJoyStic(void)
   calJoysticY = getStickVal(LINE_Y);
 }
 
-void initGUI(void)
-{
-  //drawStr_P(TFT_W/3, 5, PGRW_CP(textPGM, 3)); // Cookies! Anom nom nom...
-  //hudStatus.updScore = true;
-}
-
+// caled every level
 void initShip(void)
 {
   ship.pos.New.x = SHIP_TITLE_POS_X;
   ship.pos.New.y = SHIP_TITLE_POS_Y;
-  ship.health = SHIP_HEALTH;
   ship.weapon.rocketsLeft = MAX_PEW_PEW;
   ship.weapon.overHeated = false;
 
-  uint8_t *pRocket = (uint8_t*)&playeRockets[0];
-  for(uint8_t count =0; count < 3*MAX_PEW_PEW; count++) { // 3 == sizeof(rocket_t)
-    *pRocket++ = 0x0;
-  }
+  ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level); 
+  ship.weapon.picSize = getPicByte(laserPicsSize + ship.weapon.level);
+
+  memset_F(playerLasers, 0x00, sizeof(rocket_t)*MAX_PEW_PEW);
 }
 
 void initStars(void)
 {
   for(uint8_t count =0; count < MAX_STARS; count++) {
     stars[count].pos.x = RN % TFT_W;
-    stars[count].pos.y = RN % (TFT_H-4);
+    stars[count].pos.y = RN % STARS_MAX_POS_Y;
     stars[count].color = RAND_STAR_CLR;
   }
 }
@@ -566,6 +589,11 @@ void initBaseGameParams(void)
   initShip();
   initStars();
   initInvaders();
+
+  // this one init only once
+  ship.health = SHIP_HEALTH;
+  ship.weapon.level = 0;
+  pRocketGlobal = &playerLasers[0];
 }
 
 void initSys(void)
@@ -573,7 +601,7 @@ void initSys(void)
   initEsplora();
   initBaseGameParams();
   calibrateJoyStic();
-  readEEpromScore();
+  readScore();
 
   tftSetRotation(1);
 

@@ -15,8 +15,6 @@ uint8_t titleRowLPosX = PIC_TITLE_L_BASE_X;
 stars_t stars[MAX_STARS];
 bool startState = true;
 
-//inVader_t *pAlien;
-//uint8_t maxAliens;
 //---------------------------------------------------------------------------//
 void printTextSlow(const uint8_t *text)
 {
@@ -39,34 +37,38 @@ void drawTextWindow(const uint8_t *text, const uint8_t *btnText)
   drawFrame(TEXT_FRAME_X, TEXT_FRAME_Y,  TEXT_FRAME_W, TEXT_FRAME_H, INDIGO_COLOR, COLOR_WHITE);
   printTextSlow(text); // It is so epic retro !!!!
   
-  tftPrintAt_P(TEXT_OK_X, TEXT_OK_Y, btnText);
+  tftPrintAt_P(TEXT_OK_X, TEXT_OK_Y, (const char *)btnText);
 }
+//---------------------------------------------------------------------------//
+
+void drawFrame(uint16_t posX, uint16_t posY, uint8_t w, uint8_t h, uint16_t clr1, uint16_t clr2)
+{
+  tftFillRect(posX, posY, w, h, clr1);          // Frame 0
+  tftDrawRect(posX+1, posY+1, w-2, h-2, clr2);  // Frame 1
+}
+//---------------------------------------------------------------------------//
 
 void drawStars(void)
 {
-  uint8_t tmpPosX, tmpPosY;
-  
   // Arrrrrghh!!!!
   // How to make it faster?!?!
 
+  stars_t *pStars = &stars[0];
+
   // draw stars and blow your mind, if still not
   for(uint8_t count=0; count < MAX_STARS; count++) {
-    tmpPosX = stars[count].pos.x;
-    tmpPosY = stars[count].pos.y;
-    
-    fillRectFast(tmpPosX, tmpPosY, 1, 1); // clear previous star
+    fillRectFast(pStars->pos.x, pStars->pos.y, 1, 1); // clear previous star
     
     // now move them
-    if((tmpPosX -= STAR_STEP) > TFT_W) {
-      tmpPosX = TFT_W;
-      stars[count].pos.y = RN % (TFT_H-4);
-      stars[count].color = RAND_STAR_CLR;
+    if((pStars->pos.x -= STAR_STEP) < TFT_W) {
+      drawPixelFast(pStars->pos.x, pStars->pos.y, pStars->color);
+    } else {
+      pStars->pos.x = TFT_W;
+      pStars->pos.y = RN % STARS_MAX_POS_Y;
+      pStars->color = RAND_STAR_CLR;
     }
-    
-    tftDrawPixel(tmpPosX, tmpPosY, getPicWord(nesPalette_ext, stars[count].color));
-    
-    // now apply back what we change
-    stars[count].pos.x = tmpPosX;
+
+    ++pStars;
   }
 }
 // --------------------------------------------------------------- //
@@ -74,7 +76,6 @@ void drawStars(void)
 void rocketEpxlosion(rocket_t *pRocket)
 {
   // Please, don`t say anything about this...
-  // generate delay about 20 ms
 
   pRocket->onUse = false;
   uint16_t posX = pRocket->pos.x;
@@ -110,28 +111,54 @@ void drawShip(void)
   uint16_t picSize = (shipState ? SHIP_BASE_HI_PIC_SIZE : SHIP_BASE_LOW_PIC_SIZE);
   
   shipState = !shipState;
-  movePicture(&ship.pos, SHIP_PIC_W, SHIP_PIC_H);
-  drawBMP_RLE_P(ship.pos.Base.x, ship.pos.Base.y, SHIP_PIC_W, SHIP_PIC_H, pic, picSize);
+  drawEnemy(&ship.pos, SHIP_PIC_W, SHIP_PIC_H, pic, picSize);
+}
+
+void shipHyperJump(void)
+{
+  while((ship.pos.Base.x++) < SHIP_MAX_POS_X) {
+    // this pic used for left red track on screen
+    drawBMP_RLE_P(ship.pos.Base.x, ship.pos.Base.y, SHIP_PIC_W, SHIP_PIC_H, 
+                                          shipBaseLow, SHIP_BASE_LOW_PIC_SIZE);
+  }
+  movePicture(&ship.pos, SHIP_PIC_W, SHIP_PIC_H); // remove ship from screen
+}
+
+void drawShipExplosion(void)
+{
+  rocket_t *pRocket = pRocketGlobal; // reuse
+
+  pRocket->pos.x = RN % SHIP_PIC_W + ship.pos.Base.x;
+  pRocket->pos.y = RN % SHIP_PIC_H + ship.pos.Base.y;
+  
+  rocketEpxlosion(pRocket);
 }
 
 void drawPlayerRockets(void)
 {
-  rocket_t *pRocket = &playeRockets[0];
+  rocket_t *pRocket = pRocketGlobal;
 
   for(uint8_t count =0; count < MAX_PEW_PEW; count++) {
     if(pRocket->onUse) {
       // remove previous rocket image
-      fillRectFast(pRocket->pos.x, pRocket->pos.y, ROCKET_W, ROCKET_H);
+      fillRectFast(pRocket->pos.x, pRocket->pos.y, LASER_PIC_W, LASER_PIC_H);
       
       if((pRocket->pos.x += PLAYER_ROCKET_SPEED) < TFT_W) {
         drawBMP_RLE_P(pRocket->pos.x, pRocket->pos.y,
-                                  ROCKET_W, ROCKET_H, rocketPic, ROCKET_PIC_SIZE);
+                                  LASER_PIC_W, LASER_PIC_H,
+                                  ship.weapon.pPic, ship.weapon.picSize);
       } else {
         pRocket->onUse = false;
       }
     }
     ++pRocket;
   }
+}
+// --------------------------------------------------------------- //
+
+void drawGift(void)
+{
+  drawEnemy(&gift.pos, GIFT_PIC_W, GIFT_PIC_H, giftHeartPic, GIFT_HEART_PIC_SIZE);
 }
 // --------------------------------------------------------------- //
 
@@ -143,11 +170,11 @@ void drawStart(void)
     tftSetTextColor(currentBackGroundColor);
   }
   startState = !startState;
-  tftPrintAt_P(60, 100, pressAtext);
+  tftPrintAt_P(START_TEXT_POS_X, START_TEXT_POS_Y, (const char *)pressAtext);
 
   tftSetTextColor(0x020C);
-  tftPrintAt_P(0, 120, versionP0);
-  tftPrintAt_P(64, 120, creditP0);
+  tftPrintAt_P(0, 120, (const char *)versionP0);
+  tftPrintAt_P(64, 120, (const char *)creditP0);
 }
 
 void drawTitleText(void)
@@ -191,6 +218,13 @@ void screenSliderEffect(uint16_t color)
   }
   tftDrawFastVLine(0, 0, TFT_H, color);
 }
+
+// --------------------------------------------------------------- //
+void drawEnemy(objPosition_t *pEnemy, uint8_t w, uint8_t h, const uint8_t *pPic, uint16_t picSize)
+{
+  movePicture(pEnemy, w, h);
+  drawBMP_RLE_P(pEnemy->Base.x, pEnemy->Base.y, w, h, pPic, picSize);
+}
 // --------------------------------------------------------------- //
 void fillRectFast(int16_t x, int16_t y, uint8_t w, uint8_t h)
 {
@@ -201,6 +235,12 @@ void fillRectFast(int16_t x, int16_t y, uint8_t w, uint8_t h)
   while(dataSize--) {
     pushColorFast(currentBackGroundColor);
   }
+}
+
+void drawPixelFast(int16_t x, int16_t y, uint8_t colorId)
+{
+  tftSetAddrWindow(x, y, x+1, y+1);
+  pushColorFast(getPicWord(nesPalette_ext, colorId));
 }
 
 void drawBMP_RLE_P(int16_t x, int16_t y, uint8_t w, uint8_t h,

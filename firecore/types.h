@@ -18,7 +18,7 @@ typedef struct {  // need for collision check
 
 typedef struct {  // 5 bytes RAM
   position_t pos;
-  uint8_t color; // as we use NES palette, store only color id
+  uint8_t color; // as we use Famicom\NES (Dendy) palette, store only color id
 } stars_t;
 
 typedef struct {  // 5 bytes RAM
@@ -32,17 +32,21 @@ typedef struct {  // 5 bytes RAM
 
 typedef struct {  // 8 bytes RAM
   objPosition_t pos;
-  //bool state;
+  //uint8_t *pPic;
+  //uint8_t picSize;
 } gift_t;
 
 typedef struct {
-  //int8_t bombsLeft;
+  //uint8_t bombsLeft;
   uint8_t rocketsLeft;
+  const uint8_t *pPic;
+  uint8_t picSize;
   struct {
     uint8_t overHeated    :1;
     uint8_t state         :1;
     //uint8_t bombsUnlocked :1;
-    uint8_t freeRam       :6;
+    uint8_t level         :3;
+    uint8_t freeRam       :3;
   };
 } weapon_t;
 
@@ -81,9 +85,8 @@ typedef struct {
 typedef struct {  // 1 byte RAM
   struct {
     uint8_t updLife  :1;
-    uint8_t updPew   :1;
-    //uint8_t updScore     :1;
-    uint8_t freeRam      :6;
+    uint8_t updScore :1;
+    uint8_t freeRam  :6;
   };
 } hudStatus_t;
 
@@ -104,12 +107,6 @@ typedef struct {
   uint8_t name[4]; // 3 for name 4 for '\n'
   uint16_t score;  // 65535 score val be enought right?
 } saveData_t;
-
-
-typedef struct {
-  pFunc_t task;
-  uint16_t timeout;
-} taskParams_t;
 
 typedef const taskParams_t * const tasksArr_t;
 

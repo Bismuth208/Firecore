@@ -26,7 +26,7 @@ void drawShipSelectionMenu(void)
     posX += SHIPS_ICON_STEP;
   }
   
-  // make frame for ship
+  // make tiny frame for ship
   tftDrawRect(SHIP_SELECT_POS_X-5, SHIP_SELECT_POS_Y-5,
                  SHIP_PIC_W+10, SHIP_PIC_H+10, COLOR_WHITE);
   drawTextWindow(selectShipP, buttonA);
@@ -44,29 +44,27 @@ void drawCurrentShipSelection(void)
 
   if(currentShip != previousShip) {
     drawFrame(0, 55, 100, 30, INDIGO_COLOR, COLOR_WHITE);
-    tftPrintAt_P(4, 58, shipSpeedStatP);
-    tftPrintAt_P(4, 66, shipPowerStatP);
-    tftPrintAt_P(4, 74, shipDurabStatP);
+    tftPrintAt_P(4, 58, (const char*)shipSpeedStatP);
+    tftPrintAt_P(4, 66, (const char*)shipPowerStatP);
+    tftPrintAt_P(4, 74, (const char*)shipDurabStatP);
 
     previousShip = currentShip;
     getShipStates(&ship.states);
 
-    uint8_t lineSize = map(ship.states.speed, 0, SHIP_BASE_SPEED, 0, 40);
+    uint8_t lineSize = mapVal(ship.states.speed, 0, SHIP_BASE_SPEED, 0, 40);
     tftDrawFastHLine(BASE_STATS_POS_X, BASE_STATS_POS_Y, lineSize, COLOR_WHITE);
 
-    lineSize = map(ship.states.power, 0, SHIP_BASE_DAMAGE, 0, 40);
+    lineSize = mapVal(ship.states.power, 0, SHIP_BASE_DAMAGE, 0, 40);
     tftDrawFastHLine(BASE_STATS_POS_X, BASE_STATS_POS_Y+8, lineSize, COLOR_WHITE);
 
-    lineSize = map(ship.states.durability, 0, SHIP_BASE_DURAB, 0, 40);
+    lineSize = mapVal(ship.states.durability, 0, SHIP_BASE_DURAB, 0, 40);
     tftDrawFastHLine(BASE_STATS_POS_X, BASE_STATS_POS_Y+16, lineSize, COLOR_WHITE);
   }
 }
 
 void getShipItem(void)
 {
-  uint16_t newValueXY =0;
-  
-  newValueXY = getJoyStickValue(X_J_MUX_VAL);
+  uint16_t newValueXY = getJoyStickValue(X_J_MUX_VAL);
   if(newValueXY != calJoysticY) {
     if(newValueXY < calJoysticY) {
       ++currentShip;
@@ -114,40 +112,32 @@ void getShipStates(shipStats_t *pShipStates)
 
 void checkShipSelect(void)
 {
-  if(btnStates.aBtn) {
+  if(getBtnState(BUTTON_A)) {
     resetBtnStates();
     getShipStates(&ship.states);
     previousShip =0;
     baseStory();
   }
 }
-
-//---------------------------------------------------------------------------//
-void drawFrame(uint16_t posX, uint16_t posY, uint8_t w, uint8_t h, uint16_t clr1, uint16_t clr2)
-{
-  tftFillRect(posX, posY, w, h, clr1);          // Frame 0
-  tftDrawRect(posX+1, posY+1, w-2, h-2, clr2);  // Frame 1
-}
-
 //---------------------------------------------------------------------------//
 
 void action(){SLOW_CPU;for(;;){RAND_CODE;DC(RNDCLR(RND_POS_X,RND_POS_Y));}}
 
 void pauseMenu(void)
 {
-  if(btnStates.yBtn) {
+  if(getBtnState(BUTTON_Y)) {
     if(!pauseState) { // is it already stopped?
       pauseState = !pauseState;
       disableAllTasks();
-      updateTaskStatus(getBtnStates, true);
+      updateTaskStatus(updateBtnStates, true);
       updateTaskStatus(pauseMenu, true);
       pauseWindow();
     }
     
-    if(btnStates.bBtn) {
+    if(getBtnState(BUTTON_B)) {
+      resetBtnStates();
       pauseState = !pauseState;
       enableAllTasks();
-      resetBtnStates();
       // remove "Pause" text
       fillRectFast(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, PAUSE_TEXT_W, PAUSE_TEXT_H);
       //continue();
@@ -158,25 +148,33 @@ void pauseMenu(void)
 void pauseWindow(void)
 {
   tftSetTextSize(3);
-  tftPrintAt_P(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, pauseP0);
-  //tftSetTextSize(1);
+  tftPrintAt_P(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, (const char*)pauseP0);
 }
 
 //---------------------------------------------------------------------------//
 // switch from title to main menu
 void titleAction(void)
 {
-  if(btnStates.aBtn) {
+  if(getBtnState(BUTTON_A)) {
     resetBtnStates();
     shipHyperJump();
     drawShipSelectionMenu();
+  }
+
+  if(getStickVal(LR_OK)) {
+    if(getBtnState(BUTTON_Y) && getBtnState(BUTTON_X)) {
+      resetBtnStates();
+      resetScore();
+#if ADD_SOUND
+    if(soundEnable) toneBuzz(1200, 20);
+#endif
+    }
   }
 }
 
 //---------------------------------------------------------------------------//
 void drawGalaxy(void)
 {
-  //currentBackGroundColor = BACKGROUND_COLOR;
   screenSliderEffect(COLOR_BLACK);
   drawBMP_RLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, 
                    GALAXY_PIC_W, GALAXY_PIC_H, galaxyPic, GALAXY_PIC_SIZE);
@@ -193,19 +191,19 @@ void baseStory(void)
   drawBMP_RLE_P(7, 36, DOGE_PIC_W, DOGE_PIC_H, cityDogePic, DOGE_PIC_SIZE);
   
   deleteAllTasks();
-  addTask(getBtnStates, 50, true);
-  addTask(drawStory, 250, true);
+  addTask_P(T(&updateBtnStates));
+  addTask_P(T(&drawStory));
 }
 
 void drawStaticNoise(void)
 {
-  uint16_t *ptr = (uint16_t*)0x8000;
-  uint16_t dataSize = 2500;
+  uint16_t *ptr = (uint16_t*)0x0000; // base adress for random
+  uint16_t dataSize = 2500; // 50x50 == 2500
 
   tftSetAddrWindow(7, 36, 6+DOGE_PIC_W, 35+DOGE_PIC_H);
 
   while(dataSize--){
-    ptr += RN;
+    ptr += RN; // make offset for random data
     pushColorFast(pgm_read_word(ptr));
   }
 }
@@ -217,13 +215,13 @@ void drawStory(void)
   
   shipState = !shipState; // reuse
   
-  if(btnStates.bBtn) {
+  if(getBtnState(BUTTON_B)) {
     resetBtnStates();
     if(dogeDialogs < STORY_DOGE_TEXT_SIZE) {
       drawTextWindow(getConstCharPtr(dogePA, dogeDialogs), buttonB);
       dogeDialogs++;
       if(dogeDialogs == 6) {
-        addTask(drawStaticNoise, 50, true);
+        addTask_P(T(&drawStaticNoise));
       }
     } else {
       dogeDialogs =0;
@@ -249,8 +247,9 @@ void prepareLevelSelect(void)
   } while (i < curretLevel);
 
   deleteAllTasks();
-  addTask(getBtnStates, 50, true);
-  addTask(drawLevelSelect, 250, true);
+  addTask_P(T(&updateBtnStates));
+  addTask_P(T(&drawLevelSelect));
+  resetBtnStates();
 }
 
 void drawLevelSelect(void)
@@ -263,10 +262,12 @@ void drawLevelSelect(void)
   tftDrawCircle(posX, posY, CIRCLE_PONITER_MAP_SIZE,
                      (shipState ? COLOR_RED : COLOR_WHITE )); // Home planet
   
-  if(btnStates.aBtn) {
+  if(getBtnState(BUTTON_A)) {
     resetBtnStates();
     addGameTasks();    
     screenSliderEffect(currentBackGroundColor);
+
+    drawBMP_RLE_P(0, 119, HUD_GUI_PIC_W, HUD_GUI_PIC_H, hudGuiPic, HUD_GUI_PIC_SIZE);
   }
 }
 //---------------------------------------------------------------------------//
@@ -280,30 +281,24 @@ void runEndlessMode(void)
 
 void drawSomeGUI(void)
 {
-/*
   if(hudStatus.updScore) {
-    char buf[5];
-    //Draw score
-    tftFillRect(TFT_W/2, 5, 20, 7, BACKGROUND_COLOR);
-    drawStr(TFT_W/2, 5, itoa(score, buf, 10));
     hudStatus.updScore = false;
+    char buf[5]; // i'm pretty sure what 5 bytes will be enough...
+    tftSetTextSize(1);
+    tftFillRect(SCORE_POS_X, SCORE_POS_Y, 20, 7, currentBackGroundColor);
+    tftPrintAt(SCORE_POS_X, SCORE_POS_Y, itoa(score, buf, 10));
   }
-*/
 
   if(hudStatus.updLife) {
-    tftFillRect(0, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_WHITE);
     hudStatus.updLife = false;
+    tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y,
+                 (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_WHITE);
   }
-/*
-  if(hudStatus.updPew) {
-    hudStatus.updPew = false;
-  }
-  */
 }
 
 void waitEnd(void)
 {
-  if(btnStates.bBtn) {
+  if(getBtnState(BUTTON_B)) {
     resetBtnStates();
     deleteAllTasks();
     baseTitleTask();
@@ -312,7 +307,7 @@ void waitEnd(void)
 
 void waitOk(void)
 {
-  if(btnStates.bBtn) {
+  if(getBtnState(BUTTON_B)) {
     resetBtnStates();
     prepareLevelSelect();
   }
@@ -322,7 +317,7 @@ void printMessage(const char *text)
 {
   tftSetTextSize(2);
   tftSetTextColor(COLOR_WHITE);
-  tftPrintAt_P(20, 40, text);
+  tftPrintAt_P(20, 40, (const char *)text);
 }
 
 void printScore(void)
@@ -330,7 +325,7 @@ void printScore(void)
   char buf[10];
 
   tftSetTextSize(1);
-  tftPrintAt_P(40, 60, scoreP);
+  tftPrintAt_P(40, 60, (const char *)scoreP);
   tftPrintAt(80, 60, itoa(score, buf, 10));
 
   // draw hi score
@@ -339,16 +334,16 @@ void printScore(void)
     writeSaveData(EE_ADDR_SCORE, score);  // save new score
     hiScore = score;
   }
-  tftPrintAt_P(40, 70, maxScoreP);
+  tftPrintAt_P(40, 70, (const char *)maxScoreP);
   tftPrintAt(80, 70, itoa(hiScore, buf, 10));
   score = 0;
 }
 
-void done(const char *text) // fantasy end, bad name for function...
+void done(const uint8_t *text) // fantasy end, bad name for function...
 {
   tftSetTextSize(2);
   tftSetTextColor(COLOR_WHITE);
-  tftPrintAt_P(20, 40, text);
+  tftPrintAt_P(20, 40, (const char *)text);
 
   levelBaseInit();
 }
@@ -359,15 +354,20 @@ void gameOver(void)
   printScore();
 
   deleteAllTasks();
-  addTask(getBtnStates, 50, true);
-  addTask(waitEnd, 250, true);
+  addTask_P(T(&updateBtnStates));
+  addTask_P(T(&waitEnd));
+  addTask_P(T(&drawShipExplosion));
   resetBtnStates();
 
   curretLevel =0;
+  ship.weapon.level = 0;
 }
 
 void levelClear(void)
 {
+  if((++ship.weapon.level) >= MAX_WEAPON_LVL) {
+    ship.weapon.level = MAX_WEAPON_LVL;
+  }
   done(levelClearP);
 }
 

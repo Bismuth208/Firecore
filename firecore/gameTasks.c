@@ -8,36 +8,37 @@
 // overvice mindblow can occur...
 // and i really dont care about names, as i'll acess throw pointers
 
-#define T(a) task##a
-#define TASK(a,b)    const taskParams_t T(a)[] PROGMEM = {a, b}
+/*
+#define T(a) a##Task
+#define TASK_N(a)    const taskParams_t T(a)[]
+#define TASK(a,b)    TASK_N(a) PROGMEM = {a, b}
 #define TASK_P(a)    (taskParams_t*)&T(a)
 #define TASK_ARR(a)  tasksArr_t a##TasksArr[] PROGMEM
+*/
 
 //---------------------------------------------------------------------------//
 // Thanks to macro below, only one pointer copy of each task are possible
 
-TASK(getBtnStates, 50);
-TASK(checkFireButton, 100);
+TASK(updateBtnStates, 40);
+TASK(checkFireButton, 200);
 
-TASK(titleAction, 200);
+TASK(titleAction, 400);
 TASK(drawStars, 50);
 TASK(drawSomeGUI, 500);
-TASK(pauseMenu, 400);
+TASK(pauseMenu, 500);
 TASK(drawTitleText, 1 SEC);
 TASK(drawStart, 500);
 
 TASK(drawShip, 70);
 TASK(moveShip, 70);
-TASK(checkShipDamage, 180);
-TASK(checkShipBossDamage, 130);
-TASK(drawPlayerRockets, 40);
+TASK(drawPlayerRockets, 60);
 TASK(checkShipHealth, 500);
 
 TASK(checkInVaders, 80);
 TASK(drawInVaders, 150);
 TASK(moveInVaders, 160);  // this is must be more than drawAliens()
 TASK(checkInVadersRespawn, 1 SEC);
-TASK(checkInVadersRay, 200);
+TASK(checkInVadersRay, 180);
 
 TASK(drawBoss, 130);
 TASK(moveBossVertical, 150);
@@ -52,12 +53,22 @@ TASK(drawCurrentShipSelection, 250);
 TASK(getShipItem, 250);
 TASK(checkShipSelect, 400);
 
-//TASK(drawStaticNoise, 50);
+
+
+TASK(drawRows, 10);
+TASK(waitEnd, 400);
+TASK(waitOk, 400);
+TASK(drawStory, 250);
+TASK(drawStaticNoise, 50);
+TASK(drawLevelSelect, 250);
+TASK(drawShipExplosion, 250);
+
+//TASK(swapWeapon, 120);
 //---------------------------------------------------------------------------//
 
 TASK_ARR( title ) = {
   TASK_P(titleAction),
-  TASK_P(getBtnStates),
+  TASK_P(updateBtnStates),
   TASK_P(drawStars),
   TASK_P(drawShip),
   TASK_P(drawStart),
@@ -69,8 +80,7 @@ TASK_ARR( game ) = {
   TASK_P(drawStars),
   TASK_P(moveShip),
   TASK_P(drawShip),
-  TASK_P(checkShipDamage),
-  TASK_P(getBtnStates),
+  TASK_P(updateBtnStates),
   TASK_P(checkFireButton),
   TASK_P(pauseMenu),
   TASK_P(drawPlayerRockets),
@@ -81,14 +91,17 @@ TASK_ARR( game ) = {
   TASK_P(moveInVaders),
   TASK_P(checkInVadersRespawn),
   TASK_P(checkInVadersRay)
+  //TASK_P(moveGift),
+  //TASK_P(drawGift, 100),
+  //TASK_P(checkGift, 100),
+  //TASK_P(dropGift, RAND_GIFT_SPAWN_TIME)
 };
 //---------------------------------------------------------------------------//
 
 TASK_ARR( boss )= {
   TASK_P(moveShip),
   TASK_P(drawShip),
-  TASK_P(checkShipBossDamage),
-  TASK_P(getBtnStates),
+  TASK_P(updateBtnStates),
   TASK_P(checkFireButton),
   TASK_P(pauseMenu),
   TASK_P(drawPlayerRockets),
@@ -104,7 +117,7 @@ TASK_ARR( boss )= {
 TASK_ARR( gift ) = {
   TASK_P(moveShip),
   TASK_P(drawShip),
-  TASK_P(getBtnStates),
+  TASK_P(updateBtnStates),
   TASK_P(checkFireButton),
   TASK_P(drawPlayerRockets),
   TASK_P(moveGift),
@@ -114,7 +127,7 @@ TASK_ARR( gift ) = {
 //---------------------------------------------------------------------------//
 
 TASK_ARR( shipSel ) = {
-  TASK_P(getBtnStates),
+  TASK_P(updateBtnStates),
   TASK_P(drawShip),
   TASK_P(drawCurrentShipSelection),
   TASK_P(getShipItem),

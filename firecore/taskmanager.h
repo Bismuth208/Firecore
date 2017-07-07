@@ -143,7 +143,7 @@ typedef void (*fFillRect_t)(uint16_t, uint16_t, uint16_t, uint16_t, uint16_t);
 //------------------------ Tasks Structures ---------------------------------//
 #pragma pack(push, 1)
 typedef struct {            // 9 bytes RAM(*)
-  uint32_t previousMillis;	// when was previous func call
+  uint32_t nextCallTime;  	// when will be next func call
   pFunc_t pTaskFunc;        // on avr it get 2 bytes
   uint16_t timeToRunTask;   // 65,5 seconds will be enougth? (65535 millis / 1000)
   struct {
@@ -161,6 +161,11 @@ typedef struct {            // (2(*) + tasksCount * taskStatesArr_t) + 1 bytes R
   // 1 or 3 bytes align here
   // whole size: avr = 4 bytes, arm = 8 bytes.
 } taskStates_t;
+  
+typedef struct {
+  pFunc_t task;
+  uint16_t timeout;
+} taskParams_t;
 
 #ifdef __AVR__
 // for AVR only!
@@ -188,6 +193,10 @@ void disableAllTasks(void);
 void enableAllTasks(void);
 void deleteTask(pFunc_t pTask);
 void deleteAllTasks(void);
+
+#ifdef __AVR__
+void addTask_P(const taskParams_t *pTaskP);
+#endif
 
 __attribute__ ((noreturn)) void runTasks(void);
 

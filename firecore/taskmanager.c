@@ -70,46 +70,48 @@ fDrawFastVLine_t fpDrawFastVLine = NULL;
  */
 __attribute__ ((noreturn)) void runTasks(void)
 {
-  volatile uint8_t count =0;
-  taskStatesArr_t *pArr = NULL;
+  register uint8_t count =0;
+  register taskStatesArr_t *pCurArr = NULL;
   
 #if USE_AUTO_DEFRAG
-  uint32_t defragPreviousMs=0;
+  uint32_t defragNextMs=0;
 #endif
 #if USE_AUTO_GEMINI
-  uint32_t geminiPreviousMs=0;
+  uint32_t geminiNextMs=0;
 #endif
 
   for(;;) {
 #if USE_AUTO_DEFRAG
-    if ((TIMER_FUNC - defragPreviousMs) > AUTO_DEFRAG_TIMEOUT) {
+    if(TIMER_FUNC >= defragNextMs) {
       defragTasksMemory();
-      defragPreviousMs = TIMER_FUNC;
+      defragNextMs = TIMER_FUNC + AUTO_DEFRAG_TIMEOUT;
     }
 #endif
 #if USE_AUTO_GEMINI
-    if ((TIMER_FUNC - geminiPreviousMs) > AUTO_GEMINI_TIMEOUT) {
+    if(TIMER_FUNC >= geminiNextMs) {
       rmSameTasks();
-      geminiPreviousMs = TIMER_FUNC;
+      geminiNextMs = TIMER_FUNC + AUTO_GEMINI_TIMEOUT;
     }
 #endif
-    
-    // store pointer in RAM, to reduce instructions
-    pArr = &PAA[count];
-    // Have func and need execute?
-    if(pArr->pTaskFunc && pArr->execute) { // problems in future see i here
-      // check timeout
-      if((TIMER_FUNC - pArr->previousMillis) >= pArr->timeToRunTask) {
-        pArr->pTaskFunc(); // execute
-        
-        if(resetTaskCount) {
-          resetTaskCount = false;
-        } else {
-          pArr->previousMillis = TIMER_FUNC; // get time of last exec
+    if(PAC) {
+      // store pointer in RAM, to reduce instructions
+      pCurArr = &PAA[count];
+      // Have func and need execute?
+      if(pCurArr->pTaskFunc && pCurArr->execute) { // problems in future see i here
+        // check timeout
+        if(TIMER_FUNC >= pCurArr->nextCallTime) {
+          pCurArr->pTaskFunc(); // execute
+          
+          if(resetTaskCount) {
+            resetTaskCount = false;
+          } else {
+             // get time of next exec
+            pCurArr->nextCallTime = TIMER_FUNC + pCurArr->timeToRunTask;
+          }
         }
       }
+      if(++count >= PAC) count =0;
     }
-    if(++count >= PAC) count =0;
   }
 }
 
@@ -152,7 +154,7 @@ void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec)
     taskStatesArr_t *ptr = &PAA[PAC-1]; // reduce instructions by acces pointer
     ptr->pTaskFunc = pTask;
     ptr->timeToRunTask = timeToCheckTask;
-    ptr->previousMillis = 0;//TIMER_FUNC;
+    ptr->nextCallTime = 0;//TIMER_FUNC;
     ptr->execute = exec;
     
 #if USE_MEM_PANIC   
@@ -164,6 +166,28 @@ void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec)
   }
 #endif    
 }
+
+#ifdef __AVR__
+/**
+ * @brief  add one task for execution from PROGMEM section
+ * @param  pTaskP: pointer to task stucture
+ * @retval None
+ */
+void addTask_P(const taskParams_t *pTaskP)
+{
+  // This fuction is really dengerous as no any checks!
+  // Use it if you 100500% sure what you're doing!
+
+  PAC++; // increase total tasks
+  // aaand place params to new index
+  // why -1? because we can`t add 0 tasks :)
+  taskStatesArr_t *ptr = &PAA[PAC-1]; // reduce instructions by acces pointer
+  ptr->pTaskFunc = (pFunc_t)pgm_read_word(&pTaskP->task);
+  ptr->timeToRunTask = pgm_read_word(&pTaskP->timeout);
+  ptr->nextCallTime = 0; // every fuction will call immediately
+  ptr->execute = true; // always true...
+}
+#endif /*__AVR__*/
 
 /**
  * @brief  add one task for execution
@@ -206,7 +230,7 @@ void addTaskToArr(taskStates_t *pTasksArr, pFunc_t pTask,
     taskStatesArr_t *ptr = &pTasksArr->pArr[pTasksArr->tasksCount-1]; // same as addTask()
     ptr->pTaskFunc = pTask;
     ptr->timeToRunTask = timeToCheckTask;
-    ptr->previousMillis = 0;//TIMER_FUNC;
+    ptr->nextCallTime = 0;//TIMER_FUNC;
     ptr->execute = exec;
     
 #if USE_MEM_PANIC
@@ -230,17 +254,12 @@ void deleteAllTasks(void)
   free(PAA);
   PAA = NULL;
 #else
-
-  uint8_t *pBuf = PAA;
-#ifdef __AVR__
-  uint16_t size = maxTasks *9; // 9 == sizeof(taskStates_t) for AVR only!
+  uint8_t *pBuf = (uint8_t*)PAA;
+  uint16_t size = maxTasks * sizeof(taskStates_t);
   while(size--) {
-#else
-  for(uint8_t count = 0; count < maxTasks * sizeof(taskStates_t); count++) {
-#endif /* __AVR__ */
     *pBuf++ = 0x00;
   }
-#endif
+#endif /*USE_DYNAMIC_MEM*/
   PAC = 0;
   resetTaskCount = true;
 }
@@ -330,7 +349,7 @@ void updateTaskTimeCheck(pFunc_t pTask, uint16_t timeToCheckTask)
 
   if(taskId < NULL_TASK) {
     PAA[taskId].timeToRunTask = timeToCheckTask;
-    PAA[taskId].previousMillis = TIMER_FUNC;
+    PAA[taskId].nextCallTime = TIMER_FUNC + timeToCheckTask;
   }
 
   // If we get here, when no such func in pCurrentArrTasks.
@@ -354,7 +373,7 @@ void replaceTask(pFunc_t pOldTask, pFunc_t pNewTask, uint16_t timeToCheckTask, b
 
   if(taskId < NULL_TASK) {
     PAA[taskId].pTaskFunc = pNewTask;
-    PAA[taskId].previousMillis = TIMER_FUNC;
+    PAA[taskId].nextCallTime = TIMER_FUNC + timeToCheckTask;
     PAA[taskId].timeToRunTask = timeToCheckTask;
     PAA[taskId].execute = exec;
   }
@@ -473,11 +492,11 @@ uint8_t searchTask(pFunc_t pTask)
 #ifdef __AVR__
   addrCompare_t tmpOne, tmpTwo;
   
-  tmpOne.pFunc = (uint16_t)pTask; // tmpOne.pFunc use only r21,r20
+  tmpOne.pFunc = (uint16_t)pTask; // tmpOne.pFunc use only r20,r21
   taskStatesArr_t *ptr = &PAA[0]; // store pointer to X register
 
   for(uint8_t count=0; count < PAC; count++) {
-    tmpTwo.pFunc = (uint16_t)ptr->pTaskFunc;
+    tmpTwo.pFunc = (uint16_t)ptr->pTaskFunc; // store addr to r24,r25
     // compare addr separetly, reque less instructions
     if(tmpOne.pFuncHi == tmpTwo.pFuncHi) { // compare r24,r21
       if(tmpOne.pFuncLow == tmpTwo.pFuncLow) { // compare r25,r20
@@ -568,6 +587,7 @@ __attribute__ ((noreturn)) void panic(uint8_t errorCode)
   
   fPrint(errBuf);
 #else
+  (void)errorCode;
   // place here some another way to print error code
 #endif /*USE_GFX_LIB*/
 #endif /*USE_MEM_PANIC*/

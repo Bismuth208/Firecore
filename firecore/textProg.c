@@ -7,7 +7,7 @@
 const uint8_t emptyText[] PROGMEM = {" "};
 const uint8_t pauseP0[] PROGMEM = {"Pause"};
 const uint8_t pressAtext[] PROGMEM = {"Prees A"};
-const uint8_t versionP0[] PROGMEM = {"V0.1a"};
+const uint8_t versionP0[] PROGMEM = {"V0.1b"};
 const uint8_t creditP0[] PROGMEM = {"2017 @Bismuth208"};
 const uint8_t scoreP[] PROGMEM = {"Score: "};
 const uint8_t maxScoreP[] PROGMEM = {"Max: "};

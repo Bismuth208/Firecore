@@ -45,7 +45,8 @@ To upload game to your board need to install *esploraAPI* folder to *Arduino's* 
 > - TFT LCD: *ST7735* 160x128.
 
 Whole game writed on C (maybe somewhere can be a tiny of C++, but not for a long time...).
-At current moment game consume 24,154 bytes ROM and 487 RAM and 2 bytes of EEPROM;
+At current moment whole game consume 24,396 bytes ROM and 354 RAM;
+All graphics in game consume 10,324 bytes; 
 
 [To see how does it work check this link](https://www.youtube.com/channel/UCDXVQ9ZfQl8Ddeu_3qiwSiA "My YouTube channel")
 ***

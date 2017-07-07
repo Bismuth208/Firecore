@@ -45,13 +45,63 @@ extern const uint16_t nesPalette_ext[];
 extern const uint8_t rocketPic[];
 //---------------------------------------------------------------------------//
 
-// orig size 256 * 2 = 512
-// RLE compress ratio 3.79259
+#define LASER_PIC_W 16
+#define LASER_PIC_H 8
+
+// orig size 128 * 2 = 256
+// RLE compress ratio 14.2222
+#define WEAPON_LASER1_PIC_SIZE 18
+extern const uint8_t weaponLaserPic1[];
+
+// orig size 128 * 2 = 256
+// RLE compress ratio 7.52941
+#define WEAPON_LASER2_PIC_SIZE 34
+extern const uint8_t weaponLaserPic2[];
+
+// orig size 128 * 2 = 256
+// RLE compress ratio 5.22449
+#define WEAPON_LASER3_PIC_SIZE 49
+extern const uint8_t weaponLaserPic3[];
+
+// orig size 128 * 2 = 256
+// RLE compress ratio 3.93846
+#define WEAPON_LASER4_PIC_SIZE 65
+extern const uint8_t weaponLaserPic4[];
+
+// orig size 128 * 2 = 256
+// RLE compress ratio 8
+#define WEAPON_LASER5_PIC_SIZE 32
+extern const uint8_t weaponLaserPic5[];
+
+
+extern const uint8_t * const laserPics[];
+
+extern const uint8_t laserPicsSize[];
+
+
+//---------------------------------------------------------------------------//
+
 #define GIFT_PIC_W      16
 #define GIFT_PIC_H      16
-#define GIFT_PIC_SIZE   135
 
-extern const uint8_t giftPic[];
+// orig size 256 * 2 = 512
+// RLE compress ratio 5.56522
+#define GIFT_HEART_PIC_SIZE   92
+extern const uint8_t giftHeartPic[];
+
+// orig size 256 * 2 = 512
+// RLE compress ratio 4.97087
+#define GIFT_WEAPON_PIC_SIZE 103
+extern const uint8_t giftWeaponPic[];
+//---------------------------------------------------------------------------//
+
+#define HUD_GUI_PIC_W   128
+#define HUD_GUI_PIC_H     8
+
+// orig size 1024 * 2 = 2048
+// RLE compress ratio 31.5077
+#define HUD_GUI_PIC_SIZE 65  // change name if need
+extern const uint8_t hudGuiPic[];
 //---------------------------------------------------------------------------//
 
 #define DOGE_PIC_W     50
@@ -79,6 +129,14 @@ extern const uint8_t galaxyPic[];
 // orig size 70 * 2 = 140
 // RLE compress ratio 3.58974
 extern const uint8_t alienRocketPic[];
+
+
+#define DEATHRAY_BOSS_PIC_W 16
+#define DEATHRAY_BOSS_PIC_H 8
+// orig size 128 * 2 = 256
+// RLE compress ratio 3.76471
+#define DEATHRAY_BOSS_PIC_SIZE 68
+extern const uint8_t deathRayBossPic[];
 
 
 #define DEATHRAY_PIC_W 8
