@@ -17,10 +17,10 @@ extern "C"{
 #define TFT_H    128
 //---------------------------------------------------------------------------//
 
-#define MAX_GAME_TASKS        14
+#define MAX_GAME_TASKS        18
 
 #define STAR_STEP              6  // move speed for stars
-#define MAX_STARS             20  // how much stars we see on screen
+#define MAX_STARS             40  // how much stars we see on screen
 #define MAX_PEW_PEW            5  // Crysis, nanosuit voice: - "Maximum pew".
 
 
@@ -35,7 +35,7 @@ extern "C"{
 #define DAMAGE_TO_BOSS        10  //
 #define DAMAGE_TO_SHIP        20  //(20*difficult)     //
 
-#define RAND_GIFT_SPAWN_TIME ((RN % (30 SEC) + 10 SEC))
+#define RAND_GIFT_SPAWN_TIME ((RN % (15 SEC) + 5 SEC))
 
 #define PLAYER_ROCKET_CD_REFILL 2  // Global cooldown
 
@@ -97,9 +97,6 @@ extern "C"{
 #define getStickVal(a)  getJoyStickValue(a)
 //---------------------------------------------------------------------------//
 
-#define SHIPS_ICON_STEP 53
-#define SHIPS_ICON_NUM 3
-
 #define BASE_STATS_POS_X  50
 #define BASE_STATS_POS_Y  60
 
@@ -138,6 +135,7 @@ extern "C"{
 
 #define WEAPON_ROCKET_DMG 10 // additional damage from rockets
 #define MAX_WEAPON_LVL    4
+#define WEAPON_GIFT_BONUS 5
 
 //---------------------------------------------------------------------------//
 
@@ -150,7 +148,7 @@ extern "C"{
 #define SHIP_MIN_POS_X   0
 #define SHIP_MIN_POS_Y   0
 
-#define SHIP_MAX_POS_X   TFT_W - SHIP_PIC_W - 6
+#define SHIP_MAX_POS_X   TFT_W - SHIP_PIC_W
 #define SHIP_MAX_POS_Y   TFT_H - SHIP_PIC_H - 9
 
 
@@ -213,7 +211,7 @@ extern "C"{
 //---------------------------------------------------------------------------//
 
 #define ALIEN_MOVE_ZONE_Y_MIN 0
-#define ALIEN_MOVE_ZONE_Y_MAX 100
+#define ALIEN_MOVE_ZONE_Y_MAX (TFT_H-ALIEN_SHIP_PIC_H-8)
 
 #define ALIEN_MOVE_ZONE_X_MIN 0
 #define ALIEN_MOVE_ZONE_X_MAX 125
@@ -238,6 +236,8 @@ extern "C"{
 #define ALIEN_SOUND_LONG   10
 
 #define ALIEN_BOSS_EXPLOSIONS  15
+
+#define ALIEN_BOSS_DEATH_RAYS  4
 //---------------------------------------------------------------------------//
 
 // worlds on galaxy map
@@ -289,7 +289,7 @@ extern bool soundEnable;
 
 extern ship_t ship;
 extern gift_t gift;
-extern inVader_t alienBoss;
+extern inVaderBoss_t alienBoss;
 extern inVader_t alien[MAX_ALIENS];
 extern rocket_t *pRocketGlobal;
 extern btnStatus_t btnStates;
@@ -329,11 +329,13 @@ void waitEnd(void);
 void drawStaticNoise(void);
 
 //---------------------------------------------------------------------------//
-void dropGift(void);
+void dropWeaponGift(void);
+void disableWeaponGift(void);
 void checkGift(void);
 void moveGift(void);
 void drawGift(void);
 
+void initBaseGameParams(void);
 
 void levelBaseInit(void);
 void createNextLevel(void);
@@ -349,7 +351,8 @@ void checkInVadersRay(void);
 void checkInVaders(void);
 
 void setInvaderValue(inVader_t *pAlien, bool state);
-void setDeathRayState(inVader_t *pAlien, bool state);
+void setDeathRayState(rocket_t *pAlien, bool state);
+void setDeathRayPos(rocket_t *deathRay, position_t *pPos);
 //----------------------------//
 
 void addBossTasks(void);
@@ -360,6 +363,7 @@ void moveBossVertical(void);
 void drawBoss(void);
 void checkBossDamage(void);
 void checkBossFire(void);
+void checkBossRays(void);
 void bossDie(void);
 
 void checkShipBossDamage(void);
@@ -431,7 +435,7 @@ void drawEnemy(objPosition_t *pEnemy, uint8_t w, uint8_t h, const uint8_t *pPic,
 uint8_t randNum(void);
 void setMainFreq(uint8_t ps);
 
-void applyShipDamage(inVader_t *pAlien);
+void applyShipDamage(rocket_t *pWeapon);
 
 bool checkCollision(position_t *pObjOne, uint8_t objOneW, uint8_t objOneH,
                     position_t *pObjTwo, uint8_t objTwoW, uint8_t objTwoH);
@@ -439,6 +443,8 @@ bool checkCollision(position_t *pObjOne, uint8_t objOneW, uint8_t objOneH,
 int32_t mapVal(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max);
 
 void memset_F(void *pvDest, uint8_t src, size_t size);
+
+void playMusic(void);
 //---------------------------------------------------------------------------//
 //---------------------------------------------------------------------------//
 
@@ -472,8 +478,8 @@ void baseTitleTask(void);
 
 #define TITLE_TASKS_COUNT     6
 #define SHIP_SEL_TASKS_COUNT  5
-#define GAME_TASKS_COUNT     14
-#define BOSS_TASKS_COUNT     12
+#define GAME_TASKS_COUNT     18
+#define BOSS_TASKS_COUNT     13
 #define GIFT_TASKS_COUNT      8
 
 

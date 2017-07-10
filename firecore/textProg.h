@@ -3,7 +3,7 @@
 
 //---------------------------------------------------------------------------//
 
-#define STORY_DOGE_TEXT_SIZE  6
+#define STORY_DOGE_TEXT_SIZE  7
 
 extern const uint8_t emptyText[];
 extern const uint8_t pauseP0[];
@@ -33,12 +33,16 @@ extern const uint8_t dogeP3[];
 extern const uint8_t dogeP4[];
 extern const uint8_t dogeP5[];
 extern const uint8_t dogeP6[];
+extern const uint8_t dogeP7[];
 extern const uint8_t * const dogePA[];
 
 
 extern const uint8_t modeP1[];
 extern const uint8_t modeP2[];
 extern const uint8_t * const modePA[];
+
+
+extern const uint8_t historyTextP[];
 
 
 extern const uint8_t worldP1[];

@@ -19,6 +19,7 @@ typedef struct {  // need for collision check
 typedef struct {  // 5 bytes RAM
   position_t pos;
   uint8_t color; // as we use Famicom\NES (Dendy) palette, store only color id
+  uint8_t speed;
 } stars_t;
 
 typedef struct {  // 5 bytes RAM
@@ -32,8 +33,8 @@ typedef struct {  // 5 bytes RAM
 
 typedef struct {  // 8 bytes RAM
   objPosition_t pos;
-  //uint8_t *pPic;
-  //uint8_t picSize;
+  uint8_t *pPic;
+  uint8_t picSize;
 } gift_t;
 
 typedef struct {
@@ -75,12 +76,12 @@ typedef struct {  // 8 + 6 + 5 bytes RAM
   uint16_t timeToShoot;
   uint8_t respawnTime;  // 255 sec will be enougth... If call checkInVadersRespawn 1 time in sec...
 } inVader_t;
-/*
+
 typedef struct {
   inVader_t base;
   rocket_t deathRays[4];
+  uint16_t timeToShoot[4];
 } inVaderBoss_t;
-*/
 
 typedef struct {  // 1 byte RAM
   struct {
@@ -107,6 +108,12 @@ typedef struct {
   uint8_t name[4]; // 3 for name 4 for '\n'
   uint16_t score;  // 65535 score val be enought right?
 } saveData_t;
+
+typedef struct {
+  const uint16_t *pCurrent;
+  uint16_t notesNum;
+  uint16_t currentNote;
+} soundSample_t;
 
 typedef const taskParams_t * const tasksArr_t;
 

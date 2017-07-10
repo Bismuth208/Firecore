@@ -113,6 +113,36 @@ extern const uint8_t hudGuiPic[];
 extern const uint8_t cityDogePic[];
 //---------------------------------------------------------------------------//
 
+#define CHARACTER_ICON_W 32
+#define CHARACTER_ICON_H 32
+
+#define CHARACTER_FRAME_WH 32
+
+#define CHARACTER_ICON_OFFSET_X 16
+#define CHARACTER_ICON_OFFSET_Y 8
+
+#define CHARACTER_ICON_STEP 50
+#define CHARACTER_ICON_NUM   3
+
+// orig size 1024 * 2 = 2048
+// RLE compress ratio 6.48101
+#define CHII_PIC_SIZE 316
+extern const uint8_t chiiCatPic[];
+
+// orig size 1024 * 2 = 2048
+// RLE compress ratio 4.57143
+#define GROOMPY_PIC_SIZE 448
+extern const uint8_t groompyCatPic[];
+
+// orig size 1024 * 2 = 2048
+// RLE compress ratio 10.836
+#define PUSHEN_PIC_SIZE 189
+extern const uint8_t pushenCatPic[];
+
+extern const uint8_t * const catsPics[];
+extern const uint16_t catsPicsSizes[];
+//---------------------------------------------------------------------------//
+
 #define GALAXY_PIC_W     160
 #define GALAXY_PIC_H     70
 #define GALAXY_PIC_SIZE  6715

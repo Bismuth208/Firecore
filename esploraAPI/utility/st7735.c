@@ -341,23 +341,21 @@ void tftSetScrollArea(uint16_t TFA, uint16_t BFA)
   writeWordData(BFA);
 }
 
-uint16_t tftScroll(uint16_t lines, uint16_t yStart)
+void tftScroll(uint16_t lines, uint16_t yStart)
 {
   for(uint16_t i = 0; i < lines; i++) {
-    if ((++yStart) == (_height - TFT_BOT_FIXED_AREA)) yStart = TFT_TOP_FIXED_AREA;
+    if ((yStart++) == (_height - TFT_BOT_FIXED_AREA)) yStart = TFT_TOP_FIXED_AREA;
     tftScrollAddress(yStart);
   }
-  return  yStart;
 }
 
-uint16_t tftScrollSmooth(uint16_t lines, uint16_t yStart, uint8_t wait)
+void tftScrollSmooth(uint16_t lines, uint16_t yStart, uint8_t wait)
 {
   for(uint16_t i = 0; i < lines; i++) {
-    if ((++yStart) == (_height - TFT_BOT_FIXED_AREA)) yStart = TFT_TOP_FIXED_AREA;
+    if((yStart++) == (_height - TFT_BOT_FIXED_AREA)) yStart = TFT_TOP_FIXED_AREA;
     tftScrollAddress(yStart);
     _delayMS(wait);
   }
-  return  yStart;
 }
 
 void tftSetSleep(bool enable)

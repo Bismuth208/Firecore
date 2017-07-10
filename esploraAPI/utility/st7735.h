@@ -385,8 +385,8 @@ void tftSetAddrPixel(uint16_t x0, uint16_t y0);
   
 void tftSetScrollArea(uint16_t TFA, uint16_t BFA);
 void tftScrollAddress(uint16_t VSP);
-uint16_t tftScroll(uint16_t lines, uint16_t yStart);
-uint16_t tftScrollSmooth(uint16_t lines, uint16_t yStart, uint8_t wait);
+void tftScroll(uint16_t lines, uint16_t yStart);
+void tftScrollSmooth(uint16_t lines, uint16_t yStart, uint8_t wait);
 
 void tftSetRotation(uint8_t m);
 void tftSetSleep(bool enable);

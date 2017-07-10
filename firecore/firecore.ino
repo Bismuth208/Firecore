@@ -10,11 +10,11 @@
  *  Arduino IDE:  1.6.6   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  24,396
+ * Program size:  26,600
  *  pics:         10,324
  *  code:         14,072
- * Used RAM:      354 bytes
- * Free RAM:      2206 bytes
+ * Used RAM:      514 bytes
+ * Free RAM:      2046 bytes
  *
  * Language:      C and C++
  * 
@@ -40,6 +40,7 @@
 #include "pics.h"
 #include "textProg.h"
 #include "common.h"
+#include "notes.h"
 
 //---------------------------------------------------------------------------//
 // super puper duper ultra extreemely main structures, DO NOT TOUCH THEM!
@@ -55,6 +56,7 @@ bool soundEnable = true;
 #endif
 
 bool weaponLasers = false;
+bool weaponGift = false;
 
 int8_t menuItem =0;
 uint8_t dogeDialogs =0;
@@ -72,6 +74,8 @@ uint8_t difficultyIncrement =0;
 
 uint16_t score =0;
 
+uint16_t thisNote = 0;
+
 ship_t ship;
 gift_t gift;
 rocket_t playerRockets[MAX_PEW_PEW];
@@ -80,6 +84,8 @@ hudStatus_t hudStatus = {1,1,0}; // need update all
 btnStatus_t btnStates = {0};
 
 rocket_t *pRocketGlobal;
+
+soundSample_t music;
 
 const uint8_t lvlCoordinates[] PROGMEM = {
   WORLD_0_POS_X, WORLD_0_POS_Y,
@@ -103,6 +109,10 @@ const uint8_t lvlColors[] PROGMEM = {
   0x04,
   0x00,
   0x04
+};
+
+const uint16_t mainTheme[] PROGMEM = {
+  // still nothing here
 };
 //---------------------------------------------------------------------------//
 
@@ -286,6 +296,21 @@ void memset_F(void *pvDest, uint8_t src, size_t size)
     *dest++ = src;
   }
 }
+
+void playMusic(void)
+{
+  uint16_t freq = pgm_read_word(&music.pCurrent[music.currentNote]);
+  uint16_t noteDuration = pgm_read_word(&music.pCurrent[music.currentNote+1]);
+
+  if(freq) { // silense or not?
+    toneBuzz(freq, noteDuration);
+  }
+  updateTaskTimeCheck(playMusic, noteDuration);
+
+  if((music.currentNote+=2) > music.notesNum) {
+    music.currentNote = 0;
+  }
+}
 // --------------------------------------------------------------- //
 
 void checkFireButton(void)
@@ -312,10 +337,9 @@ void checkFireButton(void)
 }
 
 //---------------------------------------------------------------------------//
-void applyShipDamage(inVader_t *pAlien)
+void applyShipDamage(rocket_t *pWeapon)
 {
-  rocketEpxlosion(&pAlien->deathRay);
-  pAlien->timeToShoot = RAND_SHOOT_TIME;
+  rocketEpxlosion(pWeapon);
 
   // clear previous level
   tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y,
@@ -392,7 +416,11 @@ void moveGift(void)
 {
   if((gift.pos.New.x -= GIFT_MOVE_SPEED) >= TFT_W) {
     movePicture(&gift.pos, GIFT_PIC_W, GIFT_PIC_H); // remove gift from screen
-    createNextLevel();
+    if(weaponGift) {
+      disableWeaponGift();
+    } else {
+      createNextLevel();
+    }    
   }
 }
 
@@ -409,14 +437,51 @@ void checkGift(void)
         score += GIFT_BONUS_SCORE;
         hudStatus.updScore = true;    // update score later
 
-        if((ship.health += GIFT_HEALTH_RESTORE) > SHIP_HEALTH) {
-          ship.health = SHIP_HEALTH;
+        movePicture(&gift.pos, GIFT_PIC_W, GIFT_PIC_H); // remove gift from screen
+
+        if(weaponGift) {
+          ship.states.power += WEAPON_GIFT_BONUS;
+          if((++ship.weapon.level) >= MAX_WEAPON_LVL) {
+            ship.weapon.level = MAX_WEAPON_LVL;
+          }
+          ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level); 
+          ship.weapon.picSize = getPicByte(laserPicsSize + ship.weapon.level);
+          disableWeaponGift();
+        } else {
+          if((ship.health += GIFT_HEALTH_RESTORE) > SHIP_HEALTH) {
+            ship.health = SHIP_HEALTH;
+          }
+          createNextLevel();
         }
-        createNextLevel();
       }
     }
     ++pRocket;
   }
+}
+
+void disableWeaponGift(void)
+{
+  gift.pPic = giftHeartPic;
+  gift.picSize = GIFT_HEART_PIC_SIZE;
+
+  weaponGift = false;
+  updateTaskStatus(moveGift, false);
+  updateTaskStatus(checkGift, false);
+  updateTaskStatus(drawGift, false);
+}
+
+void dropWeaponGift(void)
+{
+  gift.pPic = giftWeaponPic;
+  gift.picSize = GIFT_WEAPON_PIC_SIZE;
+  gift.pos.New.x = GIFT_BASE_POS_X;
+  gift.pos.New.y = GIFT_BASE_POS_Y;
+
+  weaponGift = true;
+  updateTaskStatus(dropWeaponGift, false);
+  updateTaskStatus(moveGift, true);
+  updateTaskStatus(drawGift, true);
+  updateTaskStatus(checkGift, true);
 }
 
 // --------------------------------------------------------------- //
@@ -425,12 +490,10 @@ void createNextLevel(void)
 {
   shipHyperJump();
   deleteAllTasks();
-  //addTask(updateBtnStates, 50, true);
   addTask_P(T(&updateBtnStates));
 
   if((++curretLevel) >= MAX_WORLDS) { // is it was final boss?
     victory();
-    //addTask(waitEnd, 400, true);
     addTask_P(T(&waitEnd));
   } else {
     totalRespawns = ALIEN_KILLS_TO_BOSS + difficultyIncrement;
@@ -438,7 +501,6 @@ void createNextLevel(void)
       difficultyIncrement = MAX_DIFFICULT_INCREMENT;
     }
     levelClear();
-    //addTask(waitOk, 400, true);
     addTask_P(T(&waitOk));
   }  
 }
@@ -467,6 +529,10 @@ void addTasksArray(tasksArr_t *pArr, uint8_t size)
 
 void addTitleTasks(void)
 {
+  //music.pCurrent = mainTheme;
+  //music.notesNum = 17;
+  //music.currentNote =0;
+
   addTasksArray(titleTasksArr, TITLE_TASKS_COUNT);
 }
 
@@ -475,16 +541,26 @@ void addGameTasks(void)
   ship.pos.New.x = SHIP_GAME_POS_X;
   ship.pos.New.y = SHIP_GAME_POS_Y;
 
+  //music.pCurrent = gameTheme;
+  //music.notesNum = X;
+  //music.currentNote =0;
+
   addTasksArray(gameTasksArr, GAME_TASKS_COUNT);
 
-  //disableTask(moveGift);
-  //disableTask(drawGift);
-  //disableTask(checkGift);
+  updateTaskTimeCheck(dropWeaponGift, RAND_GIFT_SPAWN_TIME);
+  updateTaskStatus(moveGift, false);
+  updateTaskStatus(drawGift, false);
+  updateTaskStatus(checkGift, false);
 }
 
 void addBossTasks(void)
 {
   ship.states.power = DAMAGE_TO_BOSS;
+
+  //music.pCurrent = bossTheme;
+  //music.notesNum = X;
+  //music.currentNote =0;
+
   addTasksArray(bossTasksArr, BOSS_TASKS_COUNT);
 }
 
@@ -494,15 +570,7 @@ void addGiftTasks(void)
   gift.pos.New.x = GIFT_BASE_POS_X;
   gift.pos.New.y = GIFT_BASE_POS_Y;
   //gift.state = false;
-/*
-  if(RN % 2) {
-    pPic = giftWeaponPic;
-    picSize = GIFT_WEAPON_PIC_SIZE;
-  } else {
-    pPic = giftHeartPic;
-    picSize = GIFT_HEART_PIC_SIZE;
-  }
-*/
+
   addTasksArray(giftTasksArr, GIFT_TASKS_COUNT);
 }
 
@@ -572,6 +640,7 @@ void initStars(void)
     stars[count].pos.x = RN % TFT_W;
     stars[count].pos.y = RN % STARS_MAX_POS_Y;
     stars[count].color = RAND_STAR_CLR;
+    stars[count].speed = RN % STAR_STEP + 1;
   }
 }
 

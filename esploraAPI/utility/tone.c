@@ -19,7 +19,7 @@
 #define F_CPU 8000000L
 #endif
 
-volatile long timer3_toggle_count;
+volatile int32_t timer3_toggle_count;
 
 void initSound(void)
 {
@@ -33,11 +33,14 @@ void initSound(void)
 
 // 1 param - frequency Hz
 // 2 param - duration in milliseconds
-void toneBuzz(uint16_t frequency, unsigned long duration)
+void toneBuzz(uint16_t frequency, uint32_t duration)
 {
   uint8_t prescalarbits = 0x1; // 0b001
   uint32_t ocr = F_CPU / frequency / 2 - 1;
-  long toggle_count;
+  int32_t toggle_count;
+  
+  TIMSK3 &= ~(1<<OCIE3A);               // disable timer
+  SOUND_PORT &= ~(1 << SOUND_PORT_PIN); // disable sound pin
   
   // Calculate the toggle count
   if (duration > 0) {
@@ -52,8 +55,6 @@ void toneBuzz(uint16_t frequency, unsigned long duration)
   }
   
   TCCR3B = (TCCR3B & 0b11111000) | prescalarbits; // Set prescalar bits;
-
-  //SOUND_PORT |= (1 << SOUND_PORT_PIN);            // Enable sound pin;
 
   OCR3A = ocr;                                    // Load value to OCR;
   timer3_toggle_count = toggle_count;             // Set toggle count;

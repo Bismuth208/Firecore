@@ -17,13 +17,22 @@ bool iconState = false;
 // -------------------------- Main menu -------------------------- //
 void drawShipSelectionMenu(void)
 {
-  uint16_t posX =0;
+  uint16_t posX = CHARACTER_ICON_OFFSET_X;
   screenSliderEffect(currentBackGroundColor);
 
-  for(uint8_t count=0; count<SHIPS_ICON_NUM; count++) {
-    drawFrame(posX, 0, 51, 51, INDIGO_COLOR, COLOR_WHITE);
-    drawBMP_RLE_P(posX, 1, DOGE_PIC_W, DOGE_PIC_H, cityDogePic, DOGE_PIC_SIZE);
-    posX += SHIPS_ICON_STEP;
+  const uint8_t *pPic;
+  uint16_t picSize;
+
+  for(uint8_t count=0; count<CHARACTER_ICON_NUM; count++) {
+    pPic = getConstCharPtr(catsPics, count);
+    picSize = getPicWord(catsPicsSizes, count);
+
+    drawFrame(posX, CHARACTER_ICON_OFFSET_Y,
+                CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, INDIGO_COLOR, COLOR_WHITE);
+    drawBMP_RLE_P(posX, CHARACTER_ICON_OFFSET_Y+1,
+                                CHARACTER_ICON_W, CHARACTER_ICON_H, pPic, picSize);
+
+    posX += CHARACTER_ICON_STEP;
   }
   
   // make tiny frame for ship
@@ -37,13 +46,15 @@ void drawCurrentShipSelection(void)
 {
   iconState = !iconState;
 
-  uint16_t posX = SHIPS_ICON_STEP*(currentShip-1);
+  uint16_t posX = CHARACTER_ICON_STEP*(currentShip-1) + CHARACTER_ICON_OFFSET_X;
   uint16_t color = iconState ? COLOR_WHITE : COLOR_BLACK;
-
-  tftDrawRect(posX, 0, 51, 51, color);
+  tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, color);
 
   if(currentShip != previousShip) {
-    drawFrame(0, 55, 100, 30, INDIGO_COLOR, COLOR_WHITE);
+    posX = CHARACTER_ICON_STEP*(previousShip-1) + CHARACTER_ICON_OFFSET_X;
+    tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, COLOR_BLACK);
+
+    drawFrame(0, 55, 100, 30, INDIGO_COLOR, COLOR_WHITE); // frame params
     tftPrintAt_P(4, 58, (const char*)shipSpeedStatP);
     tftPrintAt_P(4, 66, (const char*)shipPowerStatP);
     tftPrintAt_P(4, 74, (const char*)shipDurabStatP);
@@ -360,14 +371,11 @@ void gameOver(void)
   resetBtnStates();
 
   curretLevel =0;
-  ship.weapon.level = 0;
+  initBaseGameParams();
 }
 
 void levelClear(void)
 {
-  if((++ship.weapon.level) >= MAX_WEAPON_LVL) {
-    ship.weapon.level = MAX_WEAPON_LVL;
-  }
   done(levelClearP);
 }
 

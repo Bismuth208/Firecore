@@ -11,7 +11,6 @@
 uint8_t titleRowRPosX = PIC_TITLE_R_BASE_X;
 uint8_t titleRowLPosX = PIC_TITLE_L_BASE_X;
 
-//uint8_t maxStars = MAX_STARS;
 stars_t stars[MAX_STARS];
 bool startState = true;
 
@@ -60,12 +59,13 @@ void drawStars(void)
     fillRectFast(pStars->pos.x, pStars->pos.y, 1, 1); // clear previous star
     
     // now move them
-    if((pStars->pos.x -= STAR_STEP) < TFT_W) {
+    if((pStars->pos.x -= pStars->speed) < TFT_W) {
       drawPixelFast(pStars->pos.x, pStars->pos.y, pStars->color);
     } else {
       pStars->pos.x = TFT_W;
       pStars->pos.y = RN % STARS_MAX_POS_Y;
       pStars->color = RAND_STAR_CLR;
+      pStars->speed = RN % STAR_STEP + 1;
     }
 
     ++pStars;
@@ -143,7 +143,7 @@ void drawPlayerRockets(void)
       // remove previous rocket image
       fillRectFast(pRocket->pos.x, pRocket->pos.y, LASER_PIC_W, LASER_PIC_H);
       
-      if((pRocket->pos.x += PLAYER_ROCKET_SPEED) < TFT_W) {
+      if(((pRocket->pos.x += PLAYER_ROCKET_SPEED) + LASER_PIC_W) <= TFT_W) {
         drawBMP_RLE_P(pRocket->pos.x, pRocket->pos.y,
                                   LASER_PIC_W, LASER_PIC_H,
                                   ship.weapon.pPic, ship.weapon.picSize);
@@ -158,7 +158,7 @@ void drawPlayerRockets(void)
 
 void drawGift(void)
 {
-  drawEnemy(&gift.pos, GIFT_PIC_W, GIFT_PIC_H, giftHeartPic, GIFT_HEART_PIC_SIZE);
+  drawEnemy(&gift.pos, GIFT_PIC_W, GIFT_PIC_H, gift.pPic, gift.picSize);
 }
 // --------------------------------------------------------------- //
 
@@ -211,12 +211,10 @@ void drawRows(void)
 // hardware scrolling; blocks everything
 void screenSliderEffect(uint16_t color)
 {
-  tftDrawFastVLine(TFT_W, 0, TFT_H, color);
   for(int16_t i = TFT_W; i >= 0; i--) {
-    tftScrollSmooth(1, i, 4);
+    tftScrollSmooth(1, i-1, 4);
     tftDrawFastVLine(TFT_W-i-1, 0, TFT_H, color);
   }
-  tftDrawFastVLine(0, 0, TFT_H, color);
 }
 
 // --------------------------------------------------------------- //

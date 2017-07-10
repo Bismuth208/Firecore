@@ -7,7 +7,7 @@
 const uint8_t emptyText[] PROGMEM = {" "};
 const uint8_t pauseP0[] PROGMEM = {"Pause"};
 const uint8_t pressAtext[] PROGMEM = {"Prees A"};
-const uint8_t versionP0[] PROGMEM = {"V0.1b"};
+const uint8_t versionP0[] PROGMEM = {"V0.1c"};
 const uint8_t creditP0[] PROGMEM = {"2017 @Bismuth208"};
 const uint8_t scoreP[] PROGMEM = {"Score: "};
 const uint8_t maxScoreP[] PROGMEM = {"Max: "};
@@ -30,18 +30,26 @@ const uint8_t buttonY[] PROGMEM = {"'Y'"};
 const uint8_t * const buttonsAll[] PROGMEM = {buttonA, buttonB, buttonX, buttonY};
 
 
-const uint8_t dogeP1[] PROGMEM = {"WOOF WOOF, I'M DOGE, WOW!"};
-const uint8_t dogeP2[] PROGMEM = {"YOU MUST TO..."};
-const uint8_t dogeP3[] PROGMEM = {"SAVE THE GALAXY..."};
-const uint8_t dogeP4[] PROGMEM = {"AND OUR HOME PLANET..."};
+const uint8_t dogeP1[] PROGMEM = {"Woof Woof, I'm Doge, WOW!"};
+const uint8_t dogeP2[] PROGMEM = {"Hero, You must to"};
+const uint8_t dogeP3[] PROGMEM = {"save the galaxy!"};
+const uint8_t dogeP4[] PROGMEM = {"And our Home planet!"};
 const uint8_t dogeP5[] PROGMEM = {"INVADERS ARE COMING..."};
 const uint8_t dogeP6[] PROGMEM = {"'STATIC NOISE...'"};
-const uint8_t * const dogePA[] PROGMEM = {dogeP1, dogeP2, dogeP3, dogeP4, dogeP5, dogeP6};
+const uint8_t dogeP7[] PROGMEM = {"..we...eed yo..r...elp!"};
+const uint8_t * const dogePA[] PROGMEM = {
+	dogeP1, dogeP2, dogeP3,
+	dogeP4,	dogeP5, dogeP6,
+	dogeP7
+};
 
 
 const uint8_t modeP1[] PROGMEM = {"Story"};
 const uint8_t modeP2[] PROGMEM = {"Endless"};
 const uint8_t * const modePA[] PROGMEM = {modeP1, modeP2};
+
+
+const uint8_t historyTextP[] PROGMEM = {"In far far away galaxy, after last holywar, \nwhat was thousands years ago, \ntwo species lives in different parts of the galaxy \nin silent and pice.\n\nUntil now…"};
 
 
 const uint8_t worldP1[] PROGMEM = {"Nautrem 3"};

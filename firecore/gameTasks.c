@@ -44,15 +44,19 @@ TASK(drawBoss, 130);
 TASK(moveBossVertical, 150);
 TASK(checkBossDamage, 80);
 TASK(checkBossFire, 150);
+TASK(checkBossRays, 200);
 
 TASK(moveGift, 120);
 TASK(drawGift, 150);
 TASK(checkGift, 80);
+TASK(dropWeaponGift, 10 SEC);
 
 TASK(drawCurrentShipSelection, 250);
 TASK(getShipItem, 250);
 TASK(checkShipSelect, 400);
 
+
+TASK(playMusic, 1);
 
 
 TASK(drawRows, 10);
@@ -73,6 +77,7 @@ TASK_ARR( title ) = {
   TASK_P(drawShip),
   TASK_P(drawStart),
   TASK_P(drawTitleText)
+  //TASK_P(playMusic)
 };
 //---------------------------------------------------------------------------//
 
@@ -90,11 +95,11 @@ TASK_ARR( game ) = {
   TASK_P(drawInVaders),
   TASK_P(moveInVaders),
   TASK_P(checkInVadersRespawn),
-  TASK_P(checkInVadersRay)
-  //TASK_P(moveGift),
-  //TASK_P(drawGift, 100),
-  //TASK_P(checkGift, 100),
-  //TASK_P(dropGift, RAND_GIFT_SPAWN_TIME)
+  TASK_P(checkInVadersRay),
+  TASK_P(moveGift),
+  TASK_P(drawGift),
+  TASK_P(checkGift),
+  TASK_P(dropWeaponGift)
 };
 //---------------------------------------------------------------------------//
 
@@ -110,7 +115,8 @@ TASK_ARR( boss )= {
   TASK_P(drawBoss),
   TASK_P(moveBossVertical),
   TASK_P(checkBossDamage),
-  TASK_P(checkBossFire)
+  TASK_P(checkBossFire),
+  TASK_P(checkBossRays)
 };
 //---------------------------------------------------------------------------//
 
