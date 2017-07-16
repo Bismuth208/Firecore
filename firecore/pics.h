@@ -32,17 +32,8 @@
  * Color adress: 0x00 - 0x4F
  */
 
-//Size: 160 ( 80 * sizeof(uint16_t) )
+// size: 160 ( 80 * sizeof(uint16_t) )
 extern const uint16_t nesPalette_ext[];
-//---------------------------------------------------------------------------//
-
-#define ROCKET_W        13
-#define ROCKET_H         7
-#define ROCKET_PIC_SIZE 62
-
-// orig size 91 * 2 = 182
-// RLE compress ratio 2.93548
-extern const uint8_t rocketPic[];
 //---------------------------------------------------------------------------//
 
 #define LASER_PIC_W 16
@@ -73,16 +64,12 @@ extern const uint8_t weaponLaserPic4[];
 #define WEAPON_LASER5_PIC_SIZE 32
 extern const uint8_t weaponLaserPic5[];
 
-
 extern const uint8_t * const laserPics[];
-
 extern const uint8_t laserPicsSize[];
-
-
 //---------------------------------------------------------------------------//
 
-#define GIFT_PIC_W      16
-#define GIFT_PIC_H      16
+#define GIFT_PIC_W 16
+#define GIFT_PIC_H 16
 
 // orig size 256 * 2 = 512
 // RLE compress ratio 5.56522
@@ -152,15 +139,6 @@ extern const uint16_t catsPicsSizes[];
 extern const uint8_t galaxyPic[];
 //---------------------------------------------------------------------------//
 
-#define ALIEN_ROCKET_PIC_W     10
-#define ALIEN_ROCKET_PIC_H      7
-#define ALIEN_ROCKET_PIC_SIZE  39
-
-// orig size 70 * 2 = 140
-// RLE compress ratio 3.58974
-extern const uint8_t alienRocketPic[];
-
-
 #define DEATHRAY_BOSS_PIC_W 16
 #define DEATHRAY_BOSS_PIC_H 8
 // orig size 128 * 2 = 256
@@ -181,7 +159,7 @@ extern const uint8_t deathRayHiPic[];
 // RLE compress ratio 3.36842
 #define DEATHRAY_LOW_PIC_SIZE 38
 extern const uint8_t deathRayLowPic[];
-
+//---------------------------------------------------------------------------//
 
 #define ALIEN_SHIP_PIC_W   32
 #define ALIEN_SHIP_PIC_H   16
@@ -206,16 +184,38 @@ extern const uint8_t bossShip[];
 
 #define SHIP_PIC_W   32
 #define SHIP_PIC_H   16
-#define SHIP_BASE_HI_PIC_SIZE 245
 
 // orig size 512 * 2 = 1024
-// RLE compress ratio 4.17959
-extern const uint8_t shipBaseHi[];
+// RLE compress ratio 5.33333
+#define SHIP_V_SPEED_PIC_SIZE 192
+extern const uint8_t shipVSpeedPic[];
 
 // orig size 512 * 2 = 1024
-// RLE compress ratio 4.28452
-#define SHIP_BASE_LOW_PIC_SIZE 239
-extern const uint8_t shipBaseLow[];
+// RLE compress ratio 5.95349
+#define SHIP_V_POWER_PIC_SIZE 172
+extern const uint8_t shipVPowerPic[];
+
+// orig size 512 * 2 = 1024
+// RLE compress ratio 3.87879
+#define SHIP_V_ARMOR_PIC_SIZE 264
+extern const uint8_t shipVArmorPic[];
+
+extern const uint8_t * const shipsPics[];
+extern const uint16_t shipsPicsSizes[];
+//---------------------------------------------------------------------------//
+
+#define FLAMES_PIC_W 6
+#define FLAMES_PIC_H 4
+
+// orig size 24 * 2 = 48
+// RLE compress ratio 2
+#define FLAME_FIRE_HI_PIC_SIZE 24
+extern const uint8_t flameFireHiPic[];
+
+// orig size 24 * 2 = 48
+// RLE compress ratio 2
+#define FLAME_FIRE_LOW_PIC_SIZE 24
+extern const uint8_t flameFireLowPic[];
 //---------------------------------------------------------------------------//
 
 #define TEXT_TITLE_HI_W    115

@@ -10,10 +10,10 @@
 
 /*
 #define T(a) a##Task
-#define TASK_N(a)    const taskParams_t T(a)[]
+#define TASK_N(a)    const taskParams_t T(a)
 #define TASK(a,b)    TASK_N(a) PROGMEM = {a, b}
 #define TASK_P(a)    (taskParams_t*)&T(a)
-#define TASK_ARR(a)  tasksArr_t a##TasksArr[] PROGMEM
+#define TASK_ARR(a)  const tasksArr_t a##TasksArr[] PROGMEM
 */
 
 //---------------------------------------------------------------------------//
@@ -67,7 +67,6 @@ TASK(drawStaticNoise, 50);
 TASK(drawLevelSelect, 250);
 TASK(drawShipExplosion, 250);
 
-//TASK(swapWeapon, 120);
 //---------------------------------------------------------------------------//
 
 TASK_ARR( title ) = {

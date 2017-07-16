@@ -6,10 +6,6 @@
 #include "textProg.h"
 #include "common.h"
 
-#ifndef NULL
-#define NULL (void *)0
-#endif
-
 int8_t currentShip = 2;
 int8_t previousShip =0;
 bool iconState = false;
@@ -29,6 +25,7 @@ void drawShipSelectionMenu(void)
 
     drawFrame(posX, CHARACTER_ICON_OFFSET_Y,
                 CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, INDIGO_COLOR, COLOR_WHITE);
+
     drawBMP_RLE_P(posX, CHARACTER_ICON_OFFSET_Y+1,
                                 CHARACTER_ICON_W, CHARACTER_ICON_H, pPic, picSize);
 
@@ -51,6 +48,10 @@ void drawCurrentShipSelection(void)
   tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, color);
 
   if(currentShip != previousShip) {
+    ship.type = currentShip-1;
+    ship.bodyPic.ptr = getConstCharPtr(shipsPics, ship.type);
+    ship.bodyPic.size = getPicWord(shipsPicsSizes, ship.type);
+
     posX = CHARACTER_ICON_STEP*(previousShip-1) + CHARACTER_ICON_OFFSET_X;
     tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, COLOR_BLACK);
 
@@ -149,6 +150,7 @@ void pauseMenu(void)
       resetBtnStates();
       pauseState = !pauseState;
       enableAllTasks();
+      disableWeaponGift(); // fix glitch
       // remove "Pause" text
       fillRectFast(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, PAUSE_TEXT_W, PAUSE_TEXT_H);
       //continue();
@@ -189,7 +191,9 @@ void drawGalaxy(void)
   screenSliderEffect(COLOR_BLACK);
   drawBMP_RLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, 
                    GALAXY_PIC_W, GALAXY_PIC_H, galaxyPic, GALAXY_PIC_SIZE);
-  currentBackGroundColor = getPicWord(nesPalette_ext, getPicByte(lvlColors + curretLevel));
+
+  currentBackGroundColorId = getPicByte(lvlColors + curretLevel);
+  currentBackGroundColor = getPicWord(nesPalette_ext, currentBackGroundColorId);
 }
 
 //---------------------------------------------------------------------------//
@@ -222,9 +226,9 @@ void drawStaticNoise(void)
 void drawStory(void)
 {
   tftDrawCircle(WORLD_8_POS_X, WORLD_8_POS_Y, CIRCLE_PONITER_MAP_SIZE,
-                       (shipState ? COLOR_RED : COLOR_WHITE )); // Home planet
+                       (iconState ? COLOR_RED : COLOR_WHITE )); // Home planet
   
-  shipState = !shipState; // reuse
+  iconState = !iconState; // reuse
   
   if(getBtnState(BUTTON_B)) {
     resetBtnStates();
@@ -268,10 +272,10 @@ void drawLevelSelect(void)
   uint8_t posX = getPicByte(lvlCoordinates + curretLevel*2);
   uint8_t posY = getPicByte(lvlCoordinates + curretLevel*2 + 1);
 
-  shipState = !shipState;
+  iconState = !iconState;
 
   tftDrawCircle(posX, posY, CIRCLE_PONITER_MAP_SIZE,
-                     (shipState ? COLOR_RED : COLOR_WHITE )); // Home planet
+                     (iconState ? COLOR_RED : COLOR_WHITE )); // Home planet
   
   if(getBtnState(BUTTON_A)) {
     resetBtnStates();
@@ -282,13 +286,6 @@ void drawLevelSelect(void)
   }
 }
 //---------------------------------------------------------------------------//
-
-void runEndlessMode(void)
-{
-  addGameTasks();
-  resetBtnStates();
-  screenSliderEffect(currentBackGroundColor);
-}
 
 void drawSomeGUI(void)
 {

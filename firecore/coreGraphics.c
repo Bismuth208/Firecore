@@ -56,11 +56,11 @@ void drawStars(void)
 
   // draw stars and blow your mind, if still not
   for(uint8_t count=0; count < MAX_STARS; count++) {
-    fillRectFast(pStars->pos.x, pStars->pos.y, 1, 1); // clear previous star
+    drawPixelFast(&pStars->pos, currentBackGroundColorId);
     
     // now move them
     if((pStars->pos.x -= pStars->speed) < TFT_W) {
-      drawPixelFast(pStars->pos.x, pStars->pos.y, pStars->color);
+      drawPixelFast(&pStars->pos, pStars->color);
     } else {
       pStars->pos.x = TFT_W;
       pStars->pos.y = RN % STARS_MAX_POS_Y;
@@ -107,26 +107,32 @@ void rocketEpxlosion(rocket_t *pRocket)
 
 void drawShip(void)
 {
-  const uint8_t *pic = (shipState ? shipBaseHi : shipBaseLow);
-  uint16_t picSize = (shipState ? SHIP_BASE_HI_PIC_SIZE : SHIP_BASE_LOW_PIC_SIZE);
-  
-  shipState = !shipState;
-  drawEnemy(&ship.pos, SHIP_PIC_W, SHIP_PIC_H, pic, picSize);
+  ship.flameState = !ship.flameState;
+
+  ship.flamesPic.ptr = (ship.flameState ? flameFireHiPic : flameFireLowPic);
+  ship.flamesPic.size = (ship.flameState ? FLAME_FIRE_HI_PIC_SIZE : FLAME_FIRE_LOW_PIC_SIZE);
+
+  drawEnemy(&ship.pos, SHIP_PIC_W, SHIP_PIC_H, &ship.bodyPic);
+
+  drawBMP_RLE_P(ship.pos.Base.x, ship.pos.Base.y+SHIP_FLAME_OFFSET_Y,
+                        FLAMES_PIC_W, FLAMES_PIC_H, ship.flamesPic.ptr, ship.flamesPic.size);
 }
 
 void shipHyperJump(void)
 {
   while((ship.pos.Base.x++) < SHIP_MAX_POS_X) {
     // this pic used for left red track on screen
-    drawBMP_RLE_P(ship.pos.Base.x, ship.pos.Base.y, SHIP_PIC_W, SHIP_PIC_H, 
-                                          shipBaseLow, SHIP_BASE_LOW_PIC_SIZE);
+    drawBMP_RLE_P(ship.pos.Base.x, ship.pos.Base.y, SHIP_PIC_W, SHIP_PIC_H,
+                                                       ship.bodyPic.ptr, ship.bodyPic.size);
+    drawBMP_RLE_P(ship.pos.Base.x, ship.pos.Base.y+SHIP_FLAME_OFFSET_Y,
+                        FLAMES_PIC_W, FLAMES_PIC_H, flameFireHiPic, FLAME_FIRE_HI_PIC_SIZE);
   }
   movePicture(&ship.pos, SHIP_PIC_W, SHIP_PIC_H); // remove ship from screen
 }
 
 void drawShipExplosion(void)
 {
-  rocket_t *pRocket = pRocketGlobal; // reuse
+  rocket_t *pRocket = &playerLasers[0]; // reuse
 
   pRocket->pos.x = RN % SHIP_PIC_W + ship.pos.Base.x;
   pRocket->pos.y = RN % SHIP_PIC_H + ship.pos.Base.y;
@@ -136,7 +142,7 @@ void drawShipExplosion(void)
 
 void drawPlayerRockets(void)
 {
-  rocket_t *pRocket = pRocketGlobal;
+  rocket_t *pRocket = &playerLasers[0];
 
   for(uint8_t count =0; count < MAX_PEW_PEW; count++) {
     if(pRocket->onUse) {
@@ -146,7 +152,7 @@ void drawPlayerRockets(void)
       if(((pRocket->pos.x += PLAYER_ROCKET_SPEED) + LASER_PIC_W) <= TFT_W) {
         drawBMP_RLE_P(pRocket->pos.x, pRocket->pos.y,
                                   LASER_PIC_W, LASER_PIC_H,
-                                  ship.weapon.pPic, ship.weapon.picSize);
+                                  ship.weapon.pic.ptr, ship.weapon.pic.size);
       } else {
         pRocket->onUse = false;
       }
@@ -158,7 +164,7 @@ void drawPlayerRockets(void)
 
 void drawGift(void)
 {
-  drawEnemy(&gift.pos, GIFT_PIC_W, GIFT_PIC_H, gift.pPic, gift.picSize);
+  drawEnemy(&gift.pos, GIFT_PIC_W, GIFT_PIC_H, &gift.pic);
 }
 // --------------------------------------------------------------- //
 
@@ -180,7 +186,8 @@ void drawStart(void)
 void drawTitleText(void)
 {
   drawBMP_RLE_P(TITLE_PIC_POS_X, TITLE_PIC_POS_Y,
-                  TEXT_TITLE_HI_W, TEXT_TITLE_HI_H, titleTextPic, TEXT_TITLE_HI_SIZE);
+                TEXT_TITLE_HI_W, TEXT_TITLE_HI_H,
+                titleTextPic, TEXT_TITLE_HI_SIZE);
 }
 
 // make unfold animation
@@ -198,12 +205,10 @@ void drawRows(void)
     drawTitleText();
   } else {
     drawBMP_RLE_P(titleRowLPosX, PIC_ROW_L_POS_Y,
-                    PIC_TITLE_ROW_WH, PIC_TITLE_ROW_WH,
-                      rowsLeftPic, ROWS_L_DATA_PIC_SIZE);
+                    PIC_TITLE_ROW_WH, PIC_TITLE_ROW_WH, rowsLeftPic, ROWS_L_DATA_PIC_SIZE);
     
     drawBMP_RLE_P(titleRowRPosX, PIC_ROW_R_POS_Y,
-                    PIC_TITLE_ROW_WH, PIC_TITLE_ROW_WH,
-                      rowsRightPic, ROWS_R_DATA_PIC_SIZE);
+                    PIC_TITLE_ROW_WH, PIC_TITLE_ROW_WH, rowsRightPic, ROWS_R_DATA_PIC_SIZE);
   }
 }
 // --------------------------------------------------------------- //
@@ -218,10 +223,10 @@ void screenSliderEffect(uint16_t color)
 }
 
 // --------------------------------------------------------------- //
-void drawEnemy(objPosition_t *pEnemy, uint8_t w, uint8_t h, const uint8_t *pPic, uint16_t picSize)
+void drawEnemy(objPosition_t *pEnemy, uint8_t w, uint8_t h, pic_t *pPic)
 {
   movePicture(pEnemy, w, h);
-  drawBMP_RLE_P(pEnemy->Base.x, pEnemy->Base.y, w, h, pPic, picSize);
+  drawBMP_RLE_P(pEnemy->Base.x, pEnemy->Base.y, w, h, pPic->ptr, pPic->size);
 }
 // --------------------------------------------------------------- //
 void fillRectFast(int16_t x, int16_t y, uint8_t w, uint8_t h)
@@ -235,14 +240,14 @@ void fillRectFast(int16_t x, int16_t y, uint8_t w, uint8_t h)
   }
 }
 
-void drawPixelFast(int16_t x, int16_t y, uint8_t colorId)
+void drawPixelFast(position_t *pPos, uint8_t colorId)
 {
-  tftSetAddrWindow(x, y, x+1, y+1);
+  tftSetAddrPixel(pPos->x, pPos->y);
   pushColorFast(getPicWord(nesPalette_ext, colorId));
 }
 
 void drawBMP_RLE_P(int16_t x, int16_t y, uint8_t w, uint8_t h,
-                              const uint8_t *pPic, int16_t sizePic)
+                                  const uint8_t *pPic, int16_t sizePic)
 {
   // This is used
   // when need maximum pic compression,

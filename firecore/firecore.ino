@@ -10,11 +10,11 @@
  *  Arduino IDE:  1.6.6   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  26,600
+ * Program size:  26,884
  *  pics:         10,324
  *  code:         14,072
- * Used RAM:      514 bytes
- * Free RAM:      2046 bytes
+ * Used RAM:      521 bytes
+ * Free RAM:      2039 bytes
  *
  * Language:      C and C++
  * 
@@ -49,7 +49,6 @@ taskStatesArr_t pArr[MAX_GAME_TASKS];
 //---------------------------------------------------------------------------//
 
 bool lowHealthState = false;
-bool shipState = false;
 bool pauseState = false;
 #if ADD_SOUND
 bool soundEnable = true;
@@ -61,29 +60,23 @@ bool weaponGift = false;
 int8_t menuItem =0;
 uint8_t dogeDialogs =0;
 uint8_t curretLevel =0;
+uint8_t difficultyIncrement =0;
+uint16_t score =0;
 
 uint8_t nextInt =1;
 uint8_t randNumA =0;
 uint16_t currentBackGroundColor = BACKGROUND_COLOR;
+uint8_t currentBackGroundColorId = 0x01;
 uint16_t replaceColor = 0x01F4;
 
 uint16_t calJoysticX =0;
 uint16_t calJoysticY =0;
 
-uint8_t difficultyIncrement =0;
-
-uint16_t score =0;
-
-uint16_t thisNote = 0;
-
 ship_t ship;
 gift_t gift;
-rocket_t playerRockets[MAX_PEW_PEW];
 rocket_t playerLasers[MAX_PEW_PEW];
 hudStatus_t hudStatus = {1,1,0}; // need update all
 btnStatus_t btnStates = {0};
-
-rocket_t *pRocketGlobal;
 
 soundSample_t music;
 
@@ -101,13 +94,13 @@ const uint8_t lvlCoordinates[] PROGMEM = {
 
 const uint8_t lvlColors[] PROGMEM = {
   0x1E,
-  0x01,
   0x1E,
-  0x2E,
-  0x3E,
+  0x1E,
+  0x1E,
+  0x1E,
+  0x1E,
+  0x1E,
   0x01,
-  0x04,
-  0x00,
   0x04
 };
 
@@ -129,7 +122,7 @@ int32_t mapVal(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-// ------------------------ Poll constols ------------------------ //
+// ------------------------ Poll controls ------------------------ //
 // poll periodically buttons states
 void updateBtnStates(void)
 {
@@ -321,7 +314,7 @@ void checkFireButton(void)
     resetBtnStates();
     if((ship.weapon.rocketsLeft -= PLAYER_ROCKET_COST) < MAX_PEW_PEW) {
       // store to local registers
-      pRokets = &pRocketGlobal[ship.weapon.rocketsLeft];
+      pRokets = &playerLasers[ship.weapon.rocketsLeft];
       if(pRokets->onUse == false) {
 #if ADD_SOUND
         if(soundEnable) toneBuzz(500, 10);
@@ -392,25 +385,6 @@ void moveShip(void)
   ship.pos.New.y = checkShipPosition(posY, SHIP_MIN_POS_Y, SHIP_MAX_POS_Y);
 }
 
-void swapWeapon(void)
-{
-  if(getBtnState(BUTTON_X)) {
-    resetBtnStates();
-    if(weaponLasers) {
-      pRocketGlobal = &playerLasers[0];
-      ship.states.power -= WEAPON_ROCKET_DMG;
-      ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level); 
-      ship.weapon.picSize = pgm_read_byte(laserPicsSize + ship.weapon.level);
-    } else {
-      pRocketGlobal = &playerRockets[0];
-      ship.states.power += WEAPON_ROCKET_DMG;
-      ship.weapon.pPic = rocketPic;
-      ship.weapon.picSize = ROCKET_PIC_SIZE;
-    }
-    weaponLasers = !weaponLasers;
-  }
-}
-
 //---------------------------------------------------------------------------//
 void moveGift(void)
 {
@@ -426,7 +400,7 @@ void moveGift(void)
 
 void checkGift(void)
 {
-  rocket_t *pRocket = pRocketGlobal;
+  rocket_t *pRocket = &playerLasers[0];
 
   for(uint8_t countR =0; countR < MAX_PEW_PEW; countR++) {
     if(pRocket->onUse) {
@@ -444,8 +418,8 @@ void checkGift(void)
           if((++ship.weapon.level) >= MAX_WEAPON_LVL) {
             ship.weapon.level = MAX_WEAPON_LVL;
           }
-          ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level); 
-          ship.weapon.picSize = getPicByte(laserPicsSize + ship.weapon.level);
+          ship.weapon.pic.ptr = getConstCharPtr(laserPics, ship.weapon.level); 
+          ship.weapon.pic.size = getPicByte(laserPicsSize + ship.weapon.level);
           disableWeaponGift();
         } else {
           if((ship.health += GIFT_HEALTH_RESTORE) > SHIP_HEALTH) {
@@ -461,10 +435,13 @@ void checkGift(void)
 
 void disableWeaponGift(void)
 {
-  gift.pPic = giftHeartPic;
-  gift.picSize = GIFT_HEART_PIC_SIZE;
+  gift.pic.ptr = giftHeartPic;
+  gift.pic.size = GIFT_HEART_PIC_SIZE;
+  gift.pos.New.x = GIFT_BASE_POS_X;
+  gift.pos.New.y = GIFT_BASE_POS_Y;
 
   weaponGift = false;
+  updateTaskStatus(dropWeaponGift, false); // for shure and pause fix
   updateTaskStatus(moveGift, false);
   updateTaskStatus(checkGift, false);
   updateTaskStatus(drawGift, false);
@@ -472,8 +449,8 @@ void disableWeaponGift(void)
 
 void dropWeaponGift(void)
 {
-  gift.pPic = giftWeaponPic;
-  gift.picSize = GIFT_WEAPON_PIC_SIZE;
+  gift.pic.ptr = giftWeaponPic;
+  gift.pic.size = GIFT_WEAPON_PIC_SIZE;
   gift.pos.New.x = GIFT_BASE_POS_X;
   gift.pos.New.y = GIFT_BASE_POS_Y;
 
@@ -555,8 +532,6 @@ void addGameTasks(void)
 
 void addBossTasks(void)
 {
-  ship.states.power = DAMAGE_TO_BOSS;
-
   //music.pCurrent = bossTheme;
   //music.notesNum = X;
   //music.currentNote =0;
@@ -628,10 +603,23 @@ void initShip(void)
   ship.weapon.rocketsLeft = MAX_PEW_PEW;
   ship.weapon.overHeated = false;
 
-  ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level); 
-  ship.weapon.picSize = getPicByte(laserPicsSize + ship.weapon.level);
+  ship.weapon.pic.ptr = getConstCharPtr(laserPics, ship.weapon.level); 
+  ship.weapon.pic.size = getPicByte(laserPicsSize + ship.weapon.level);
 
   memset_F(playerLasers, 0x00, sizeof(rocket_t)*MAX_PEW_PEW);
+}
+
+void resetShip(void)
+{
+  ship.health = SHIP_HEALTH;
+
+  ship.weapon.level = 0;
+  ship.weapon.pic.ptr = getConstCharPtr(laserPics, ship.weapon.level); 
+  ship.weapon.pic.size = getPicByte(laserPicsSize + ship.weapon.level);
+
+  ship.type = 0;
+  ship.bodyPic.ptr = getConstCharPtr(shipsPics, ship.type);
+  ship.bodyPic.size = getPicWord(shipsPicsSizes, ship.type);
 }
 
 void initStars(void)
@@ -660,9 +648,7 @@ void initBaseGameParams(void)
   initInvaders();
 
   // this one init only once
-  ship.health = SHIP_HEALTH;
-  ship.weapon.level = 0;
-  pRocketGlobal = &playerLasers[0];
+  resetShip();
 }
 
 void initSys(void)
@@ -671,8 +657,6 @@ void initSys(void)
   initBaseGameParams();
   calibrateJoyStic();
   readScore();
-
-  tftSetRotation(1);
 
   initTasksArr(&taskArr, &pArr[0], 1); // at start moment need only 1 task
   baseTitleTask(); // this task

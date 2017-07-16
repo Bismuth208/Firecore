@@ -12,12 +12,12 @@
 #include "utility/st7735.h"
 
 // ------------------------------------ //
-#define ACCEL_AXIS_X  0
-#define ACCEL_AXIS_Y  33
-#define ACCEL_AXIS_Z  32
+#define ACCEL_AXIS_X  ADC_CH0
+#define ACCEL_AXIS_Y  ADC_CH9
+#define ACCEL_AXIS_Z  ADC_CH8
 // ------------------------------------ //
 
-#define ANALOG_MUX_CH  1
+#define ANALOG_MUX_CH  ADC_CH1
 
 // ------------------------------------ //
 // values are bit mirrored for direct port set

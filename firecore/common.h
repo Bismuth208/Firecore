@@ -109,10 +109,6 @@ extern "C"{
 
 //---------------------------------------------------------------------------//
 
-#define ROCKET_OFFSET_X  18
-#define ROCKET_OFFSET_Y  4
-//---------------------------------------------------------------------------//
-
 
 #define PAUSE_TEXT_POS_X 50
 #define PAUSE_TEXT_POS_Y 40
@@ -133,6 +129,9 @@ extern "C"{
 
 //---------------------------------------------------------------------------//
 
+#define ROCKET_OFFSET_X  20
+#define ROCKET_OFFSET_Y  4
+
 #define WEAPON_ROCKET_DMG 10 // additional damage from rockets
 #define MAX_WEAPON_LVL    4
 #define WEAPON_GIFT_BONUS 5
@@ -144,6 +143,9 @@ extern "C"{
 #define SHIP_BASE_DURAB  50
 
 //---------------------------------------------------------------------------//
+
+#define SHIP_FLAME_OFFSET_X 0
+#define SHIP_FLAME_OFFSET_Y 6
 
 #define SHIP_MIN_POS_X   0
 #define SHIP_MIN_POS_Y   0
@@ -274,6 +276,7 @@ extern "C"{
 extern uint16_t calJoysticX;
 extern uint16_t calJoysticY;
 extern uint16_t currentBackGroundColor;
+extern uint8_t currentBackGroundColorId;
 extern uint16_t replaceColor;
 
 extern int8_t menuItem;
@@ -281,8 +284,6 @@ extern uint8_t dogeDialogs;
 //extern uint8_t maxStars;
 
 extern bool pauseState;
-extern bool shipState;
-extern bool lowHealthState;
 #if ADD_SOUND
 extern bool soundEnable;
 #endif
@@ -291,7 +292,7 @@ extern ship_t ship;
 extern gift_t gift;
 extern inVaderBoss_t alienBoss;
 extern inVader_t alien[MAX_ALIENS];
-extern rocket_t *pRocketGlobal;
+extern rocket_t playerLasers[MAX_PEW_PEW];
 extern btnStatus_t btnStates;
 extern stars_t stars[MAX_STARS];
 extern hudStatus_t hudStatus;
@@ -351,8 +352,7 @@ void checkInVadersRay(void);
 void checkInVaders(void);
 
 void setInvaderValue(inVader_t *pAlien, bool state);
-void setDeathRayState(rocket_t *pAlien, bool state);
-void setDeathRayPos(rocket_t *deathRay, position_t *pPos);
+void setDeathRayState(rocket_t *pAlien, position_t *pPos, bool state);
 //----------------------------//
 
 void addBossTasks(void);
@@ -410,7 +410,7 @@ void drawBMP_RLE_P(int16_t x, int16_t y, uint8_t w, uint8_t h,
                               const uint8_t *pPic, int16_t sizePic);
 
 void fillRectFast(int16_t x, int16_t y, uint8_t w, uint8_t h);
-void drawPixelFast(int16_t x, int16_t y, uint8_t colorId);
+void drawPixelFast(position_t *pPos, uint8_t colorId);
 
 void rocketEpxlosion(rocket_t *pRocket);
 //---------------------------------------------------------------------------//
@@ -430,7 +430,7 @@ bool checkNewPosition(position_t *objOne, position_t *objTwo);
 void applyNewPosition(position_t *objOne, position_t *objTwo, uint16_t picW, uint16_t picH);
 void movePicture(objPosition_t *pObj, uint16_t picW, uint16_t picH);
 
-void drawEnemy(objPosition_t *pEnemy, uint8_t w, uint8_t h, const uint8_t *pPic, uint16_t picSize);
+void drawEnemy(objPosition_t *pEnemy, uint8_t w, uint8_t h, pic_t *pPic);
 
 uint8_t randNum(void);
 void setMainFreq(uint8_t ps);
@@ -452,7 +452,7 @@ void playMusic(void);
 #define TASK_N(a)    const taskParams_t T(a)
 #define TASK(a,b)    TASK_N(a) PROGMEM = {a, b}
 #define TASK_P(a)    (taskParams_t*)&T(a)
-#define TASK_ARR(a)  tasksArr_t a##TasksArr[] PROGMEM
+#define TASK_ARR(a)  const tasksArr_t a##TasksArr[] PROGMEM
 
 //---------------------------------------------------------------------------//
 

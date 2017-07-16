@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 uint8_t tabcolor, colstart, rowstart;
 
-int16_t _width  = ST7735_TFTWIDTH;
-int16_t _height = ST7735_TFTHEIGHT_18;
+int16_t _width  = ST7735_TFTHEIGHT_18;
+int16_t _height = ST7735_TFTWIDTH;
 
 //-------------------------------------------------------------------------------------------//
 
@@ -154,7 +154,7 @@ void initR(uint8_t options)
   // if black, change MADCTL color filter
   if (options == INITR_BLACKTAB) {
     writeCommand(ST7735_MADCTL);
-    writeData(0xC0);
+    writeData(MADCTL_MY | MADCTL_MV | MADCTL_RGB);
   }
 
   tabcolor = options;

@@ -31,17 +31,20 @@ typedef struct {  // 5 bytes RAM
   };
 } rocket_t;
 
+typedef struct {
+  const uint8_t *ptr;
+  uint16_t size;
+} pic_t;
+
 typedef struct {  // 8 bytes RAM
   objPosition_t pos;
-  uint8_t *pPic;
-  uint8_t picSize;
+  pic_t pic;
 } gift_t;
 
 typedef struct {
   //uint8_t bombsLeft;
   uint8_t rocketsLeft;
-  const uint8_t *pPic;
-  uint8_t picSize;
+  pic_t pic;
   struct {
     uint8_t overHeated    :1;
     uint8_t state         :1;
@@ -61,6 +64,10 @@ typedef struct {  // 8 + 5 + 5 bytes RAM
   objPosition_t pos;
   weapon_t weapon;
   shipStats_t states;
+  uint8_t type;
+  pic_t bodyPic;
+  pic_t flamesPic;
+  bool flameState;
   int16_t health;
 } ship_t;
 

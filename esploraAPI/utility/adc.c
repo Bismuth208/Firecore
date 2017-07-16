@@ -44,15 +44,16 @@ void setPrescallerADC(uint8_t ps)
 
 void setChannelADC(uint8_t chADC)
 {
-  // Select ADC Channel ch must be 0-7
-  ADMUX |= (chADC & 0b00000111);
-  
+  // Select ADC Channel ch must be 0-13
+  ADMUX |= (chADC & ADC_CH_MASK);
+#if 0
   if (chADC <= 5) {
   /* Note that ADC pins ADC7 and ADC6 do not have digital input buffers,
    * and therefore do not require Digital Input Disable bits.
   */
-    DIDR0 |= (chADC & 0b00000111); // turn off the digital input for pin
+    DIDR0 |= (chADC & ADC_CH_MASK); // turn off the digital input for pin
   }
+#endif
 }
 
 void initADC(void)

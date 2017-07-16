@@ -1,6 +1,7 @@
 #ifndef _NOTES_H
 #define _NOTES_H
 
+#if 0
 // http://www.instructables.com/id/How-to-easily-play-music-with-buzzer-on-arduino-Th/
 // http://pasted.co/e525c1b2
 
@@ -120,5 +121,7 @@
 #define E Q/2   //eighth 1/8
 #define S Q/4 // sixteenth 1/16
 #define W 4*Q // whole 4/4
+
+#endif
 
 #endif /* _NOTES_H */
