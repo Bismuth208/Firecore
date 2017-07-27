@@ -1,3 +1,17 @@
+/*
+ * Author: Antonov Alexandr (Bismuth208)
+ * e-mail: bismuth20883@gmail.com
+ * 
+ *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
+ *  NO PROTION OF THIS WORK CAN BE USED IN COMMERIAL
+ *  APPLICATION WITHOUT WRITTEN PERMISSION FROM THE AUTHOR
+ *  
+ *  EVERYONE IS FREE TO POST/PUBLISH THIS ARTICLE IN
+ *  PRINTED OR ELECTRONIC FORM IN FREE/PAID WEBSITES/MAGAZINES/BOOKS
+ *  IF PROPER CREDIT TO ORIGINAL AUTHOR IS MENTIONED WITH LINKS TO
+ *  ORIGINAL ARTICLE
+ */
+
 #ifndef _COMMON_H
 #define _COMMON_H
 
@@ -5,6 +19,7 @@
 #include <stdlib.h>
 #include <avr/eeprom.h>
 
+#include "taskmanager.h"
 #include "types.h"
 
 #ifdef __cplusplus
@@ -17,7 +32,7 @@ extern "C"{
 #define TFT_H    128
 //---------------------------------------------------------------------------//
 
-#define MAX_GAME_TASKS        18
+#define MAX_GAME_TASKS        19
 
 #define STAR_STEP              6  // move speed for stars
 #define MAX_STARS             40  // how much stars we see on screen
@@ -28,7 +43,7 @@ extern "C"{
 #define PLAYER_ROCKET_COST     1  //(5*difficult)      // in future will be based on ship type
 #define PLAYER_ROCKET_REFILL  10  //(4/difficult)      //
 #define ALIEN_HEALTH          90  //(30*difficult)     // if d = 4 then shoots = 10 to kill
-#define ALIEN_BOSS_HEALTH    400  //
+#define ALIEN_BOSS_HEALTH    800  //
 #define SHIP_HEALTH          180  // Left it as is
 #define DEATH_RAY_SPEED       10  //(5*difficult)      // 
 #define DAMAGE_TO_ALIEN       32  //(64/difficult)     //
@@ -47,7 +62,7 @@ extern "C"{
 #define BOSS_SCORE_VAL       100
 #define GIFT_BONUS_SCORE     150
 
-#define RN             randNum()
+#define RN             fastRandNum()
 #define RAND_CODE      tftSetCP437(RN % 2);
 #define SLOW_CPU       setMainFreq(0x04);
 #define DC(a)          tftDrawChar(a)
@@ -68,11 +83,12 @@ extern "C"{
 // for example if time = 500, when x = 2; if time = 250, when x = 4;
 #define RAND_SHOOT_TIME (RN % 4 + 3)
 
-//from (1 to 5)  seconds;
-#define RAND_RESPAWN_TIME (RN % 4 + 1)
+//from (1 to 6)  seconds;
+#define RAND_RESPAWN_TIME (RN % 5 + 1)
 
 #define continue() {CHECK_RULE}
 
+//---------------------------------------------------------------------------//
 #define ADD_SOUND 1
 //---------------------------------------------------------------------------//
 
@@ -83,18 +99,6 @@ extern "C"{
 #define getSaveDataMark(addr)     eeprom_read_byte((const uint8_t*)addr)
 #define readSaveData(addr)        eeprom_read_word((const uint16_t*)addr)
 #define writeSaveData(addr, val)  eeprom_write_word((uint16_t*)addr, val)
-//---------------------------------------------------------------------------//
-
-#define BUTTON_A   SW_BTN_4_MUX
-#define BUTTON_B   SW_BTN_1_MUX
-#define BUTTON_X   SW_BTN_2_MUX
-#define BUTTON_Y   SW_BTN_3_MUX
-#define buttonIsPressed(a)  readSwitchButton(a)
-
-#define LINE_X     X_J_MUX_VAL
-#define LINE_Y     Y_J_MUX_VAL
-#define LR_OK      SW_J_MUX_VAL
-#define getStickVal(a)  getJoyStickValue(a)
 //---------------------------------------------------------------------------//
 
 #define BASE_STATS_POS_X  50
@@ -109,6 +113,9 @@ extern "C"{
 
 //---------------------------------------------------------------------------//
 
+#define MAX_BEZIER_LINES 6
+
+//---------------------------------------------------------------------------//
 
 #define PAUSE_TEXT_POS_X 50
 #define PAUSE_TEXT_POS_Y 40
@@ -296,6 +303,7 @@ extern rocket_t playerLasers[MAX_PEW_PEW];
 extern btnStatus_t btnStates;
 extern stars_t stars[MAX_STARS];
 extern hudStatus_t hudStatus;
+extern bezier_t bezierLine;
 extern uint8_t someCount;
 
 extern int8_t totalRespawns;
@@ -305,8 +313,21 @@ extern uint16_t score;
 extern uint8_t difficultyIncrement;
 
 extern uint8_t curretLevel;
+extern const uint8_t lineCurves[];
 extern const uint8_t lvlCoordinates[];
 extern const uint8_t lvlColors[];
+//---------------------------------------------------------------------------//
+
+extern const uint16_t enemyShotPattern[];
+extern const uint16_t enemyHitPattern[];
+extern const uint16_t enemyDestroyPattern[];
+
+extern const uint16_t playerDestroyPattern[];
+extern const uint16_t playerSuperPattern[];
+extern const uint16_t playerShotPattern[];
+
+extern const uint16_t beepPattern[];
+
 //---------------------------------------------------------------------------//
 
 // Core GUI
@@ -316,6 +337,7 @@ void menuAction(void);
 void selectionMenu(void);
 void pauseMenu(void);
 void titleAction(void);
+void historyAction(void);
 void baseStory(void);
 void drawStory(void);
 
@@ -328,6 +350,7 @@ void waitOk(void);
 void waitEnd(void);
 
 void drawStaticNoise(void);
+void blinkLevelPointer(void);
 
 //---------------------------------------------------------------------------//
 void dropWeaponGift(void);
@@ -364,6 +387,7 @@ void drawBoss(void);
 void checkBossDamage(void);
 void checkBossFire(void);
 void checkBossRays(void);
+void drawBossExplosion(void);
 void bossDie(void);
 
 void checkShipBossDamage(void);
@@ -394,6 +418,8 @@ void checkShipHealth(void);
 
 // core graphics
 void drawTextWindow(const uint8_t *text, const uint8_t *btnText);
+void printDialogeText(void);
+void printHistory(void);
 void drawStart(void);
 void drawStars(void);
 
@@ -406,8 +432,7 @@ void screenSliderEffect(uint16_t color);
 void drawFrame(uint16_t posX, uint16_t posY,
 	            uint8_t w, uint8_t h, uint16_t clr1, uint16_t clr2);
 
-void drawBMP_RLE_P(int16_t x, int16_t y, uint8_t w, uint8_t h,
-                              const uint8_t *pPic, int16_t sizePic);
+void drawBMP_RLE_P(int16_t x, int16_t y, pic_t *pPic);
 
 void fillRectFast(int16_t x, int16_t y, uint8_t w, uint8_t h);
 void drawPixelFast(position_t *pPos, uint8_t colorId);
@@ -424,6 +449,10 @@ uint8_t getJoyStickValue(uint8_t pin);
 void readEEpromScore(void);
 void resetScore(void);
 
+void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine);
+void getBezierCurve(uint8_t line);
+void fixPosition(position_t *pPos);
+
 void checkShipPosition(uint16_t *pos, uint16_t max, uint16_t min);
 
 bool checkNewPosition(position_t *objOne, position_t *objTwo);
@@ -432,15 +461,12 @@ void movePicture(objPosition_t *pObj, uint16_t picW, uint16_t picH);
 
 void drawEnemy(objPosition_t *pEnemy, uint8_t w, uint8_t h, pic_t *pPic);
 
-uint8_t randNum(void);
 void setMainFreq(uint8_t ps);
 
 void applyShipDamage(rocket_t *pWeapon);
 
 bool checkCollision(position_t *pObjOne, uint8_t objOneW, uint8_t objOneH,
                     position_t *pObjTwo, uint8_t objTwoW, uint8_t objTwoH);
-
-int32_t mapVal(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max);
 
 void memset_F(void *pvDest, uint8_t src, size_t size);
 
@@ -460,34 +486,42 @@ extern TASK_N(drawRows);
 extern TASK_N(updateBtnStates);
 extern TASK_N(waitEnd);
 extern TASK_N(waitOk);
-extern TASK_N(drawStory);
-extern TASK_N(drawStaticNoise);
-extern TASK_N(drawLevelSelect);
-extern TASK_N(drawShipExplosion);
+extern TASK_N(printDialogeText);
 
 //---------------------------------------------------------------------------//
 
 void addTasksArray(tasksArr_t *pArr, uint8_t size);
+void baseTitleTask(void);
 void addTitleTasks(void);
+void addHistoryTasks(void);
+void addStoryTasks(void);
 void addGameTasks(void);
 void addBossTasks(void);
 void addGiftTasks(void);
-void addShipSelectTasks(void);
-void baseTitleTask(void);
+
+
 //---------------------------------------------------------------------------//
 
-#define TITLE_TASKS_COUNT     6
-#define SHIP_SEL_TASKS_COUNT  5
-#define GAME_TASKS_COUNT     18
-#define BOSS_TASKS_COUNT     13
-#define GIFT_TASKS_COUNT      8
+#define TITLE_TASKS_COUNT      7
+#define HISTORY_TASKS_COUNT    4
+#define SHIP_SEL_TASKS_COUNT   7
+#define STORY_TASKS_COUNT      6
+#define LVL_SEL_TASKS_COUNT    5
+#define GAME_TASKS_COUNT      19
+#define BOSS_TASKS_COUNT      14
+#define GIFT_TASKS_COUNT      10
+#define GAME_OVER_TASKS_COUNT  4
 
 
 extern tasksArr_t titleTasksArr[];
+extern tasksArr_t historyTasksArr[];
+extern tasksArr_t shipSelTasksArr[];
+extern tasksArr_t storyTasksArr[];
+extern tasksArr_t levelSelectTasksArr[];
 extern tasksArr_t gameTasksArr[];
 extern tasksArr_t bossTasksArr[];
 extern tasksArr_t giftTasksArr[];
-extern tasksArr_t shipSelTasksArr[];
+extern tasksArr_t gameOverTasksArr[];
 
 //---------------------------------------------------------------------------//
 //---------------------------------------------------------------------------//

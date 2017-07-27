@@ -348,8 +348,9 @@ void updateTaskTimeCheck(pFunc_t pTask, uint16_t timeToCheckTask)
   uint8_t taskId = searchTask(pTask);
 
   if(taskId < NULL_TASK) {
-    PAA[taskId].timeToRunTask = timeToCheckTask;
-    PAA[taskId].nextCallTime = TIMER_FUNC + timeToCheckTask;
+    taskStatesArr_t *ptr = &PAA[taskId];
+    ptr->timeToRunTask = timeToCheckTask;
+    ptr->nextCallTime = TIMER_FUNC + timeToCheckTask;
   }
 
   // If we get here, when no such func in pCurrentArrTasks.
@@ -372,10 +373,11 @@ void replaceTask(pFunc_t pOldTask, pFunc_t pNewTask, uint16_t timeToCheckTask, b
   uint8_t taskId = searchTask(pOldTask);
 
   if(taskId < NULL_TASK) {
-    PAA[taskId].pTaskFunc = pNewTask;
-    PAA[taskId].nextCallTime = TIMER_FUNC + timeToCheckTask;
-    PAA[taskId].timeToRunTask = timeToCheckTask;
-    PAA[taskId].execute = exec;
+    taskStatesArr_t *ptr = &PAA[taskId];
+    ptr->pTaskFunc = pNewTask;
+    ptr->nextCallTime = TIMER_FUNC + timeToCheckTask;
+    ptr->timeToRunTask = timeToCheckTask;
+    ptr->execute = exec;
   }
 
   // If we get here, when no such func or free holes left in pCurrentArrTasks.

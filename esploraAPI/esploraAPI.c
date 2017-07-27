@@ -1,3 +1,17 @@
+/*
+ * Author: Antonov Alexandr (Bismuth208)
+ * e-mail: bismuth20883@gmail.com
+ *
+ *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
+ *  NO PROTION OF THIS WORK CAN BE USED IN COMMERIAL
+ *  APPLICATION WITHOUT WRITTEN PERMISSION FROM THE AUTHOR
+ *
+ *  EVERYONE IS FREE TO POST/PUBLISH THIS ARTICLE IN
+ *  PRINTED OR ELECTRONIC FORM IN FREE/PAID WEBSITES/MAGAZINES/BOOKS
+ *  IF PROPER CREDIT TO ORIGINAL AUTHOR IS MENTIONED WITH LINKS TO
+ *  ORIGINAL ARTICLE
+ */
+
 #include "esploraAPI.h"
 
 // ------------------------------------ //
@@ -48,6 +62,7 @@
 #define SW_BTN_MIN_LVL 800
 // ------------------------------------ //
 
+
 void initMuxIO(void)
 {
   // setup multiplexor IO control as output
@@ -87,7 +102,7 @@ void initEsplora(void)
   // init Perephirial
   initSysTickTimer();
   initSPI();
-  initSound();  // still not working... :/
+  initSFX();
   initADC();
   
   // init LCD

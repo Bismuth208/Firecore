@@ -1,3 +1,17 @@
+/*
+ * Author: Antonov Alexandr (Bismuth208)
+ * e-mail: bismuth20883@gmail.com
+ * 
+ *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
+ *  NO PROTION OF THIS WORK CAN BE USED IN COMMERIAL
+ *  APPLICATION WITHOUT WRITTEN PERMISSION FROM THE AUTHOR
+ *  
+ *  EVERYONE IS FREE TO POST/PUBLISH THIS ARTICLE IN
+ *  PRINTED OR ELECTRONIC FORM IN FREE/PAID WEBSITES/MAGAZINES/BOOKS
+ *  IF PROPER CREDIT TO ORIGINAL AUTHOR IS MENTIONED WITH LINKS TO
+ *  ORIGINAL ARTICLE
+ */
+ 
 #include <esploraAPI.h>
 
 #include "taskmanager.h"
@@ -15,8 +29,12 @@ bool bossMoveDirect = false;
 //---------------------------------- inVaders --------------------------------------------//
 void setInvaderValue(inVader_t *pAlien, bool state)
 {
+  //pAlien->pos.New.y = RN % ALIEN_MOVE_ZONE_Y_MAX;
+  pAlien->bezLine.step = 0; //RN % 10;
+  pAlien->bezLine.id = RN % MAX_BEZIER_LINES;
+  moveBezierCurve(&pAlien->pos.New, &pAlien->bezLine);
+  //fixPosition(&pAlien->pos.New);
   pAlien->pos.New.x = ALIEN_DEFAULT_POS_X;
-  pAlien->pos.New.y = RN % ALIEN_MOVE_ZONE_Y_MAX;
   pAlien->health = ALIEN_HEALTH;
   pAlien->timeToShoot = RAND_SHOOT_TIME;
   pAlien->respawnTime = RAND_RESPAWN_TIME;
@@ -46,7 +64,7 @@ void checkTimeToShoot(inVader_t *pAlien)
     if((pAlien->timeToShoot--) == 0) {  // decrease timeout to shoot; Captain Obvious :)
       setDeathRayState(&pAlien->deathRay, &pAlien->pos.New, true);
 #if ADD_SOUND
-      if(soundEnable) toneBuzz(ALIEN_SOUND_FREQ, ALIEN_SOUND_LONG);
+      sfxPlayPattern(enemyShotPattern, SFX_CH_0);
 #endif
     }
   }
@@ -69,6 +87,7 @@ void initInvaders(void)
   }
 }
 //---------------------------------------------------------------------------//
+
 void moveInVaders(void)
 {
   inVader_t *pAlien = &alien[0];
@@ -76,18 +95,18 @@ void moveInVaders(void)
   for(uint8_t count=0; count < MAX_ALIENS; count++) {
     if(pAlien->alive) {
 
+      moveBezierCurve(&pAlien->pos.New, &pAlien->bezLine);
+      fixPosition(&pAlien->pos.New);
+
       if(pAlien->pos.New.y > ALIEN_MOVE_ZONE_Y_MAX) {
         pAlien->pos.New.y = ALIEN_MOVE_ZONE_Y_MAX;
       }
 
-      if(pAlien->state) {
-        moveEnemyV(&pAlien->pos.New, 1);
-      }
-
-      if((--pAlien->pos.New.x) > TFT_W) {
+      if(pAlien->pos.New.x > TFT_W) { // reach end of screen
         pAlien->alive = false;
+        pAlien->respawnTime = RAND_RESPAWN_TIME;
         pAlien->pos.New.x = ALIEN_MOVE_ZONE_X_MIN; // fix overflow for fillRectFast
-        fillRectFast(pAlien->pos.New.x, pAlien->pos.New.y, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H);
+        fillRectFast(pAlien->pos.Base.x, pAlien->pos.Base.y, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H);
       }
     }
     ++pAlien;
@@ -97,16 +116,13 @@ void moveInVaders(void)
 void drawInVaders(void)
 {
   inVader_t *pAlien = &alien[0];
-  pic_t pic;
 
   for(uint8_t count=0; count < MAX_ALIENS; count++) {
     if(pAlien->alive) { // ALIIIVEE! IT`S ALIIVEEE!
 
-      pic.ptr = (pAlien->state ? alienShipHi : alienShipLow);
-      pic.size = (pAlien->state ? ALIEN_SHIP_HI_PIC_SIZE : ALIEN_SHIP_LOW_PIC_SIZE);
-      
       pAlien->state = !pAlien->state;
-      drawEnemy(&pAlien->pos, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H, &pic);
+      drawEnemy(&pAlien->pos, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H,
+                      (pAlien->state ? alienShipHi : alienShipLow));
     }
     ++pAlien;
   }
@@ -147,7 +163,6 @@ void checkAliveAliens(void)
 void checkInVadersRay(void)
 {
   inVader_t *pAlien = &alien[0];
-  pic_t pic;
 
   for(uint8_t count=0; count < MAX_ALIENS; count++) {
     if(pAlien->deathRay.onUse) { // is it shoot already?
@@ -161,14 +176,9 @@ void checkInVadersRay(void)
         fillRectFast(pAlien->deathRay.pos.x, pAlien->deathRay.pos.y, DEATHRAY_PIC_W, DEATHRAY_PIC_H);
         
         if((pAlien->deathRay.pos.x -= (DEATH_RAY_SPEED+difficultyIncrement)) < TFT_W) { 
-
-          pic.ptr = (pAlien->deathRay.state ? deathRayHiPic : deathRayLowPic);
-          pic.size = (pAlien->deathRay.state ? DEATHRAY_HI_PIC_SIZE : DEATHRAY_LOW_PIC_SIZE);
-        
           pAlien->deathRay.state = !pAlien->deathRay.state;
-         
-          drawBMP_RLE_P(pAlien->deathRay.pos.x, pAlien->deathRay.pos.y,
-                              DEATHRAY_PIC_W, DEATHRAY_PIC_H, pic.ptr, pic.size);
+          drawBMP_RLE_P(pAlien->deathRay.pos.x, pAlien->deathRay.pos.y, 
+                        (pAlien->deathRay.state ? deathRayHiPic : deathRayLowPic));
         } else {
           // oooh, we don`t shoot the player, inVeder sooo saaad :(
           pAlien->timeToShoot = RAND_SHOOT_TIME;
@@ -201,6 +211,9 @@ void checkInVaders(void)
           rocketEpxlosion(pRocket);
             
           if((pAlien->health -= ship.states.power) <= 0) { // alien absorb damage
+#if ADD_SOUND
+            sfxPlayPattern(enemyDestroyPattern, SFX_CH_0);
+#endif
             // if it dead, remove body from battleground
             fillRectFast(pAlien->pos.Base.x, pAlien->pos.Base.y, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H);
  
@@ -230,6 +243,10 @@ void bossInit(void)
   setInvaderValue(&alienBoss.base, true);
   setDeathRayState(&alienBoss.base.deathRay, &alienBoss.base.pos.New, false);
 
+  alienBoss.base.bezLine.id = 6; // move up
+  alienBoss.base.bezLine.step = 25; // start animation at centere
+  moveBezierCurve(&alienBoss.base.pos.New, &alienBoss.base.bezLine);
+
   rocket_t *pDeathRay = &alienBoss.deathRays[0];
   for(uint8_t count=0; count < ALIEN_BOSS_DEATH_RAYS; count++) {
     setDeathRayState(pDeathRay, &alienBoss.base.pos.New, false);
@@ -242,27 +259,35 @@ void bossInit(void)
 
 void moveBossVertical(void)
 {
-  moveEnemyV(&alienBoss.base.pos.New, ALIEN_BOSS_SPEED_MOVE);
+  // move fully controlled by curve and no fix need
+  moveBezierCurve(&alienBoss.base.pos.New, &alienBoss.base.bezLine);
+
+  // reach end of move?
+  if(alienBoss.base.bezLine.step == bezierLine.totalSteps) {
+    // flip direction move
+    if(alienBoss.base.bezLine.id == 6) {
+      alienBoss.base.bezLine.id = 7;
+    } else {
+      alienBoss.base.bezLine.id = 6;
+    }
+    alienBoss.base.bezLine.step = 0;
+  }
 }
 
 void drawBoss(void)
 {
-  pic_t pic = {bossShip, ALIEN_SHIP_BOSS_PIC_SIZE};
-
   if(alienBoss.base.alive) { // ALIIIVEE! IT`S ALIIVEEE!
-    drawEnemy(&alienBoss.base.pos, ALIEN_SHIP_BOSS_PIC_W, ALIEN_SHIP_BOSS_PIC_H, &pic);
+    drawEnemy(&alienBoss.base.pos, ALIEN_SHIP_BOSS_PIC_W, ALIEN_SHIP_BOSS_PIC_H, bossShip);
   }    
 }
 
 void drawBossExplosion(void)
 {
-  for(uint8_t i=0; i<ALIEN_BOSS_EXPLOSIONS; i++) {
-    // reuse death ray
-    alienBoss.base.deathRay.pos.x = RN % ALIEN_SHIP_BOSS_PIC_W + alienBoss.base.pos.Base.x;
-    alienBoss.base.deathRay.pos.y = RN % ALIEN_SHIP_BOSS_PIC_H + alienBoss.base.pos.Base.y;
+  // reuse death ray
+  alienBoss.base.deathRay.pos.x = RN % ALIEN_SHIP_BOSS_PIC_W + alienBoss.base.pos.Base.x;
+  alienBoss.base.deathRay.pos.y = RN % ALIEN_SHIP_BOSS_PIC_H + alienBoss.base.pos.Base.y;
 
-    rocketEpxlosion(&alienBoss.base.deathRay);
-  }
+  rocketEpxlosion(&alienBoss.base.deathRay);
 }
 
 void checkBossDamage(void)
@@ -279,6 +304,9 @@ void checkBossDamage(void)
           rocketEpxlosion(pRocket);
 
           if((alienBoss.base.health -= ship.states.power) <= 0) {  // alien absorb damage
+#if ADD_SOUND
+            sfxPlayPattern(enemyDestroyPattern, SFX_CH_0);
+#endif
             // if it dead, remove body from battleground
             fillRectFast(alienBoss.base.pos.Base.x, alienBoss.base.pos.Base.y, ALIEN_SHIP_BOSS_PIC_W, ALIEN_SHIP_BOSS_PIC_H);
  
@@ -308,9 +336,7 @@ void checkBossFire(void)
       moveEnemyV(&alienBoss.base.deathRay.pos, ALIEN_BOSS_ROCKET_SPEED_MOVE);
         
       if((alienBoss.base.deathRay.pos.x -= DEATH_RAY_SPEED) < TFT_W) { 
-        drawBMP_RLE_P(alienBoss.base.deathRay.pos.x, alienBoss.base.deathRay.pos.y,
-                       DEATHRAY_BOSS_PIC_W, DEATHRAY_BOSS_PIC_H,
-                       deathRayBossPic, DEATHRAY_BOSS_PIC_SIZE);
+        drawBMP_RLE_P(alienBoss.base.deathRay.pos.x, alienBoss.base.deathRay.pos.y, deathRayBossPic);
       } else {
         // oooh, we don`t shoot the player, inVeder sooo saaad :(
         alienBoss.base.timeToShoot = RAND_SHOOT_TIME;
@@ -325,7 +351,6 @@ void checkBossFire(void)
 void checkBossRays(void)
 {
   rocket_t *pDeathRay = &alienBoss.deathRays[0];
-  pic_t pic;
 
   for(uint8_t count=0; count < ALIEN_BOSS_DEATH_RAYS; count++) {
     if(pDeathRay->onUse) { // is it shoot already?
@@ -338,15 +363,10 @@ void checkBossRays(void)
         // clear previous shoot
         fillRectFast(pDeathRay->pos.x, pDeathRay->pos.y, DEATHRAY_PIC_W, DEATHRAY_PIC_H);
         
-        if((pDeathRay->pos.x -= (DEATH_RAY_SPEED+difficultyIncrement)) < TFT_W) { 
-
-          pic.ptr = (pDeathRay->state ? deathRayHiPic : deathRayLowPic);
-          pic.size = (pDeathRay->state ? DEATHRAY_HI_PIC_SIZE : DEATHRAY_LOW_PIC_SIZE);
-        
+        if((pDeathRay->pos.x -= (DEATH_RAY_SPEED+difficultyIncrement)) < TFT_W) {
           pDeathRay->state = !pDeathRay->state;
-         
           drawBMP_RLE_P(pDeathRay->pos.x, pDeathRay->pos.y,
-                              DEATHRAY_PIC_W, DEATHRAY_PIC_H, pic.ptr, pic.size);
+                         (pDeathRay->state ? deathRayHiPic : deathRayLowPic));
         } else {
           // oooh, we don`t shoot the player, inVeder sooo saaad :(
           alienBoss.timeToShoot[count] = RAND_SHOOT_TIME;
@@ -357,7 +377,7 @@ void checkBossRays(void)
       if((alienBoss.timeToShoot[count]--) == 0) {  // decrease timeout to shoot; Captain Obvious :)
         setDeathRayState(pDeathRay, &alienBoss.base.pos.New, true);
 #if ADD_SOUND
-        if(soundEnable) toneBuzz(ALIEN_SOUND_FREQ, ALIEN_SOUND_LONG);
+        sfxPlayPattern(enemyShotPattern, SFX_CH_0);
 #endif
       }
     }
@@ -367,6 +387,5 @@ void checkBossRays(void)
 
 void bossDie(void)
 {
-  drawBossExplosion();
   addGiftTasks();
 }

@@ -1,3 +1,17 @@
+/*
+ * Author: Antonov Alexandr (Bismuth208)
+ * e-mail: bismuth20883@gmail.com
+ * 
+ *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
+ *  NO PROTION OF THIS WORK CAN BE USED IN COMMERIAL
+ *  APPLICATION WITHOUT WRITTEN PERMISSION FROM THE AUTHOR
+ *  
+ *  EVERYONE IS FREE TO POST/PUBLISH THIS ARTICLE IN
+ *  PRINTED OR ELECTRONIC FORM IN FREE/PAID WEBSITES/MAGAZINES/BOOKS
+ *  IF PROPER CREDIT TO ORIGINAL AUTHOR IS MENTIONED WITH LINKS TO
+ *  ORIGINAL ARTICLE
+ */
+
 #ifndef _TYPES_H
 #define _TYPES_H
 
@@ -16,6 +30,18 @@ typedef struct {  // need for collision check
   position_t New;
 } objPosition_t;
 
+typedef struct {
+  position_t P0;
+  position_t P1;
+  position_t P2;
+  uint8_t totalSteps;
+} bezier_t;
+
+typedef struct {
+  uint8_t id;
+  uint8_t step;
+} bezierLine_t;
+
 typedef struct {  // 5 bytes RAM
   position_t pos;
   uint8_t color; // as we use Famicom\NES (Dendy) palette, store only color id
@@ -31,20 +57,18 @@ typedef struct {  // 5 bytes RAM
   };
 } rocket_t;
 
-typedef struct {
-  const uint8_t *ptr;
-  uint16_t size;
-} pic_t;
+typedef const uint8_t pic_t;
 
 typedef struct {  // 8 bytes RAM
   objPosition_t pos;
-  pic_t pic;
+  pic_t *pPic;
+  bezierLine_t bezLine;
 } gift_t;
 
 typedef struct {
   //uint8_t bombsLeft;
   uint8_t rocketsLeft;
-  pic_t pic;
+  pic_t *pPic;
   struct {
     uint8_t overHeated    :1;
     uint8_t state         :1;
@@ -62,17 +86,17 @@ typedef struct {
 
 typedef struct {  // 8 + 5 + 5 bytes RAM
   objPosition_t pos;
-  weapon_t weapon;
   shipStats_t states;
-  uint8_t type;
-  pic_t bodyPic;
-  pic_t flamesPic;
-  bool flameState;
+  weapon_t weapon;
+  pic_t *pBodyPic;
   int16_t health;
+  uint8_t type;
+  bool flameState;
 } ship_t;
 
 typedef struct {  // 8 + 6 + 5 bytes RAM
   objPosition_t pos;
+  bezierLine_t bezLine;
   rocket_t deathRay;
   struct {
     uint8_t state   :1;     // Pic what we draw
@@ -115,12 +139,6 @@ typedef struct {
   uint8_t name[4]; // 3 for name 4 for '\n'
   uint16_t score;  // 65535 score val be enought right?
 } saveData_t;
-
-typedef struct {
-  const uint16_t *pCurrent;
-  uint16_t notesNum;
-  uint16_t currentNote;
-} soundSample_t;
 
 typedef const taskParams_t * const tasksArr_t;
 

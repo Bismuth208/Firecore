@@ -10,11 +10,11 @@
  *  Arduino IDE:  1.6.6   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  26,884
- *  pics:         10,324
- *  code:         14,072
- * Used RAM:      521 bytes
- * Free RAM:      2039 bytes
+ * Program size:  27,386
+ *  pics:         8,621
+ *  code:         18,765
+ * Used RAM:      655 bytes
+ * Free RAM:      1905 bytes
  *
  * Language:      C and C++
  * 
@@ -35,12 +35,9 @@
 
 #include <esploraAPI.h>
 
-#include "taskmanager.h"
-
 #include "pics.h"
 #include "textProg.h"
 #include "common.h"
-#include "notes.h"
 
 //---------------------------------------------------------------------------//
 // super puper duper ultra extreemely main structures, DO NOT TOUCH THEM!
@@ -51,7 +48,7 @@ taskStatesArr_t pArr[MAX_GAME_TASKS];
 bool lowHealthState = false;
 bool pauseState = false;
 #if ADD_SOUND
-bool soundEnable = true;
+//bool soundEnable = true;
 #endif
 
 bool weaponLasers = false;
@@ -63,8 +60,6 @@ uint8_t curretLevel =0;
 uint8_t difficultyIncrement =0;
 uint16_t score =0;
 
-uint8_t nextInt =1;
-uint8_t randNumA =0;
 uint16_t currentBackGroundColor = BACKGROUND_COLOR;
 uint8_t currentBackGroundColorId = 0x01;
 uint16_t replaceColor = 0x01F4;
@@ -78,7 +73,22 @@ rocket_t playerLasers[MAX_PEW_PEW];
 hudStatus_t hudStatus = {1,1,0}; // need update all
 btnStatus_t btnStates = {0};
 
-soundSample_t music;
+bezier_t bezierLine;
+
+// for bezier line
+// x1,y1, x2,y2, x3,y3, steps
+const uint8_t lineCurves[] PROGMEM = {
+  130, 40, 85,120,  0, 40,50,
+  130, 30, 85, 50,  0, 64,50,
+  130, 95,115,130,  0,  0,50,
+  130,  0,115, 10,  0,120,50,
+  130, 10, 85, 50,  0, 62,50,
+  130, 50, 85, 70,  0, 10,50,
+  // this one not counted in MAX_BEZIER_LINES
+  135,  0, 90, 45,135, 90,40, // boss move down
+  135, 90, 90, 45,135,  0,40, // boss move up
+  144, 40, 85,120,  0, 40,50  // gift
+};
 
 const uint8_t lvlCoordinates[] PROGMEM = {
   WORLD_0_POS_X, WORLD_0_POS_Y,
@@ -89,7 +99,7 @@ const uint8_t lvlCoordinates[] PROGMEM = {
   WORLD_5_POS_X, WORLD_5_POS_Y,
   WORLD_6_POS_X, WORLD_6_POS_Y,
   WORLD_7_POS_X, WORLD_7_POS_Y,
-  WORLD_8_POS_X, WORLD_8_POS_Y,
+  WORLD_8_POS_X, WORLD_8_POS_Y
 };
 
 const uint8_t lvlColors[] PROGMEM = {
@@ -103,24 +113,6 @@ const uint8_t lvlColors[] PROGMEM = {
   0x01,
   0x04
 };
-
-const uint16_t mainTheme[] PROGMEM = {
-  // still nothing here
-};
-//---------------------------------------------------------------------------//
-
-uint8_t randNum(void)
-{
-  nextInt ^= (nextInt << 3);
-  nextInt ^= (nextInt >> 5);
-  nextInt ^= (randNumA++ >> 2);
-  return nextInt;
-}
-
-int32_t mapVal(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max)
-{
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
 
 // ------------------------ Poll controls ------------------------ //
 // poll periodically buttons states
@@ -292,17 +284,9 @@ void memset_F(void *pvDest, uint8_t src, size_t size)
 
 void playMusic(void)
 {
-  uint16_t freq = pgm_read_word(&music.pCurrent[music.currentNote]);
-  uint16_t noteDuration = pgm_read_word(&music.pCurrent[music.currentNote+1]);
-
-  if(freq) { // silense or not?
-    toneBuzz(freq, noteDuration);
-  }
-  updateTaskTimeCheck(playMusic, noteDuration);
-
-  if((music.currentNote+=2) > music.notesNum) {
-    music.currentNote = 0;
-  }
+#if ADD_SOUND
+  sfxUpdateAll();
+#endif
 }
 // --------------------------------------------------------------- //
 
@@ -317,7 +301,7 @@ void checkFireButton(void)
       pRokets = &playerLasers[ship.weapon.rocketsLeft];
       if(pRokets->onUse == false) {
 #if ADD_SOUND
-        if(soundEnable) toneBuzz(500, 10);
+        sfxPlayPattern(playerShotPattern, SFX_CH_1);
 #endif    
         pRokets->onUse = true;
         pRokets->pos.x = ship.pos.Base.x + ROCKET_OFFSET_X; // \__ start position
@@ -377,7 +361,7 @@ void moveShip(void)
       posY += speed;
     } else {
       posY -= speed;
-    } 
+    }
   }
   //applyShipDirection(&ship.posNew.y, calJoysticY, LINE_Y); 
 
@@ -388,7 +372,10 @@ void moveShip(void)
 //---------------------------------------------------------------------------//
 void moveGift(void)
 {
-  if((gift.pos.New.x -= GIFT_MOVE_SPEED) >= TFT_W) {
+  moveBezierCurve(&gift.pos.New, &gift.bezLine);
+  fixPosition(&gift.pos.New);
+
+  if(gift.pos.New.x >= TFT_W) {
     movePicture(&gift.pos, GIFT_PIC_W, GIFT_PIC_H); // remove gift from screen
     if(weaponGift) {
       disableWeaponGift();
@@ -408,20 +395,23 @@ void checkGift(void)
                         &gift.pos.Base, GIFT_PIC_W, GIFT_PIC_H)) {
 
         rocketEpxlosion(pRocket);
+#if ADD_SOUND
+        sfxPlayPattern(playerSuperPattern, SFX_CH_2);
+#endif
         score += GIFT_BONUS_SCORE;
         hudStatus.updScore = true;    // update score later
 
-        movePicture(&gift.pos, GIFT_PIC_W, GIFT_PIC_H); // remove gift from screen
+        // remove gift from screen
+        fillRectFast(gift.pos.Base.x, gift.pos.Base.y, GIFT_PIC_W, GIFT_PIC_H);
 
         if(weaponGift) {
           ship.states.power += WEAPON_GIFT_BONUS;
           if((++ship.weapon.level) >= MAX_WEAPON_LVL) {
             ship.weapon.level = MAX_WEAPON_LVL;
           }
-          ship.weapon.pic.ptr = getConstCharPtr(laserPics, ship.weapon.level); 
-          ship.weapon.pic.size = getPicByte(laserPicsSize + ship.weapon.level);
+          ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level);
           disableWeaponGift();
-        } else {
+        } else { // heart and end of the level
           if((ship.health += GIFT_HEALTH_RESTORE) > SHIP_HEALTH) {
             ship.health = SHIP_HEALTH;
           }
@@ -435,12 +425,6 @@ void checkGift(void)
 
 void disableWeaponGift(void)
 {
-  gift.pic.ptr = giftHeartPic;
-  gift.pic.size = GIFT_HEART_PIC_SIZE;
-  gift.pos.New.x = GIFT_BASE_POS_X;
-  gift.pos.New.y = GIFT_BASE_POS_Y;
-
-  weaponGift = false;
   updateTaskStatus(dropWeaponGift, false); // for shure and pause fix
   updateTaskStatus(moveGift, false);
   updateTaskStatus(checkGift, false);
@@ -449,11 +433,7 @@ void disableWeaponGift(void)
 
 void dropWeaponGift(void)
 {
-  gift.pic.ptr = giftWeaponPic;
-  gift.pic.size = GIFT_WEAPON_PIC_SIZE;
-  gift.pos.New.x = GIFT_BASE_POS_X;
-  gift.pos.New.y = GIFT_BASE_POS_Y;
-
+  gift.pPic = giftWeaponPic;
   weaponGift = true;
   updateTaskStatus(dropWeaponGift, false);
   updateTaskStatus(moveGift, true);
@@ -479,6 +459,8 @@ void createNextLevel(void)
     }
     levelClear();
     addTask_P(T(&waitOk));
+    addTask_P(T(&printDialogeText));
+    updateTaskStatus(printDialogeText, false);
   }  
 }
 
@@ -506,10 +488,6 @@ void addTasksArray(tasksArr_t *pArr, uint8_t size)
 
 void addTitleTasks(void)
 {
-  //music.pCurrent = mainTheme;
-  //music.notesNum = 17;
-  //music.currentNote =0;
-
   addTasksArray(titleTasksArr, TITLE_TASKS_COUNT);
 }
 
@@ -518,12 +496,11 @@ void addGameTasks(void)
   ship.pos.New.x = SHIP_GAME_POS_X;
   ship.pos.New.y = SHIP_GAME_POS_Y;
 
-  //music.pCurrent = gameTheme;
-  //music.notesNum = X;
-  //music.currentNote =0;
-
   addTasksArray(gameTasksArr, GAME_TASKS_COUNT);
 
+  gift.bezLine.id =8;
+  gift.bezLine.step =0;
+  moveBezierCurve(&gift.pos.New, &gift.bezLine);
   updateTaskTimeCheck(dropWeaponGift, RAND_GIFT_SPAWN_TIME);
   updateTaskStatus(moveGift, false);
   updateTaskStatus(drawGift, false);
@@ -532,19 +509,17 @@ void addGameTasks(void)
 
 void addBossTasks(void)
 {
-  //music.pCurrent = bossTheme;
-  //music.notesNum = X;
-  //music.currentNote =0;
-
   addTasksArray(bossTasksArr, BOSS_TASKS_COUNT);
 }
 
+// drop gift from the boss
 void addGiftTasks(void)
 {
-  // drop gift from the boss
-  gift.pos.New.x = GIFT_BASE_POS_X;
-  gift.pos.New.y = GIFT_BASE_POS_Y;
-  //gift.state = false;
+  weaponGift = false;
+  gift.bezLine.id =8;
+  gift.bezLine.step =0;
+  gift.pPic = giftHeartPic;
+  moveBezierCurve(&gift.pos.New, &gift.bezLine);
 
   addTasksArray(giftTasksArr, GIFT_TASKS_COUNT);
 }
@@ -556,9 +531,21 @@ void addShipSelectTasks(void)
   addTasksArray(shipSelTasksArr, SHIP_SEL_TASKS_COUNT);
 }
 
+void addStoryTasks(void)
+{
+  addTasksArray(storyTasksArr, STORY_TASKS_COUNT);
+  updateTaskStatus(drawStaticNoise, false);
+}
+
+void addHistoryTasks(void)
+{
+  addTasksArray(historyTasksArr, HISTORY_TASKS_COUNT);
+}
+
 void baseTitleTask(void)
 {
   tftFillScreen(currentBackGroundColor);
+  deleteAllTasks();
   addTask_P(T(&drawRows));
 }
 // --------------------------------------------------------------- //
@@ -602,9 +589,7 @@ void initShip(void)
   ship.pos.New.y = SHIP_TITLE_POS_Y;
   ship.weapon.rocketsLeft = MAX_PEW_PEW;
   ship.weapon.overHeated = false;
-
-  ship.weapon.pic.ptr = getConstCharPtr(laserPics, ship.weapon.level); 
-  ship.weapon.pic.size = getPicByte(laserPicsSize + ship.weapon.level);
+  ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level);
 
   memset_F(playerLasers, 0x00, sizeof(rocket_t)*MAX_PEW_PEW);
 }
@@ -612,14 +597,10 @@ void initShip(void)
 void resetShip(void)
 {
   ship.health = SHIP_HEALTH;
-
   ship.weapon.level = 0;
-  ship.weapon.pic.ptr = getConstCharPtr(laserPics, ship.weapon.level); 
-  ship.weapon.pic.size = getPicByte(laserPicsSize + ship.weapon.level);
-
+  ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level);
   ship.type = 0;
-  ship.bodyPic.ptr = getConstCharPtr(shipsPics, ship.type);
-  ship.bodyPic.size = getPicWord(shipsPicsSizes, ship.type);
+  ship.pBodyPic = getConstCharPtr(shipsPics, ship.type);
 }
 
 void initStars(void)
@@ -635,9 +616,9 @@ void initStars(void)
 void initRand(void)
 {
   // yes, it real "random"!
-  nextInt += readMic();
-  nextInt += readTemp();
-  nextInt += readLight();
+  seedRndNum(readMic());
+  seedRndNum(readTemp());
+  seedRndNum(readLight());
 }
 
 void initBaseGameParams(void)

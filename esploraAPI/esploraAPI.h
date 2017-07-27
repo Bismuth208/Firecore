@@ -1,15 +1,31 @@
+/*
+ * Author: Antonov Alexandr (Bismuth208)
+ * e-mail: bismuth20883@gmail.com
+ *
+ *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
+ *  NO PROTION OF THIS WORK CAN BE USED IN COMMERIAL
+ *  APPLICATION WITHOUT WRITTEN PERMISSION FROM THE AUTHOR
+ *
+ *  EVERYONE IS FREE TO POST/PUBLISH THIS ARTICLE IN
+ *  PRINTED OR ELECTRONIC FORM IN FREE/PAID WEBSITES/MAGAZINES/BOOKS
+ *  IF PROPER CREDIT TO ORIGINAL AUTHOR IS MENTIONED WITH LINKS TO
+ *  ORIGINAL ARTICLE
+ */
+
 #ifndef _ESPLORA_API_H
 #define _ESPLORA_API_H
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <avr/io.h>
 
 #include "utility/adc.h"
 #include "utility/spi.h"
-#include "utility/tone.h"
+#include "utility/sfx.h"
 #include "utility/systicktimer.h"
 #include "utility/gfx.h"
 #include "utility/st7735.h"
+#include "utility/help.h"
 
 // ------------------------------------ //
 #define ACCEL_AXIS_X  ADC_CH0
@@ -42,6 +58,21 @@
 #define LED_R  0
 #define LED_G  1
 #define LED_B  2
+
+// ------------------------------------ //
+
+#define BUTTON_A   SW_BTN_4_MUX
+#define BUTTON_B   SW_BTN_1_MUX
+#define BUTTON_X   SW_BTN_2_MUX
+#define BUTTON_Y   SW_BTN_3_MUX
+#define buttonIsPressed(a)  readSwitchButton(a)
+
+// ------------------------------------ //
+
+#define LINE_X     X_J_MUX_VAL
+#define LINE_Y     Y_J_MUX_VAL
+#define LR_OK      SW_J_MUX_VAL
+#define getStickVal(a)  getJoyStickValue(a)
 
 // ------------------------------------ //
 

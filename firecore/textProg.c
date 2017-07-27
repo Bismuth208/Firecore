@@ -1,3 +1,17 @@
+/*
+ * Author: Antonov Alexandr (Bismuth208)
+ * e-mail: bismuth20883@gmail.com
+ * 
+ *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
+ *  NO PROTION OF THIS WORK CAN BE USED IN COMMERIAL
+ *  APPLICATION WITHOUT WRITTEN PERMISSION FROM THE AUTHOR
+ *  
+ *  EVERYONE IS FREE TO POST/PUBLISH THIS ARTICLE IN
+ *  PRINTED OR ELECTRONIC FORM IN FREE/PAID WEBSITES/MAGAZINES/BOOKS
+ *  IF PROPER CREDIT TO ORIGINAL AUTHOR IS MENTIONED WITH LINKS TO
+ *  ORIGINAL ARTICLE
+ */
+
 #include <avr/pgmspace.h>  // for progmem
 
 #include "textProg.h"
@@ -7,7 +21,7 @@
 const uint8_t emptyText[] PROGMEM = {" "};
 const uint8_t pauseP0[] PROGMEM = {"Pause"};
 const uint8_t pressAtext[] PROGMEM = {"Prees A"};
-const uint8_t versionP0[] PROGMEM = {"V0.1c"};
+const uint8_t versionP0[] PROGMEM = {"V0.2a"};
 const uint8_t creditP0[] PROGMEM = {"2017 @Bismuth208"};
 const uint8_t scoreP[] PROGMEM = {"Score: "};
 const uint8_t maxScoreP[] PROGMEM = {"Max: "};
@@ -49,7 +63,7 @@ const uint8_t modeP2[] PROGMEM = {"Endless"};
 const uint8_t * const modePA[] PROGMEM = {modeP1, modeP2};
 
 
-const uint8_t historyTextP[] PROGMEM = {"In far far away galaxy, after last holywar, \nwhat was thousands years ago, \ntwo species lives in different parts of the galaxy \nin silent and pice.\n\nUntil now…"};
+const uint8_t historyTextP[] PROGMEM = {"In far far away galaxy,\nafter last holywar,\n what was \nthousands years ago, \ntwo species lives in \ndifferent parts of the \ngalaxy in silent and pice.\n\n\n\n\nUntil now..."};
 
 
 const uint8_t worldP1[] PROGMEM = {"Nautrem 3"};

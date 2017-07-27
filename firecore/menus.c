@@ -1,3 +1,17 @@
+/*
+ * Author: Antonov Alexandr (Bismuth208)
+ * e-mail: bismuth20883@gmail.com
+ * 
+ *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
+ *  NO PROTION OF THIS WORK CAN BE USED IN COMMERIAL
+ *  APPLICATION WITHOUT WRITTEN PERMISSION FROM THE AUTHOR
+ *  
+ *  EVERYONE IS FREE TO POST/PUBLISH THIS ARTICLE IN
+ *  PRINTED OR ELECTRONIC FORM IN FREE/PAID WEBSITES/MAGAZINES/BOOKS
+ *  IF PROPER CREDIT TO ORIGINAL AUTHOR IS MENTIONED WITH LINKS TO
+ *  ORIGINAL ARTICLE
+ */
+
 #include <esploraAPI.h>
 
 #include "taskmanager.h"
@@ -16,18 +30,11 @@ void drawShipSelectionMenu(void)
   uint16_t posX = CHARACTER_ICON_OFFSET_X;
   screenSliderEffect(currentBackGroundColor);
 
-  const uint8_t *pPic;
-  uint16_t picSize;
-
   for(uint8_t count=0; count<CHARACTER_ICON_NUM; count++) {
-    pPic = getConstCharPtr(catsPics, count);
-    picSize = getPicWord(catsPicsSizes, count);
-
     drawFrame(posX, CHARACTER_ICON_OFFSET_Y,
                 CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, INDIGO_COLOR, COLOR_WHITE);
 
-    drawBMP_RLE_P(posX, CHARACTER_ICON_OFFSET_Y+1,
-                                CHARACTER_ICON_W, CHARACTER_ICON_H, pPic, picSize);
+    drawBMP_RLE_P(posX, CHARACTER_ICON_OFFSET_Y+1, getConstCharPtr(catsPics, count));
 
     posX += CHARACTER_ICON_STEP;
   }
@@ -48,14 +55,17 @@ void drawCurrentShipSelection(void)
   tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, color);
 
   if(currentShip != previousShip) {
+#if ADD_SOUND
+    sfxPlayTick();
+#endif
+
     ship.type = currentShip-1;
-    ship.bodyPic.ptr = getConstCharPtr(shipsPics, ship.type);
-    ship.bodyPic.size = getPicWord(shipsPicsSizes, ship.type);
+    ship.pBodyPic = getConstCharPtr(shipsPics, ship.type);
 
     posX = CHARACTER_ICON_STEP*(previousShip-1) + CHARACTER_ICON_OFFSET_X;
     tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, COLOR_BLACK);
 
-    drawFrame(0, 55, 100, 30, INDIGO_COLOR, COLOR_WHITE); // frame params
+    drawFrame(0, 55, 100, 30, INDIGO_COLOR, COLOR_WHITE); // frame for ship's params
     tftPrintAt_P(4, 58, (const char*)shipSpeedStatP);
     tftPrintAt_P(4, 66, (const char*)shipPowerStatP);
     tftPrintAt_P(4, 74, (const char*)shipDurabStatP);
@@ -76,7 +86,7 @@ void drawCurrentShipSelection(void)
 
 void getShipItem(void)
 {
-  uint16_t newValueXY = getJoyStickValue(X_J_MUX_VAL);
+  uint16_t newValueXY = getStickVal(LINE_X);
   if(newValueXY != calJoysticY) {
     if(newValueXY < calJoysticY) {
       ++currentShip;
@@ -126,6 +136,9 @@ void checkShipSelect(void)
 {
   if(getBtnState(BUTTON_A)) {
     resetBtnStates();
+#if ADD_SOUND
+    sfxPlayOK();
+#endif
     getShipStates(&ship.states);
     previousShip =0;
     baseStory();
@@ -148,6 +161,9 @@ void pauseMenu(void)
     
     if(getBtnState(BUTTON_B)) {
       resetBtnStates();
+#if ADD_SOUND
+      sfxPlayOK();
+#endif
       pauseState = !pauseState;
       enableAllTasks();
       disableWeaponGift(); // fix glitch
@@ -170,8 +186,16 @@ void titleAction(void)
 {
   if(getBtnState(BUTTON_A)) {
     resetBtnStates();
+#if ADD_SOUND
+    sfxPlayOK();
+#endif
+    addHistoryTasks();
     shipHyperJump();
-    drawShipSelectionMenu();
+    screenSliderEffect(COLOR_BLACK);
+    // for text
+    tftSetTextColor(COLOR_WHITE);
+    tftSetTextSize(1);
+    tftSetCursor(0,0);
   }
 
   if(getStickVal(LR_OK)) {
@@ -179,9 +203,17 @@ void titleAction(void)
       resetBtnStates();
       resetScore();
 #if ADD_SOUND
-    if(soundEnable) toneBuzz(1200, 20);
+      sfxPlayCancel();
 #endif
     }
+  }
+}
+
+void historyAction(void)
+{
+  if(getBtnState(BUTTON_B)) {
+    resetBtnStates();
+    drawShipSelectionMenu();
   }
 }
 
@@ -189,8 +221,7 @@ void titleAction(void)
 void drawGalaxy(void)
 {
   screenSliderEffect(COLOR_BLACK);
-  drawBMP_RLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, 
-                   GALAXY_PIC_W, GALAXY_PIC_H, galaxyPic, GALAXY_PIC_SIZE);
+  drawBMP_RLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, galaxyPic);
 
   currentBackGroundColorId = getPicByte(lvlColors + curretLevel);
   currentBackGroundColor = getPicWord(nesPalette_ext, currentBackGroundColorId);
@@ -202,12 +233,11 @@ void baseStory(void)
   drawGalaxy();
   drawTextWindow(emptyText, buttonB);
   
-  tftDrawRect(6, 35, 52, 52, COLOR_WHITE);      // Frame Dodge
-  drawBMP_RLE_P(7, 36, DOGE_PIC_W, DOGE_PIC_H, cityDogePic, DOGE_PIC_SIZE);
-  
-  deleteAllTasks();
-  addTask_P(T(&updateBtnStates));
-  addTask_P(T(&drawStory));
+  tftDrawRect(6, 35, 52, 52, COLOR_WHITE); // Frame Dodge
+  drawBMP_RLE_P(7, 36, cityDogePic);
+
+  curretLevel = 8; // Home planet
+  addStoryTasks();
 }
 
 void drawStaticNoise(void)
@@ -225,20 +255,19 @@ void drawStaticNoise(void)
 
 void drawStory(void)
 {
-  tftDrawCircle(WORLD_8_POS_X, WORLD_8_POS_Y, CIRCLE_PONITER_MAP_SIZE,
-                       (iconState ? COLOR_RED : COLOR_WHITE )); // Home planet
-  
-  iconState = !iconState; // reuse
-  
   if(getBtnState(BUTTON_B)) {
+#if ADD_SOUND
+    sfxPlayCancel();
+#endif
     resetBtnStates();
     if(dogeDialogs < STORY_DOGE_TEXT_SIZE) {
       drawTextWindow(getConstCharPtr(dogePA, dogeDialogs), buttonB);
       dogeDialogs++;
       if(dogeDialogs == 6) {
-        addTask_P(T(&drawStaticNoise));
+        updateTaskStatus(drawStaticNoise, true);
       }
     } else {
+      curretLevel =0;
       dogeDialogs =0;
       prepareLevelSelect();
     }
@@ -246,9 +275,22 @@ void drawStory(void)
 }
 
 //---------------------------------------------------------------------------//
+void blinkLevelPointer(void)
+{
+  uint8_t posX = getPicByte(lvlCoordinates + curretLevel*2);
+  uint8_t posY = getPicByte(lvlCoordinates + curretLevel*2 + 1);
+
+  iconState = !iconState;  // reuse
+  tftDrawCircle(posX, posY, CIRCLE_PONITER_MAP_SIZE, (iconState ? COLOR_RED : COLOR_WHITE));
+}
+
+//---------------------------------------------------------------------------//
+
 void prepareLevelSelect(void)
 {
   drawGalaxy();
+  // add level select tasks
+  addTasksArray(levelSelectTasksArr, LVL_SEL_TASKS_COUNT);
   drawTextWindow(getConstCharPtr(worldPA, curretLevel), buttonA); // name of current world
 
   uint8_t i=0;
@@ -256,33 +298,24 @@ void prepareLevelSelect(void)
   do {
     posX = getPicByte(lvlCoordinates + i*2);
     posY = getPicByte(lvlCoordinates + i*2 + 1);
-
     tftDrawCircle(posX, posY, CIRCLE_PONITER_MAP_SIZE, COLOR_WHITE);
     ++i;
   } while (i < curretLevel);
-
-  deleteAllTasks();
-  addTask_P(T(&updateBtnStates));
-  addTask_P(T(&drawLevelSelect));
+  
   resetBtnStates();
 }
 
 void drawLevelSelect(void)
 {
-  uint8_t posX = getPicByte(lvlCoordinates + curretLevel*2);
-  uint8_t posY = getPicByte(lvlCoordinates + curretLevel*2 + 1);
-
-  iconState = !iconState;
-
-  tftDrawCircle(posX, posY, CIRCLE_PONITER_MAP_SIZE,
-                     (iconState ? COLOR_RED : COLOR_WHITE )); // Home planet
-  
   if(getBtnState(BUTTON_A)) {
     resetBtnStates();
-    addGameTasks();    
+#if ADD_SOUND
+    sfxPlayOK();
+#endif
+    
     screenSliderEffect(currentBackGroundColor);
-
-    drawBMP_RLE_P(0, 119, HUD_GUI_PIC_W, HUD_GUI_PIC_H, hudGuiPic, HUD_GUI_PIC_SIZE);
+    drawBMP_RLE_P(0, 119, hudGuiPic);
+    addGameTasks();
   }
 }
 //---------------------------------------------------------------------------//
@@ -308,7 +341,9 @@ void waitEnd(void)
 {
   if(getBtnState(BUTTON_B)) {
     resetBtnStates();
-    deleteAllTasks();
+#if ADD_SOUND
+    sfxPlayCancel();
+#endif
     baseTitleTask();
   }
 }
@@ -317,6 +352,9 @@ void waitOk(void)
 {
   if(getBtnState(BUTTON_B)) {
     resetBtnStates();
+#if ADD_SOUND
+    sfxPlayCancel();
+#endif
     prepareLevelSelect();
   }
 }
@@ -361,10 +399,8 @@ void gameOver(void)
   done(gameOverP);
   printScore();
 
-  deleteAllTasks();
-  addTask_P(T(&updateBtnStates));
-  addTask_P(T(&waitEnd));
-  addTask_P(T(&drawShipExplosion));
+  // add game over tasks
+  addTasksArray(gameOverTasksArr, GAME_OVER_TASKS_COUNT);
   resetBtnStates();
 
   curretLevel =0;
