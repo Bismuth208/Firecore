@@ -10,11 +10,11 @@
  *  Arduino IDE:  1.6.6   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  27,386
- *  pics:         8,621
- *  code:         18,765
- * Used RAM:      655 bytes
- * Free RAM:      1905 bytes
+ * Program size:  27,864
+ *  pics:         9,030
+ *  code:         18,848
+ * Used RAM:      664 bytes
+ * Free RAM:      1896 bytes
  *
  * Language:      C and C++
  * 
@@ -55,7 +55,6 @@ bool weaponLasers = false;
 bool weaponGift = false;
 
 int8_t menuItem =0;
-uint8_t dogeDialogs =0;
 uint8_t curretLevel =0;
 uint8_t difficultyIncrement =0;
 uint16_t score =0;
@@ -211,7 +210,7 @@ void movePicture(objPosition_t *pObj, uint16_t picW, uint16_t picH)
   }
 }
 
-int16_t checkShipPosition(int16_t pos, int16_t min, int16_t max)
+int8_t checkShipPosition(int8_t pos, uint8_t min, uint8_t max)
 { 
   if(pos < min) {
     pos = min;
@@ -273,32 +272,22 @@ bool checkCollision(position_t *pObjOne, uint8_t objOneW, uint8_t objOneH,
   }
 }
 
-// fast and low cost memset
-void memset_F(void *pvDest, uint8_t src, size_t size)
-{
-  uint8_t *dest = (uint8_t*)pvDest;
-  while(size--) {
-    *dest++ = src;
-  }
-}
-
 void playMusic(void)
 {
 #if ADD_SOUND
-  sfxUpdateAll();
+  // 1/20s or every 50ms
+  sfxUpdateAll(); // update sound each frame, as sound engine is frame based
 #endif
 }
 // --------------------------------------------------------------- //
-
 void checkFireButton(void)
 {
-  rocket_t *pRokets;
+  rocket_t *pRokets = &playerLasers[0];
 
   if(getBtnState(BUTTON_A)) {
     resetBtnStates();
-    if((ship.weapon.rocketsLeft -= PLAYER_ROCKET_COST) < MAX_PEW_PEW) {
-      // store to local registers
-      pRokets = &playerLasers[ship.weapon.rocketsLeft];
+
+    for(uint8_t i=0; i<MAX_PEW_PEW; i++) {
       if(pRokets->onUse == false) {
 #if ADD_SOUND
         sfxPlayPattern(playerShotPattern, SFX_CH_1);
@@ -306,9 +295,9 @@ void checkFireButton(void)
         pRokets->onUse = true;
         pRokets->pos.x = ship.pos.Base.x + ROCKET_OFFSET_X; // \__ start position
         pRokets->pos.y = ship.pos.Base.y + ROCKET_OFFSET_Y; // /
+        break;
       }
-    } else {
-      ship.weapon.rocketsLeft = MAX_PEW_PEW;
+      ++pRokets;
     }
   }
 }
@@ -319,10 +308,12 @@ void applyShipDamage(rocket_t *pWeapon)
   rocketEpxlosion(pWeapon);
 
   // clear previous level
-  tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y,
-                    (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_RED);
-  ship.health -= DAMAGE_TO_SHIP;   // absorb damage
-  hudStatus.updLife = true;        // update new life status later
+  tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_RED);
+
+  // Calc damage as: MAX_DURAB - (0.5 * SHIP_DURAB) - DAMAGE_TO_SHIP
+  uint8_t damage = SHIP_BASE_DURAB - (ship.states.durability/2 + DAMAGE_TO_SHIP);
+  ship.health -= damage;     // absorb damage
+  hudStatus.updLife = true;  // update new life status later
 }
 
 void checkShipHealth(void)
@@ -341,16 +332,15 @@ void checkShipHealth(void)
 void moveShip(void)
 {
   uint16_t newValueXY =0; // store temp value
-  int16_t posX = ship.pos.New.x;
-  int16_t posY = ship.pos.New.y;
+  position_t pos = ship.pos.New;
   uint8_t speed = ship.states.speed;
 
   newValueXY = getStickVal(LINE_X);
   if(newValueXY != calJoysticX) {
     if(newValueXY < calJoysticX) {
-      posX += speed;
+      pos.x += speed;
     } else {
-      posX -= speed;
+      pos.x -= speed;
     } 
   }
   //applyShipDirection(&ship.posNew.x, calJoysticX, LINE_X);
@@ -358,24 +348,24 @@ void moveShip(void)
   newValueXY = getStickVal(LINE_Y);
   if(newValueXY != calJoysticY) {
     if(newValueXY > calJoysticY) {
-      posY += speed;
+      pos.y += speed;
     } else {
-      posY -= speed;
+      pos.y -= speed;
     }
   }
   //applyShipDirection(&ship.posNew.y, calJoysticY, LINE_Y); 
 
-  ship.pos.New.x = checkShipPosition(posX, SHIP_MIN_POS_X, SHIP_MAX_POS_X);
-  ship.pos.New.y = checkShipPosition(posY, SHIP_MIN_POS_Y, SHIP_MAX_POS_Y);
+  ship.pos.New.x = checkShipPosition(pos.x, SHIP_MIN_POS_X, SHIP_MAX_POS_X);
+  ship.pos.New.y = checkShipPosition(pos.y, SHIP_MIN_POS_Y, SHIP_MAX_POS_Y);
 }
 
 //---------------------------------------------------------------------------//
 void moveGift(void)
 {
   moveBezierCurve(&gift.pos.New, &gift.bezLine);
-  fixPosition(&gift.pos.New);
 
-  if(gift.pos.New.x >= TFT_W) {
+  // reach end of move?
+  if(gift.bezLine.step == bezierLine.totalSteps) {
     movePicture(&gift.pos, GIFT_PIC_W, GIFT_PIC_H); // remove gift from screen
     if(weaponGift) {
       disableWeaponGift();
@@ -425,7 +415,7 @@ void checkGift(void)
 
 void disableWeaponGift(void)
 {
-  updateTaskStatus(dropWeaponGift, false); // for shure and pause fix
+  updateTaskStatus(dropWeaponGift, false); // to be shure and pause fix
   updateTaskStatus(moveGift, false);
   updateTaskStatus(checkGift, false);
   updateTaskStatus(drawGift, false);
@@ -498,7 +488,7 @@ void addGameTasks(void)
 
   addTasksArray(gameTasksArr, GAME_TASKS_COUNT);
 
-  gift.bezLine.id =8;
+  gift.bezLine.id = GIFT_MOVE_ID;
   gift.bezLine.step =0;
   moveBezierCurve(&gift.pos.New, &gift.bezLine);
   updateTaskTimeCheck(dropWeaponGift, RAND_GIFT_SPAWN_TIME);
@@ -516,7 +506,7 @@ void addBossTasks(void)
 void addGiftTasks(void)
 {
   weaponGift = false;
-  gift.bezLine.id =8;
+  gift.bezLine.id = GIFT_MOVE_ID;
   gift.bezLine.step =0;
   gift.pPic = giftHeartPic;
   moveBezierCurve(&gift.pos.New, &gift.bezLine);
@@ -554,7 +544,7 @@ void setMainFreq(uint8_t ps)
 {
   // This function set prescaller,
   // which change main F_CPU freq
-  // I have Atmega328P and F_CPU = 16 MHz!
+  // I have Atmega32U4 and F_CPU == 16 MHz!
   // at another freq will be another result!
   CLKPR = 0x80;  //enable change prascaller
   CLKPR = ps;    //change prescaller of F_CPU
@@ -587,7 +577,7 @@ void initShip(void)
 {
   ship.pos.New.x = SHIP_TITLE_POS_X;
   ship.pos.New.y = SHIP_TITLE_POS_Y;
-  ship.weapon.rocketsLeft = MAX_PEW_PEW;
+  //ship.weapon.rocketsLeft = MAX_PEW_PEW;
   ship.weapon.overHeated = false;
   ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level);
 
@@ -599,7 +589,7 @@ void resetShip(void)
   ship.health = SHIP_HEALTH;
   ship.weapon.level = 0;
   ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level);
-  ship.type = 0;
+  ship.type = 3; // he he he
   ship.pBodyPic = getConstCharPtr(shipsPics, ship.type);
 }
 

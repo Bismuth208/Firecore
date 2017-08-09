@@ -57,6 +57,11 @@ typedef struct {  // 5 bytes RAM
   };
 } rocket_t;
 
+typedef struct {
+  rocket_t deathRay;
+  uint16_t timeToShoot;
+} deathRay_t;
+
 typedef const uint8_t pic_t;
 
 typedef struct {  // 8 bytes RAM
@@ -67,7 +72,7 @@ typedef struct {  // 8 bytes RAM
 
 typedef struct {
   //uint8_t bombsLeft;
-  uint8_t rocketsLeft;
+  //uint8_t rocketsLeft;
   pic_t *pPic;
   struct {
     uint8_t overHeated    :1;
@@ -97,7 +102,7 @@ typedef struct {  // 8 + 5 + 5 bytes RAM
 typedef struct {  // 8 + 6 + 5 bytes RAM
   objPosition_t pos;
   bezierLine_t bezLine;
-  rocket_t deathRay;
+  deathRay_t weapon;
   struct {
     uint8_t state   :1;     // Pic what we draw
     uint8_t alive   :1;
@@ -110,8 +115,7 @@ typedef struct {  // 8 + 6 + 5 bytes RAM
 
 typedef struct {
   inVader_t base;
-  rocket_t deathRays[4];
-  uint16_t timeToShoot[4];
+  deathRay_t weapons[4];
 } inVaderBoss_t;
 
 typedef struct {  // 1 byte RAM

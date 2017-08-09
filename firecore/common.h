@@ -36,7 +36,7 @@ extern "C"{
 
 #define STAR_STEP              6  // move speed for stars
 #define MAX_STARS             40  // how much stars we see on screen
-#define MAX_PEW_PEW            5  // Crysis, nanosuit voice: - "Maximum pew".
+#define MAX_PEW_PEW            4  // Crysis, nanosuit voice: - "Maximum pew".
 
 
 #define PLAYER_ROCKET_SPEED   16  //(16/difficult)     // in future will be based on ship type
@@ -133,6 +133,7 @@ extern "C"{
 #define GIFT_BASE_POS_Y  RN % 100
 
 #define GIFT_MOVE_SPEED  2
+#define GIFT_MOVE_ID  8
 
 //---------------------------------------------------------------------------//
 
@@ -147,7 +148,7 @@ extern "C"{
 
 #define SHIP_BASE_SPEED  6
 #define SHIP_BASE_DAMAGE 35
-#define SHIP_BASE_DURAB  50
+#define SHIP_BASE_DURAB  60
 
 //---------------------------------------------------------------------------//
 
@@ -247,6 +248,10 @@ extern "C"{
 #define ALIEN_BOSS_EXPLOSIONS  15
 
 #define ALIEN_BOSS_DEATH_RAYS  4
+
+#define ALIEN_BOSS_MOVE_UP_ID   6
+#define ALIEN_BOSS_MOVE_DOWN_ID  7
+
 //---------------------------------------------------------------------------//
 
 // worlds on galaxy map
@@ -278,6 +283,8 @@ extern "C"{
 #define WORLD_8_POS_Y   65
 
 #define MAX_WORLDS      9
+
+#define HOME_PLANET_ID  8
 //---------------------------------------------------------------------------//
 
 extern uint16_t calJoysticX;
@@ -397,7 +404,7 @@ void addShipSelectTasks(void);
 void drawShipSelectionMenu(void);
 void drawCurrentShipSelection(void);
 void getShipItem(void);
-void getShipStates(shipStats_t *pShipStates);
+void updateShipStates(void);
 void checkShipSelect(void);
 
 //---------------------------------------------------------------------------//
@@ -453,7 +460,7 @@ void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine);
 void getBezierCurve(uint8_t line);
 void fixPosition(position_t *pPos);
 
-void checkShipPosition(uint16_t *pos, uint16_t max, uint16_t min);
+int8_t checkShipPosition(int8_t pos, uint8_t min, uint8_t max);
 
 bool checkNewPosition(position_t *objOne, position_t *objTwo);
 void applyNewPosition(position_t *objOne, position_t *objTwo, uint16_t picW, uint16_t picH);
@@ -467,8 +474,6 @@ void applyShipDamage(rocket_t *pWeapon);
 
 bool checkCollision(position_t *pObjOne, uint8_t objOneW, uint8_t objOneH,
                     position_t *pObjTwo, uint8_t objTwoW, uint8_t objTwoH);
-
-void memset_F(void *pvDest, uint8_t src, size_t size);
 
 void playMusic(void);
 //---------------------------------------------------------------------------//

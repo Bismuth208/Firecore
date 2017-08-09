@@ -109,23 +109,16 @@ extern const uint8_t cityDogePic[];
 
 #define CHARACTER_FRAME_WH 32
 
-#define CHARACTER_ICON_OFFSET_X 16
+#define CHARACTER_ICON_OFFSET_X 5
 #define CHARACTER_ICON_OFFSET_Y 8
 
 #define CHARACTER_ICON_STEP 50
 #define CHARACTER_ICON_NUM   3
 
-// orig size 1024 * 2 = 2048
-// RLE compress ratio 6.48101
 extern const uint8_t chiiCatPic[];
-
-// orig size 1024 * 2 = 2048
-// RLE compress ratio 4.57143
 extern const uint8_t groompyCatPic[];
-
-// orig size 1024 * 2 = 2048
-// RLE compress ratio 10.836
 extern const uint8_t pushenCatPic[];
+extern const uint8_t bonusCatPic[];
 
 extern const uint8_t * const catsPics[];
 //---------------------------------------------------------------------------//
@@ -189,6 +182,10 @@ extern const uint8_t shipVPowerPic[];
 // orig size 512 * 2 = 1024
 // RLE compress ratio 3.87879
 extern const uint8_t shipVArmorPic[];
+
+// orig size 512 * 2 = 1024
+// RLE compress ratio 4.59193
+extern const uint8_t shipBounsPic[];
 
 extern const uint8_t * const shipsPics[];
 //---------------------------------------------------------------------------//

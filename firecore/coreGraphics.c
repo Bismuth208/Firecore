@@ -201,12 +201,8 @@ void drawGift(void)
 
 void drawStart(void)
 {
-  if(startState) {
-    tftSetTextColor(COLOR_WHITE);
-  } else {
-    tftSetTextColor(currentBackGroundColor);
-  }
   startState = !startState;
+  tftSetTextColor(startState ? COLOR_WHITE : currentBackGroundColor);
   tftPrintAt_P(START_TEXT_POS_X, START_TEXT_POS_Y, (const char *)pressAtext);
 
   tftSetTextColor(0x020C);
@@ -242,7 +238,7 @@ void drawRows(void)
 void screenSliderEffect(uint16_t color)
 {
   for(int16_t i = TFT_W; i >= 0; i--) {
-    tftScrollSmooth(1, i-1, 2);
+    tftScrollSmooth(1, i-1, 2); // 2 - is delay in ms
     tftDrawFastVLine(TFT_W-i-1, 0, TFT_H, color);
   }
 }
@@ -271,6 +267,7 @@ void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine)
 
 void fixPosition(position_t *pPos)
 {
+  // reduce power of move effect
   pPos->x -= (pPos->x >> 4);
 }
 

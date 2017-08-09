@@ -339,7 +339,7 @@ void sfxCommand(uint8_t cmd, uint8_t X, int8_t Y, uint8_t i)
 	switch(cmd)
   {
     case CMD_VOLUME: { // volume
-	    X = constrain(X, 0, 10);
+	    //X = constrain(X, 0, 10);
 		  noteVolume[i] = X;
     } break;
       
@@ -446,9 +446,7 @@ void sfxUpdateNote(uint8_t i)
 			
 			_chanNoise[i] = stepNoise;
 			
-			++instrumentCursor[i];
-			
-			if(instrumentCursor[i] >= instrumentLength[i]) {
+			if((++instrumentCursor[i]) >= instrumentLength[i]) {
 				if(instrumentLooping[i]) {
 					instrumentCursor[i] = instrumentLength[i] - instrumentLooping[i];
 				} else {

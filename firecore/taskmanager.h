@@ -146,11 +146,14 @@ typedef struct {            // 9 bytes RAM(*)
   uint32_t nextCallTime;  	// when will be next func call
   pFunc_t pTaskFunc;        // on avr it get 2 bytes
   uint16_t timeToRunTask;   // 65,5 seconds will be enougth? (65535 millis / 1000)
+  uint8_t execute;      		// status flag; need exec or not
+  /* // at this moment not need
   struct {
   	uint8_t execute 	:1;		// status flag; need exec or not
   	uint8_t freeRam 	:7;		// not implemented features
     //uint8_t priority 	:2;		// priority of task 0-3
   };
+   */
   // 7 or 5 bytes align here
   //whole size: avr = 9 bytes, arm = 11 bytes
 } taskStatesArr_t;

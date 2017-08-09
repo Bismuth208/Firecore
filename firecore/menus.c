@@ -20,28 +20,30 @@
 #include "textProg.h"
 #include "common.h"
 
+uint8_t galaxySaved = 0;
 int8_t currentShip = 2;
 int8_t previousShip =0;
+uint8_t dogeDialogs =0;
 bool iconState = false;
 
 // -------------------------- Main menu -------------------------- //
 void drawShipSelectionMenu(void)
 {
   uint16_t posX = CHARACTER_ICON_OFFSET_X;
+  uint8_t characterIconStep = (TFT_W /(CHARACTER_ICON_NUM+galaxySaved));
   screenSliderEffect(currentBackGroundColor);
 
-  for(uint8_t count=0; count<CHARACTER_ICON_NUM; count++) {
+  for(uint8_t count=0; count<(CHARACTER_ICON_NUM+galaxySaved); count++) {
     drawFrame(posX, CHARACTER_ICON_OFFSET_Y,
                 CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, INDIGO_COLOR, COLOR_WHITE);
 
     drawBMP_RLE_P(posX, CHARACTER_ICON_OFFSET_Y+1, getConstCharPtr(catsPics, count));
 
-    posX += CHARACTER_ICON_STEP;
+    posX += characterIconStep;
   }
   
   // make tiny frame for ship
-  tftDrawRect(SHIP_SELECT_POS_X-5, SHIP_SELECT_POS_Y-5,
-                 SHIP_PIC_W+10, SHIP_PIC_H+10, COLOR_WHITE);
+  tftDrawRect(SHIP_SELECT_POS_X-5, SHIP_SELECT_POS_Y-4, SHIP_PIC_W+10, SHIP_PIC_H+10, COLOR_WHITE);
   drawTextWindow(selectShipP, buttonA);
   addShipSelectTasks();
 }
@@ -50,7 +52,8 @@ void drawCurrentShipSelection(void)
 {
   iconState = !iconState;
 
-  uint16_t posX = CHARACTER_ICON_STEP*(currentShip-1) + CHARACTER_ICON_OFFSET_X;
+  uint8_t characterIconStep = (TFT_W /(CHARACTER_ICON_NUM+galaxySaved));
+  uint16_t posX = characterIconStep*(currentShip-1) + CHARACTER_ICON_OFFSET_X;
   uint16_t color = iconState ? COLOR_WHITE : COLOR_BLACK;
   tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, color);
 
@@ -59,28 +62,29 @@ void drawCurrentShipSelection(void)
     sfxPlayTick();
 #endif
 
+    // update ship pic
     ship.type = currentShip-1;
     ship.pBodyPic = getConstCharPtr(shipsPics, ship.type);
 
-    posX = CHARACTER_ICON_STEP*(previousShip-1) + CHARACTER_ICON_OFFSET_X;
+    posX = characterIconStep*(previousShip-1) + CHARACTER_ICON_OFFSET_X;
     tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, COLOR_BLACK);
 
     drawFrame(0, 55, 100, 30, INDIGO_COLOR, COLOR_WHITE); // frame for ship's params
-    tftPrintAt_P(4, 58, (const char*)shipSpeedStatP);
-    tftPrintAt_P(4, 66, (const char*)shipPowerStatP);
-    tftPrintAt_P(4, 74, (const char*)shipDurabStatP);
 
     previousShip = currentShip;
-    getShipStates(&ship.states);
+    updateShipStates();
 
     uint8_t lineSize = mapVal(ship.states.speed, 0, SHIP_BASE_SPEED, 0, 40);
     tftDrawFastHLine(BASE_STATS_POS_X, BASE_STATS_POS_Y, lineSize, COLOR_WHITE);
+    tftPrintAt_P(4, BASE_STATS_POS_Y-2, (const char*)shipSpeedStatP);
 
     lineSize = mapVal(ship.states.power, 0, SHIP_BASE_DAMAGE, 0, 40);
     tftDrawFastHLine(BASE_STATS_POS_X, BASE_STATS_POS_Y+8, lineSize, COLOR_WHITE);
+    tftPrintAt_P(4, BASE_STATS_POS_Y+6, (const char*)shipPowerStatP);
 
     lineSize = mapVal(ship.states.durability, 0, SHIP_BASE_DURAB, 0, 40);
     tftDrawFastHLine(BASE_STATS_POS_X, BASE_STATS_POS_Y+16, lineSize, COLOR_WHITE);
+    tftPrintAt_P(4, BASE_STATS_POS_Y+14, (const char*)shipDurabStatP);
   }
 }
 
@@ -97,39 +101,38 @@ void getShipItem(void)
   
   if(currentShip < MIN_SHIP_ITEM) {
     currentShip = MIN_SHIP_ITEM;
-  } else if(currentShip > MAX_SHIP_ITEM) {
-    currentShip = MAX_SHIP_ITEM;
+  } else if(currentShip > (MAX_SHIP_ITEM +galaxySaved)) {
+    currentShip = MAX_SHIP_ITEM +galaxySaved;
   }
 }
 
-void getShipStates(shipStats_t *pShipStates)
+void updateShipStates(void)
 {
-    switch(currentShip) {
-      case 1: { // speed
-        pShipStates->speed = SHIP_BASE_SPEED;
-        pShipStates->power = SHIP_BASE_DAMAGE-10;
-        pShipStates->durability = SHIP_BASE_DURAB-15;
-      } break;
+  switch(currentShip) {
+    case 1: { // speed
+      ship.states.speed = SHIP_BASE_SPEED;
+      ship.states.power = SHIP_BASE_DAMAGE-10;
+      ship.states.durability = SHIP_BASE_DURAB-20;
+    } break;
 
-      case 2: { // power
-        pShipStates->speed = SHIP_BASE_SPEED-1;
-        pShipStates->power = SHIP_BASE_DAMAGE;
-        pShipStates->durability = SHIP_BASE_DURAB-10;
-      } break;
+    case 2: { // power
+      ship.states.speed = SHIP_BASE_SPEED-1;
+      ship.states.power = SHIP_BASE_DAMAGE;
+      ship.states.durability = SHIP_BASE_DURAB-10;
+    } break;
 
-      case 3: { // durability
-        pShipStates->speed = SHIP_BASE_SPEED-2;
-        pShipStates->power = SHIP_BASE_DAMAGE-5;
-        pShipStates->durability = SHIP_BASE_DURAB;
-      } break;
-/*
-      case 4: { // unclock after saving the galaxy
-        pShipStates->speed = SHIP_BASE_SPEED;
-        pShipStates->power = SHIP_BASE_DAMAGE;
-        pShipStates->durability = SHIP_BASE_DURAB;
-      } break;
-*/
-    }
+    case 3: { // durability
+      ship.states.speed = SHIP_BASE_SPEED-2;
+      ship.states.power = SHIP_BASE_DAMAGE-5;
+      ship.states.durability = SHIP_BASE_DURAB;
+    } break;
+
+    case 4: { // unclock after saving the galaxy
+      ship.states.speed = SHIP_BASE_SPEED;
+      ship.states.power = SHIP_BASE_DAMAGE;
+      ship.states.durability = SHIP_BASE_DURAB;
+    } break;
+  }
 }
 
 void checkShipSelect(void)
@@ -139,7 +142,7 @@ void checkShipSelect(void)
 #if ADD_SOUND
     sfxPlayOK();
 #endif
-    getShipStates(&ship.states);
+    updateShipStates();
     previousShip =0;
     baseStory();
   }
@@ -169,7 +172,7 @@ void pauseMenu(void)
       disableWeaponGift(); // fix glitch
       // remove "Pause" text
       fillRectFast(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, PAUSE_TEXT_W, PAUSE_TEXT_H);
-      //continue();
+      continue();
     }
   }
 }
@@ -236,7 +239,7 @@ void baseStory(void)
   tftDrawRect(6, 35, 52, 52, COLOR_WHITE); // Frame Dodge
   drawBMP_RLE_P(7, 36, cityDogePic);
 
-  curretLevel = 8; // Home planet
+  curretLevel = HOME_PLANET_ID;
   addStoryTasks();
 }
 
@@ -247,7 +250,7 @@ void drawStaticNoise(void)
 
   tftSetAddrWindow(7, 36, 6+DOGE_PIC_W, 35+DOGE_PIC_H);
 
-  while(dataSize--){
+  while(dataSize--) {
     ptr += RN; // make offset for random data
     pushColorFast(pgm_read_word(ptr));
   }
@@ -262,8 +265,7 @@ void drawStory(void)
     resetBtnStates();
     if(dogeDialogs < STORY_DOGE_TEXT_SIZE) {
       drawTextWindow(getConstCharPtr(dogePA, dogeDialogs), buttonB);
-      dogeDialogs++;
-      if(dogeDialogs == 6) {
+      if((++dogeDialogs) == 6) {
         updateTaskStatus(drawStaticNoise, true);
       }
     } else {
@@ -332,8 +334,7 @@ void drawSomeGUI(void)
 
   if(hudStatus.updLife) {
     hudStatus.updLife = false;
-    tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y,
-                 (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_WHITE);
+    tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_WHITE);
   }
 }
 
@@ -368,7 +369,7 @@ void printMessage(const char *text)
 
 void printScore(void)
 {
-  char buf[10];
+  char buf[5];
 
   tftSetTextSize(1);
   tftPrintAt_P(40, 60, (const char *)scoreP);
@@ -417,4 +418,5 @@ void victory(void)
   done(victoryP);
   printScore();
   curretLevel =0;
+  galaxySaved =1;
 }
