@@ -81,12 +81,14 @@ void commandList(const uint8_t *addr) {
 
   numCommands = pgm_read_byte(addr++);   // Number of commands to follow
   while(numCommands--) {                 // For each command...
-    writeCommand(pgm_read_byte(addr++)); // Read, issue command
+    ENABLE_CMD();
+    sendData8_SPI1(pgm_read_byte(addr++)); // Read, issue command
     numArgs  = pgm_read_byte(addr++);    // Number of args to follow
     ms       = numArgs & DELAY;          // If hibit set, delay follows args
     numArgs &= ~DELAY;                   // Mask out delay bit
+    ENABLE_DATA();
     while(numArgs--) {                   // For each argument...
-      writeData(pgm_read_byte(addr++));  // Read, issue argument
+      sendData8_SPI1(pgm_read_byte(addr++));  // Read, issue argument
     }
 
     if(ms) {
@@ -96,6 +98,33 @@ void commandList(const uint8_t *addr) {
     }
   }
 }
+
+#if 0
+// Companion code to the above tables.  Reads and issues
+// a series of LCD commands stored in PROGMEM byte array.
+void commandList(const uint8_t *addr) {
+  
+  uint8_t  numCommands, numArgs;
+  uint16_t ms;
+  
+  numCommands = pgm_read_byte(addr++);   // Number of commands to follow
+  while(numCommands--) {                 // For each command...
+    writeCommand(pgm_read_byte(addr++)); // Read, issue command
+    numArgs  = pgm_read_byte(addr++);    // Number of args to follow
+    ms       = numArgs & DELAY;          // If hibit set, delay follows args
+    numArgs &= ~DELAY;                   // Mask out delay bit
+    while(numArgs--) {                   // For each argument...
+      writeData(pgm_read_byte(addr++));  // Read, issue argument
+    }
+    
+    if(ms) {
+      ms = pgm_read_byte(addr++); // Read post-command delay time (ms)
+      if(ms == 255) ms = 500;     // If 255, delay for 500 ms
+      _delayMS(ms);
+    }
+  }
+}
+#endif
 
 void initTFT_GPIO(void)
 {
@@ -120,9 +149,9 @@ void commonInit(const uint8_t *cmdList)
   SET_TFT_DC_HI;
         
   // toggle RST low to reset
-  SET_TFT_RES_HI;  _delayMS(500);
-  SET_TFT_RES_LOW; _delayMS(500);
-  SET_TFT_RES_HI;  _delayMS(500);
+  SET_TFT_RES_HI;  _delayMS(10);
+  SET_TFT_RES_LOW; _delayMS(10);
+  SET_TFT_RES_HI;  _delayMS(10);
 
   if(cmdList) commandList(cmdList);
 }
@@ -160,13 +189,19 @@ void initR(uint8_t options)
   tabcolor = options;
 }
 
+void initRBlack(void)
+{
+  commonInit(RcmdBlack);
+  tabcolor = INITR_BLACKTAB;
+}
+
 void initG(void)
 {
   commonInit(Gcmd);
 }
 
 // blow your mind
-void tftSetAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
+void tftSetAddrWindow(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1)
 {
   ENABLE_CMD();             // grab TFT CS and writecommand:
   sendData8_SPI1(ST7735_CASET); // Column addr set
@@ -190,7 +225,7 @@ void tftSetAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
   //SET_TFT_CS_HI; // disable in other func
 }
 
-void tftSetVAddrWindow(uint16_t x0, uint16_t y0, uint16_t y1)
+void tftSetVAddrWindow(uint8_t x0, uint8_t y0, uint8_t y1)
 {
   ENABLE_CMD();             // grab TFT CS and writecommand:
   sendData8_SPI1(ST7735_CASET); // Column addr set
@@ -214,7 +249,7 @@ void tftSetVAddrWindow(uint16_t x0, uint16_t y0, uint16_t y1)
   //SET_TFT_CS_HI; // disable in other func
 }
 
-void tftSetHAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1)
+void tftSetHAddrWindow(uint8_t x0, uint8_t y0, uint8_t x1)
 {
   ENABLE_CMD();             // grab TFT CS and writecommand:
   sendData8_SPI1(ST7735_CASET); // Column addr set
@@ -238,7 +273,7 @@ void tftSetHAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1)
   //SET_TFT_CS_HI; // disable in other func
 }
 
-void tftSetAddrPixel(uint16_t x0, uint16_t y0)
+void tftSetAddrPixel(uint8_t x0, uint8_t y0)
 {
   ENABLE_CMD();             // grab TFT CS and writecommand:
   sendData8_SPI1(ST7735_CASET); // Column addr set
@@ -326,14 +361,14 @@ void tftSetRotation(uint8_t m)
 }
 
 // how much to scroll
-void tftScrollAddress(uint16_t VSP)
+void tftScrollAddress(uint8_t VSP)
 {
   writeCommand(ST7735_VSCRSADD); // Vertical scrolling start address
   writeWordData(VSP);
 }
 
 // set scrollong zone
-void tftSetScrollArea(uint16_t TFA, uint16_t BFA)
+void tftSetScrollArea(uint8_t TFA, uint8_t BFA)
 {
   writeCommand(ST7735_VSCRDEF); // Vertical scroll definition
   writeWordData(TFA);
@@ -341,17 +376,17 @@ void tftSetScrollArea(uint16_t TFA, uint16_t BFA)
   writeWordData(BFA);
 }
 
-void tftScroll(uint16_t lines, uint16_t yStart)
+void tftScroll(uint8_t lines, uint8_t yStart)
 {
-  for(uint16_t i = 0; i < lines; i++) {
+  for(uint8_t i = 0; i < lines; i++) {
     if ((yStart++) == (_height - TFT_BOT_FIXED_AREA)) yStart = TFT_TOP_FIXED_AREA;
     tftScrollAddress(yStart);
   }
 }
 
-void tftScrollSmooth(uint16_t lines, uint16_t yStart, uint8_t wait)
+void tftScrollSmooth(uint8_t lines, uint8_t yStart, uint8_t wait)
 {
-  for(uint16_t i = 0; i < lines; i++) {
+  for(uint8_t i = 0; i < lines; i++) {
     if((yStart++) == (_height - TFT_BOT_FIXED_AREA)) yStart = TFT_TOP_FIXED_AREA;
     tftScrollAddress(yStart);
     _delayMS(wait);

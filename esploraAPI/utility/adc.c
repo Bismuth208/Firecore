@@ -64,7 +64,9 @@ void initADC(void)
   ADMUX |= (1<<REFS0); //Voltage reference from Avcc (5v)
 
   // ADC set to 64
-  setPrescallerADC(5);
+  //setPrescallerADC(5);
+  ADCSRA = (1<<ADPS2) | (1<<ADPS1) | (0<<ADPS0);  // 19'200 Hz
+  ADCSRA |= (1 << ADEN);
   
   // AIN1, AIN0 Digital Input Disable
   DIDR1 |= (1<<AIN1D) | (1<<AIN0D);

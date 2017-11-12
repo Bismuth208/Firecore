@@ -48,8 +48,8 @@ const uint8_t dogeP1[] PROGMEM = {"Woof Woof, I'm Doge, WOW!"};
 const uint8_t dogeP2[] PROGMEM = {"Hero, You must to"};
 const uint8_t dogeP3[] PROGMEM = {"save the galaxy!"};
 const uint8_t dogeP4[] PROGMEM = {"And our Home planet!"};
-const uint8_t dogeP5[] PROGMEM = {"INVADERS ARE COMING..."};
-const uint8_t dogeP6[] PROGMEM = {"'STATIC NOISE...'"};
+const uint8_t dogeP5[] PROGMEM = {"'STATIC NOISE...'"};
+const uint8_t dogeP6[] PROGMEM = {"INVADERS ARE COMING..."};
 const uint8_t dogeP7[] PROGMEM = {"..we...eed yo..r...elp!"};
 const uint8_t * const dogePA[] PROGMEM = {
 	dogeP1, dogeP2, dogeP3,

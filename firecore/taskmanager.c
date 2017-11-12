@@ -93,20 +93,23 @@ __attribute__ ((noreturn)) void runTasks(void)
       geminiNextMs = TIMER_FUNC + AUTO_GEMINI_TIMEOUT;
     }
 #endif
+    
     if(PAC) {
       // store pointer in RAM, to reduce instructions
       pCurArr = &PAA[count];
-      // Have func and need execute?
-      if(pCurArr->pTaskFunc && pCurArr->execute) { // problems in future see i here
-        // check timeout
-        if(TIMER_FUNC >= pCurArr->nextCallTime) {
-          pCurArr->pTaskFunc(); // execute
-          
-          if(resetTaskCount) {
-            resetTaskCount = false;
-          } else {
-             // get time of next exec
-            pCurArr->nextCallTime = TIMER_FUNC + pCurArr->timeToRunTask;
+      // Have func?
+      if(pCurArr->pTaskFunc) { // problems in future see i here
+        if(pCurArr->execute) { // need execute?
+          // check timeout
+          if(TIMER_FUNC >= pCurArr->nextCallTime) {
+            pCurArr->pTaskFunc(); // execute
+            
+            if(resetTaskCount) {
+              resetTaskCount = false;
+            } else {
+              // get time of next exec
+              pCurArr->nextCallTime = TIMER_FUNC + pCurArr->timeToRunTask;
+            }
           }
         }
       }
@@ -178,10 +181,9 @@ void addTask_P(const taskParams_t *pTaskP)
   // This fuction is really dengerous as no any checks!
   // Use it if you 100500% sure what you're doing!
 
-  PAC++; // increase total tasks
   // aaand place params to new index
-  // why -1? because we can`t add 0 tasks :)
-  taskStatesArr_t *ptr = &PAA[PAC-1]; // reduce instructions by acces pointer
+  // increase total tasks
+  taskStatesArr_t *ptr = &PAA[PAC++]; // reduce instructions by acces pointer
   ptr->pTaskFunc = (pFunc_t)pgm_read_word(&pTaskP->task);
   ptr->timeToRunTask = pgm_read_word(&pTaskP->timeout);
   ptr->nextCallTime = 0; // every fuction will call immediately
@@ -243,6 +245,25 @@ void addTaskToArr(taskStates_t *pTasksArr, pFunc_t pTask,
 #endif
 }
 
+#ifdef __AVR__
+/**
+ * @brief  add array of tasks for execution from PROGMEM section
+ * @param  pArr: pointer to task stucture whith pointers to tasks
+ * @param  size: number of tasks to load
+ * @retval None
+ */
+void addTasksArray_P(tasksArr_t *pArr, uint8_t size)
+{
+  deleteAllTasks();
+  
+  do {
+    // get ponter to task structure and load params from structure
+    addTask_P(pgm_read_word(pArr));
+    ++pArr;
+  } while(--size);
+}
+#endif /*__AVR__*/
+
 /**
  * @brief  remove all tasks
  * @param  none
@@ -256,9 +277,9 @@ void deleteAllTasks(void)
 #else
   uint8_t *pBuf = (uint8_t*)PAA;
   uint16_t size = maxTasks * sizeof(taskStates_t);
-  while(size--) {
+  do {
     *pBuf++ = 0x00;
-  }
+  } while(--size);
 #endif /*USE_DYNAMIC_MEM*/
   PAC = 0;
   resetTaskCount = true;
@@ -496,8 +517,10 @@ uint8_t searchTask(pFunc_t pTask)
   
   tmpOne.pFunc = (uint16_t)pTask; // tmpOne.pFunc use only r20,r21
   taskStatesArr_t *ptr = &PAA[0]; // store pointer to X register
-
-  for(uint8_t count=0; count < PAC; count++) {
+  //uint8_t count = PAC;
+  
+  for(uint8_t count = 0; count < PAC; count++) {
+  //do {
     tmpTwo.pFunc = (uint16_t)ptr->pTaskFunc; // store addr to r24,r25
     // compare addr separetly, reque less instructions
     if(tmpOne.pFuncHi == tmpTwo.pFuncHi) { // compare r24,r21
@@ -506,7 +529,7 @@ uint8_t searchTask(pFunc_t pTask)
       }
     }
     ++ptr;
-  }
+  };// while(--count);
 #else
   for(uint8_t count=0; count < PAC; count++) {
     if(PAA[count].pTaskFunc == pTask) {

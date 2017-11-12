@@ -54,7 +54,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifndef abs
-#define abs(x) ((x)>0?(x):-(x))
+#undef abs
+//#define abs(x) ((x)>0?(x):-(x))
+#define abs(x) ((x ^ (x >> 15)) - (x >> 15))  // for 16 bit
 #endif
 
 #ifndef swap
@@ -168,6 +170,65 @@ void tftFillCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t cornername, 
   }
 }
 
+#if 0
+// EFLA for 8 bit
+// mask 0x80 and << 8, insted 0x8000 and <<16
+// http://www.edepot.com/algorithm.html
+// http://www.edepot.com/linebenchmark.html
+void tftDrawLine(int16_t x, int16_t y, int16_t x2, int16_t y2, uint16_t clr)
+{
+  bool yLonger=false;
+  int16_t shortLen=y2-y;
+  int16_t longLen=x2-x;
+  
+  if(abs(shortLen)>abs(longLen)) {
+    swap(shortLen, longLen);
+    yLonger=true;
+  }
+  
+  int16_t decInc = (longLen==0) ? 0 : ((shortLen << 8) / longLen);
+  
+  if(yLonger) {
+    int16_t j=0x80+(x<<8);
+    if(longLen>0) {
+      longLen+=y;
+      do {
+        ++y;
+        tftDrawPixel(j>>8, y, clr);
+        j+=decInc;
+      } while(y<=longLen);
+      return;
+    }
+    
+    longLen+=y;
+    do {
+      --y;
+      tftDrawPixel(j>>8, y, clr);
+      j-=decInc;
+    } while(y>=longLen);
+    return;
+  }
+  
+  int16_t j=0x80+(y<<8);
+  if (longLen>0) {
+    longLen+=x;
+    do {
+      ++x;
+      tftDrawPixel(x, j>>8, clr);
+      j+=decInc;
+    } while(x<=longLen);
+    return;
+  }
+  
+  longLen+=x;
+  do {
+    --x;
+    tftDrawPixel(x, j>>8, clr);
+    j-=decInc;
+  } while(x>=longLen);
+}
+
+#else
 // Bresenham's algorithm
 void tftDrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color)
 {
@@ -210,18 +271,15 @@ void tftDrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color)
   int16_t xbegin = x0;
   int16_t len;
   
-  if (y0 < y1) {
-    ystep = 1;
-  } else {
-    ystep = -1;
-  }
-    
-  if (steep) {
-    for (; x0<=x1; x0++) {
+  ystep = (y0 < y1) ? 1 : -1;
+  
+  if(steep) {
+    do {
+      ++x0;
       err -= dy;
       if (err < 0) {
         len = x0 - xbegin;
-        if (len) {
+        if(len) {
           tftDrawFastVLine(y0, xbegin, len + 1, color);
         } else {
           tftDrawPixel(y0, x0, color);
@@ -230,13 +288,14 @@ void tftDrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color)
         y0 += ystep;
         err += dx;
       }
-    }
+    } while(x0<=x1);
     if (x0 > xbegin + 1) {
       tftDrawFastVLine(y0, xbegin, x0 - xbegin, color);
     }
     
   } else {
-    for (; x0<=x1; x0++) {
+    do {
+      ++x0;
       err -= dy;
       if (err < 0) {
         len = x0 - xbegin;
@@ -249,13 +308,13 @@ void tftDrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color)
         y0 += ystep;
         err += dx;
       }
-    }
+    } while(x0<=x1);
     if (x0 > xbegin + 1) {
       tftDrawFastHLine(xbegin, y0, x0 - xbegin, color);
     }
   }
-  
 }
+#endif
 
 // Draw a rectangle
 void tftDrawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
@@ -471,7 +530,7 @@ void tftPrintChar(uint8_t c)
     } break;
       
     default: {
-      tftDrawChar(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
+      tftDrawCharInt(cursor_x, cursor_y, c);
       cursor_x += textsize*6;
       if (wrap && (cursor_y > (_height - textsize*8))) {
         cursor_y = 0;
@@ -485,27 +544,71 @@ void tftPrintChar(uint8_t c)
   }
 }
 
-void tftDrawChar(int16_t x, int16_t y, uint8_t c, uint16_t color, uint16_t bg, uint8_t size)
+// use glabal vars for: textsize, textcolor, textbgcolor
+void tftDrawCharInt(int16_t x, int16_t y, uint8_t c)
 {
+#if USE_BOUNDS_CHECK
   if((x >= _width)            || // Clip right
      (y >= _height)           || // Clip bottom
-       ((x + 6 * size - 1) < 0) || // Clip left
-         ((y + 8 * size - 1) < 0))   // Clip top
+     ((x + 6 * textsize - 1) < 0) || // Clip left
+     ((y + 8 * textsize - 1) < 0))   // Clip top
     return;
+#endif
   
   if(!_cp437 && (c >= 176)) c++; // Handle 'classic' charset behavior
   
   uint8_t line;
   int8_t i, j;
   
+  if(textsize == 1) {
+    for (i=0; i<6; i++ ) {
+      
+      line = (i == 5) ? 0x00 : pgm_read_byte(font+(c*5)+i);
+      
+      for (j = 0; j<8; j++) {
+        if (line & 0x1) tftDrawPixel(x+i, y+j, textcolor);
+        else if (textcolor != textbgcolor) {
+          tftDrawPixel(x+i, y+j, textbgcolor);
+        }
+        line >>= 1;
+      }
+    }
+  } else {
+    for (i=0; i<6; i++ ) {
+
+      line = (i == 5) ? 0x00 : pgm_read_byte(font+(c*5)+i);
+      
+      for (j = 0; j<8; j++) {
+        if (line & 0x1) {
+          tftFillRect(x+i*textsize, y+j*textsize, textsize, textsize, textcolor);
+        } else if (textcolor != textbgcolor) {
+          tftFillRect(x+i*textsize, y+j*textsize, textsize, textsize, textbgcolor);
+        }
+        line >>= 1;
+      }
+    }
+  }
+}
+
+void tftDrawChar(int16_t x, int16_t y, uint8_t c, uint16_t color, uint16_t bg, uint8_t size)
+{
+#if USE_BOUNDS_CHECK
+  if((x >= _width)            || // Clip right
+     (y >= _height)           || // Clip bottom
+       ((x + 6 * size - 1) < 0) || // Clip left
+         ((y + 8 * size - 1) < 0))   // Clip top
+    return;
+#endif
   
+  if(!_cp437 && (c >= 176)) c++; // Handle 'classic' charset behavior
+  
+  uint8_t line;
+  int8_t i, j;
+
   if(size == 1) {
     for (i=0; i<6; i++ ) {
       
-      if (i == 5)
-        line = 0x0;
-      else
-        line = pgm_read_byte(font+(c*5)+i);
+      line = (i == 5) ? 0x00 : pgm_read_byte(font+(c*5)+i);
       
       for (j = 0; j<8; j++) {
         if (line & 0x1) tftDrawPixel(x+i, y+j, color);
@@ -518,14 +621,11 @@ void tftDrawChar(int16_t x, int16_t y, uint8_t c, uint16_t color, uint16_t bg, u
   } else {
     for (i=0; i<6; i++ ) {
       
-      if (i == 5)
-        line = 0x0;
-      else
-        line = pgm_read_byte(font+(c*5)+i);
+      line = (i == 5) ? 0x00 : pgm_read_byte(font+(c*5)+i);
       
       for (j = 0; j<8; j++) {
         if (line & 0x1) {
-          tftFillRect(x+(i*size), y+(j*size), size, size, color);
+          tftFillRect(x+i*size, y+j*size, size, size, color);
         } else if (bg != color) {
           tftFillRect(x+i*size, y+j*size, size, size, bg);
         }
@@ -617,61 +717,68 @@ int16_t tftHeight(void)
 
 void tftPushColor(uint16_t color)
 {
-  sendData16_SPI1(color);
+  pushColorFast(color);
 }
 
 void tftDrawPixel(int16_t x, int16_t y, uint16_t color)
 {
+#if USE_BOUNDS_CHECK
   if((x < 0) || (x >= _width) || (y < 0) || (y >= _height)) return;
+#endif
   
   tftSetAddrPixel(x, y);
 
-  sendData16_SPI1(color);
+  pushColorFast(color);
   RELEASE_TFT();
 }
 
 void tftFillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
 {
+#if USE_BOUNDS_CHECK
   // rudimentary clipping (drawChar w/big text requires this)
   if((x >= _width) || (y >= _height)) return;
   if((x + w - 1) >= _width)  w = _width  - x;
   if((y + h - 1) >= _height) h = _height - y;
+#endif
   
   tftSetAddrWindow(x, y, x+w-1, y+h-1);
   
-  for(y=h; y>0; y--) {
-    for(x=w; x>0; x--) {
-      sendData16_SPI1(color);
-    }
-  }
+  uint16_t data = w*h;
+  do {
+    pushColorFast(color);
+  } while(--data);
   RELEASE_TFT();
 }
 
 void tftDrawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 {
+#if USE_BOUNDS_CHECK
   // Rudimentary clipping
   if((x >= _width) || (y >= _height)) return;
   if((y+h-1) >= _height) h = _height-y;
+#endif
   
   tftSetVAddrWindow(x, y, y+h-1);
   
-  while (h--) {
-    sendData16_SPI1(color);
-  }
+  do {
+    pushColorFast(color);
+  } while(--h);
   RELEASE_TFT();
 }
 
 void tftDrawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 {
+#if USE_BOUNDS_CHECK
   // Rudimentary clipping
   if((x >= _width) || (y >= _height)) return;
   if((x+w-1) >= _width)  w = _width-x;
+#endif
   
   tftSetHAddrWindow(x, y, x+w-1);
   
-  while (w--) {
-    sendData16_SPI1(color);
-  }
+  do {
+    pushColorFast(color);
+  } while(--w);
   RELEASE_TFT();
 }
 

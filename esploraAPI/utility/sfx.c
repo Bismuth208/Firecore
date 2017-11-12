@@ -460,20 +460,20 @@ void sfxUpdateNote(uint8_t i)
 		//UPDATE VALUES	
 		//pitch
 		outputPitch[i] = notePitch[i] + stepPitch[i] + patternPitch[i];
-		if(arpeggioStepDuration[i]){
+		if(arpeggioStepDuration[i]) {
 		  outputPitch[i] += commandsCounter[i] / arpeggioStepDuration[i] * arpeggioStepSize[i];
 		}
 		outputPitch[i] = (outputPitch[i] + NUM_PITCH) % NUM_PITCH; //wrap
 		//volume
 		outputVolume[i] = noteVolume[i];
-		if(volumeSlideStepDuration[i]){
+		if(volumeSlideStepDuration[i]) {
 		  outputVolume[i] += commandsCounter[i] / volumeSlideStepDuration[i] * volumeSlideStepSize[i];
 		}
-		if(tremoloStepDuration[i]){
-			outputVolume[i] += ((commandsCounter[i]/tremoloStepDuration[i]) % 2) * tremoloStepSize[i];
+		if(tremoloStepDuration[i]) {
+			outputVolume[i] += ((commandsCounter[i]/tremoloStepDuration[i]) & 0x1) * tremoloStepSize[i];
 		}
 		outputVolume[i] = constrain(outputVolume[i], 0, 9);
-		if(notePitch[i] == 63){
+		if(notePitch[i] == 63) {
 			outputVolume[i] = 0;
 		}
     

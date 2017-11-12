@@ -43,7 +43,7 @@ void setInvaderValue(inVader_t *pAlien, bool state)
 void setDeathRayState(rocket_t *deathRay, position_t *pPos, bool state)
 {
   deathRay->onUse = state;
-  deathRay->state = ((RN % 2) ? false : true); // ste of picture
+  deathRay->state = ((RN & 1) ? false : true); // ste of picture
   deathRay->pos.x = pPos->x;
   deathRay->pos.y = pPos->y+5; // +5 is offset to make center align
 }
@@ -100,8 +100,8 @@ void initInvaders(void)
   inVader_t *pAlien = &alien[0];
 
   for(uint8_t count =0; count < MAX_ALIENS; count++) {  // Yeah, hate me for this!
-    pAlien->state = ((RN % 2) ? false : true);
-    aliveState = ((RN % 2) ? false : true);
+    pAlien->state = ((RN & 1) ? false : true);
+    aliveState = ((RN & 1) ? false : true);
 
     setInvaderValue(pAlien, aliveState);
     setDeathRayState(&pAlien->weapon.deathRay, &pAlien->pos.New, false);
@@ -134,6 +134,7 @@ void moveInVaders(void)
   }
 }
 
+// each invader consume ~6ms in total for 4 = ~24ms
 void drawInVaders(void)
 {
   inVader_t *pAlien = &alien[0];
@@ -142,8 +143,9 @@ void drawInVaders(void)
     if(pAlien->alive) { // ALIIIVEE! IT`S ALIIVEEE!
 
       pAlien->state = !pAlien->state;
-      drawEnemy(&pAlien->pos, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H,
-                      (pAlien->state ? alienShipHi : alienShipLow));
+      drawEnemy(&pAlien->pos, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H, alienShipV2);
+      drawBMP_RLE_P(pAlien->pos.Base.x+28, pAlien->pos.Base.y+6,
+                   (pAlien->state ? alienShipFireHi : alienShipFireLow));
     }
     ++pAlien;
   }
@@ -206,6 +208,7 @@ void checkInVadersRay(void)
   }
 }
 
+// in worst case least ~120us; best case ~32us
 void checkInVaders(void)
 {
   // recalc all collisions between player's rockets and each alien
@@ -239,6 +242,7 @@ void checkInVaders(void)
               replaceTask(checkInVadersRespawn, checkAliveAliens, 4 SEC, true);
             }
           }
+          return; // because only one shot can be at one position!
         }
       }
       ++pAlien;
@@ -258,7 +262,7 @@ void bossInit(void)
 
   alienBoss.base.health = ALIEN_BOSS_HEALTH;
   // move up or move down
-  alienBoss.base.bezLine.id = (RN % 2 ? ALIEN_BOSS_MOVE_UP_ID : ALIEN_BOSS_MOVE_DOWN_ID);
+  alienBoss.base.bezLine.id = ((RN & 1) ? ALIEN_BOSS_MOVE_UP_ID : ALIEN_BOSS_MOVE_DOWN_ID);
   alienBoss.base.bezLine.step = 25; // start animation at centere
   moveBezierCurve(&alienBoss.base.pos.New, &alienBoss.base.bezLine);
 
@@ -330,6 +334,7 @@ void checkBossDamage(void)
             hudStatus.updScore = true;    // update score later
             bossDie();                    // was it easy no?
           }
+          return;
         }
       }
       ++pRocket;

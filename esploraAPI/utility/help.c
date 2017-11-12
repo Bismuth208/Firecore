@@ -26,7 +26,17 @@ int32_t mapVal(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32
 void memset_F(void *pvDest, uint8_t src, size_t size)
 {
   uint8_t *dest = (uint8_t*)pvDest;
-  while(size--) {
+  do {
     *dest++ = src;
-  }
+  } while(--size);
+}
+
+void memcpy_F(void *pDest, void *pSrc, size_t size)
+{
+  uint8_t *puDest = (uint8_t*)pDest;
+  uint8_t *puSrc = (uint8_t*)pSrc;
+  
+  do {
+    *puDest++ = *puSrc++;
+  } while(--size);
 }

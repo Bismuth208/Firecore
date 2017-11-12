@@ -106,7 +106,8 @@ void initEsplora(void)
   initADC();
   
   // init LCD
-  initR(INITR_BLACKTAB);
+  //initR(INITR_BLACKTAB);
+  initRBlack();
   
   // setup IO
   initMuxIO();

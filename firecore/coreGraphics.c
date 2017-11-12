@@ -81,7 +81,7 @@ void drawTextWindow(const uint8_t *text, const uint8_t *btnText)
 }
 //---------------------------------------------------------------------------//
 
-void drawFrame(uint16_t posX, uint16_t posY, uint8_t w, uint8_t h, uint16_t clr1, uint16_t clr2)
+void drawFrame(uint8_t posX, uint8_t posY, uint8_t w, uint8_t h, uint16_t clr1, uint16_t clr2)
 {
   tftFillRect(posX, posY, w, h, clr1);          // Frame 0
   tftDrawRect(posX+1, posY+1, w-2, h-2, clr2);  // Frame 1
@@ -97,11 +97,15 @@ void drawStars(void)
 
   // draw stars and blow your mind, if still not
   for(uint8_t count=0; count < MAX_STARS; count++) {
-    drawPixelFast(&pStars->pos, currentBackGroundColorId);
+    //drawPixelFast(&pStars->pos, currentBackGroundColorId);
+    tftSetAddrPixel(pStars->pos.x, pStars->pos.y);
+    pushColorFast(nesPalette_RAM[currentBackGroundColorId]);
     
     // now move them
     if((pStars->pos.x -= pStars->speed) < TFT_W) {
-      drawPixelFast(&pStars->pos, pStars->color);
+      //drawPixelFast(&pStars->pos, pStars->color);
+      tftSetAddrPixel(pStars->pos.x, pStars->pos.y);
+      pushColorFast(nesPalette_RAM[pStars->color]);
     } else {
       pStars->pos.x = TFT_W;
       pStars->pos.y = RN % STARS_MAX_POS_Y;
@@ -141,10 +145,11 @@ void rocketEpxlosion(rocket_t *pRocket)
 }
 // --------------------------------------------------------------- //
 
+// draws in ~3.2ms
 void drawShip(void)
 {
   ship.flameState = !ship.flameState;
-  
+
   drawEnemy(&ship.pos, SHIP_PIC_W, SHIP_PIC_H, ship.pBodyPic);
   drawBMP_RLE_P(ship.pos.Base.x, ship.pos.Base.y+SHIP_FLAME_OFFSET_Y,
                     (ship.flameState ? flameFireHiPic : flameFireLowPic));
@@ -164,8 +169,8 @@ void drawShipExplosion(void)
 {
   rocket_t *pRocket = &playerLasers[0]; // reuse
 
-  pRocket->pos.x = RN % SHIP_PIC_W + ship.pos.Base.x;
-  pRocket->pos.y = RN % SHIP_PIC_H + ship.pos.Base.y;
+  pRocket->pos.x = (RN & (SHIP_PIC_W-1)) + ship.pos.Base.x;
+  pRocket->pos.y = (RN & (SHIP_PIC_H-1)) + ship.pos.Base.y;
   
   rocketEpxlosion(pRocket);
 #if ADD_SOUND
@@ -273,10 +278,7 @@ void fixPosition(position_t *pPos)
 
 void getBezierCurve(uint8_t line)
 {
-  uint8_t *pData = (uint8_t*)&bezierLine;
-  for(uint8_t i=0; i < sizeof(bezier_t); i++) {
-    *pData++ = pgm_read_byte(lineCurves + line*sizeof(bezier_t) + i);
-  }
+  memcpy_P(&bezierLine, &lineCurves[line*sizeof(bezier_t)], sizeof(bezier_t));
 }
 
 // --------------------------------------------------------------- //
@@ -286,24 +288,24 @@ void drawEnemy(objPosition_t *pEnemy, uint8_t w, uint8_t h, pic_t *pPic)
   drawBMP_RLE_P(pEnemy->Base.x, pEnemy->Base.y, pPic);
 }
 // --------------------------------------------------------------- //
-void fillRectFast(int16_t x, int16_t y, uint8_t w, uint8_t h)
+void fillRectFast(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
 {
   // -1 == convert to display addr size
   tftSetAddrWindow(x, y, x+w-1, y+h-1);
   uint16_t dataSize = w*h;
 
-  while(dataSize--) {
+  do {
     pushColorFast(currentBackGroundColor);
-  }
+  } while(--dataSize);
 }
 
 void drawPixelFast(position_t *pPos, uint8_t colorId)
 {
   tftSetAddrPixel(pPos->x, pPos->y);
-  pushColorFast(getPicWord(nesPalette_ext, colorId));
+  pushColorFast(nesPalette_RAM[colorId]);
 }
 
-void drawBMP_RLE_P(int16_t x, int16_t y, pic_t *pPic)
+void drawBMP_RLE_P(uint8_t x, uint8_t y, pic_t *pPic)
 {
   // This is used
   // when need maximum pic compression,
@@ -314,36 +316,27 @@ void drawBMP_RLE_P(int16_t x, int16_t y, pic_t *pPic)
   uint16_t repeatColor;
   uint8_t tmpInd, repeatTimes;
 
-  uint8_t w = getPicByte(&pPic[0]);
-  uint8_t h = getPicByte(&pPic[1]);
-  tftSetAddrWindow(x, y, x+w, y+h);
+  wordData_t tmpData = {.wData = getPicWord(pPic, 0)};
+  tftSetAddrWindow(x, y, x+tmpData.u8Data1, y+tmpData.u8Data2);
   
-  int16_t sizePic =  getPicWord(pPic, 2);
-  pPic+=4; // make offset to picture data
-  
-  while(sizePic--) {  // compressed pic size!
-    // get color index or repeat times
-    tmpInd = getPicByte(pPic);
-    
-    if(~tmpInd & 0x80) { // is it color index?
+  pPic+=2; // make offset to picture data
+
+  while((tmpInd = getPicByte(pPic)) != 0xff) { // get color index or repeat times
+
+    if(tmpInd & 0x80) { // is it color index?
+      tmpInd &= 0x7f; // get color index to repeat
+      repeatTimes = getPicByte(++pPic)+2;
+    } else {
       repeatTimes = 1;
-    } else {   // nope, just repeat color
-      repeatTimes = tmpInd - 0x80;
-      // get previous color index to repeat
-      tmpInd = getPicByte(pPic-1);
     }
     
     // get color from colorTable by tmpInd color index
-    repeatColor = getPicWord(nesPalette_ext, tmpInd);
-    if(repeatColor == replaceColor) {
-      repeatColor = currentBackGroundColor;
-    }
+    repeatColor = nesPalette_RAM[(tmpInd == replaceColorId) ? currentBackGroundColorId : tmpInd];
 
     do {
-      --repeatTimes;
       pushColorFast(repeatColor);
-    } while(repeatTimes);
+    } while(--repeatTimes);
 
     ++pPic;
-  }
+  };
 }

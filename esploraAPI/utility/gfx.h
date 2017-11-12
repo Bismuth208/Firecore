@@ -27,6 +27,9 @@
 #define COLOR_YELLOW      0xFFE0      // 255, 255,   0
 #define COLOR_WHITE       0xFFFF      // 255, 255, 255
 
+
+#define USE_BOUNDS_CHECK 0
+
 //-------------------------------------------------------------------------------------------//
 #ifdef __cplusplus
 extern "C"{
@@ -71,6 +74,7 @@ int16_t tftGetCursorY(void);
   
 //void setTextFont(unsigned char* f);
 void tftDrawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size);
+void tftDrawCharInt(int16_t x, int16_t y, uint8_t c);
 void tftSetCursor(int16_t x, int16_t y);
 void tftSetTextColor(uint16_t c);
 void tftSetTextColorBG(uint16_t c, uint16_t b);

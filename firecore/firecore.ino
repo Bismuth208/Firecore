@@ -7,14 +7,14 @@
  *                    
  * 
  * Main IDE:      Sublime Text 2
- *  Arduino IDE:  1.6.6   (as plugin and compiler)
+ *  Arduino IDE:  1.8.1   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  27,864
- *  pics:         9,030
- *  code:         18,848
- * Used RAM:      664 bytes
- * Free RAM:      1896 bytes
+ * Program size:  25,972
+ *  pics:         8,022
+ *  code:         17,950
+ * Used RAM:       825 bytes
+ * Free RAM:      1735 bytes
  *
  * Language:      C and C++
  * 
@@ -61,7 +61,7 @@ uint16_t score =0;
 
 uint16_t currentBackGroundColor = BACKGROUND_COLOR;
 uint8_t currentBackGroundColorId = 0x01;
-uint16_t replaceColor = 0x01F4;
+uint8_t replaceColorId = 0x01;
 
 uint16_t calJoysticX =0;
 uint16_t calJoysticY =0;
@@ -191,7 +191,7 @@ bool checkNewPosition(position_t *objOne, position_t *objTwo)
   return state;
 }
 
-void applyNewPosition(position_t *objOne, position_t *objTwo, uint16_t picW, uint16_t picH)
+void applyNewPosition(position_t *objOne, position_t *objTwo, uint8_t picW, uint8_t picH)
 {
   // clear previos position
   fillRectFast(objOne->x, objOne->y, picW, picH);
@@ -199,7 +199,7 @@ void applyNewPosition(position_t *objOne, position_t *objTwo, uint16_t picW, uin
   *objOne = *objTwo;
 }
 
-void movePicture(objPosition_t *pObj, uint16_t picW, uint16_t picH)
+void movePicture(objPosition_t *pObj, uint8_t picW, uint8_t picH)
 {
   // is position changed?
   if((pObj->Base.x != pObj->New.x) || (pObj->Base.y != pObj->New.y)) {
@@ -278,6 +278,15 @@ void playMusic(void)
   // 1/20s or every 50ms
   sfxUpdateAll(); // update sound each frame, as sound engine is frame based
 #endif
+}
+
+void printDutyDebug(uint32_t duration)
+{
+  char buf[10];
+
+  tftSetTextSize(1);
+  tftFillRect(0, 0, 36, 7, currentBackGroundColor);
+  tftPrintAt(0, 0, itoa(duration, buf, 10));
 }
 // --------------------------------------------------------------- //
 void checkFireButton(void)
@@ -375,41 +384,52 @@ void moveGift(void)
   }
 }
 
+void giftDone(void)
+{
+  score += GIFT_BONUS_SCORE;
+  hudStatus.updScore = true;    // update score later
+
+  // remove gift from screen
+  fillRectFast(gift.pos.Base.x, gift.pos.Base.y, GIFT_PIC_W, GIFT_PIC_H);
+}
+
 void checkGift(void)
 {
   rocket_t *pRocket = &playerLasers[0];
 
-  for(uint8_t countR =0; countR < MAX_PEW_PEW; countR++) {
-    if(pRocket->onUse) {
-      if(checkCollision(&pRocket->pos, LASER_PIC_W, LASER_PIC_H, 
+  if(weaponGift) {
+    for(uint8_t countR =0; countR < MAX_PEW_PEW; countR++) {
+      if(pRocket->onUse) {
+        if(checkCollision(&pRocket->pos, LASER_PIC_W, LASER_PIC_H, 
                         &gift.pos.Base, GIFT_PIC_W, GIFT_PIC_H)) {
 
-        rocketEpxlosion(pRocket);
+          rocketEpxlosion(pRocket);
 #if ADD_SOUND
-        sfxPlayPattern(playerSuperPattern, SFX_CH_2);
+          sfxPlayPattern(playerSuperPattern, SFX_CH_2);
 #endif
-        score += GIFT_BONUS_SCORE;
-        hudStatus.updScore = true;    // update score later
+          giftDone();
 
-        // remove gift from screen
-        fillRectFast(gift.pos.Base.x, gift.pos.Base.y, GIFT_PIC_W, GIFT_PIC_H);
-
-        if(weaponGift) {
           ship.states.power += WEAPON_GIFT_BONUS;
           if((++ship.weapon.level) >= MAX_WEAPON_LVL) {
             ship.weapon.level = MAX_WEAPON_LVL;
           }
           ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level);
           disableWeaponGift();
-        } else { // heart and end of the level
-          if((ship.health += GIFT_HEALTH_RESTORE) > SHIP_HEALTH) {
-            ship.health = SHIP_HEALTH;
-          }
-          createNextLevel();
+          return;
         }
       }
+      ++pRocket;
     }
-    ++pRocket;
+  } else { // heart and end of the level
+    if(checkCollision(&ship.pos.Base, SHIP_PIC_W, SHIP_PIC_H, 
+                        &gift.pos.Base, GIFT_PIC_W, GIFT_PIC_H)) {
+      giftDone();
+
+      if((ship.health += GIFT_HEALTH_RESTORE) > SHIP_HEALTH) {
+        ship.health = SHIP_HEALTH;
+      }
+      createNextLevel();
+    }
   }
 }
 
@@ -463,22 +483,9 @@ void levelBaseInit(void)
 }
 
 // --------------------------------------------------------------- //
-
-// mother of God, what i've done...
-void addTasksArray(tasksArr_t *pArr, uint8_t size)
-{
-  deleteAllTasks();
-  setMaxTasks(size); // less tasks more perfomance
-
-  while(size--) {
-    // get ponter to task structure and load params from structure
-    addTask_P(pgm_read_word(pArr++));
-  }
-}
-
 void addTitleTasks(void)
 {
-  addTasksArray(titleTasksArr, TITLE_TASKS_COUNT);
+  addTasksArray_P(titleTasksArr, TITLE_TASKS_COUNT);
 }
 
 void addGameTasks(void)
@@ -486,7 +493,7 @@ void addGameTasks(void)
   ship.pos.New.x = SHIP_GAME_POS_X;
   ship.pos.New.y = SHIP_GAME_POS_Y;
 
-  addTasksArray(gameTasksArr, GAME_TASKS_COUNT);
+  addTasksArray_P(gameTasksArr, GAME_TASKS_COUNT);
 
   gift.bezLine.id = GIFT_MOVE_ID;
   gift.bezLine.step =0;
@@ -499,7 +506,7 @@ void addGameTasks(void)
 
 void addBossTasks(void)
 {
-  addTasksArray(bossTasksArr, BOSS_TASKS_COUNT);
+  addTasksArray_P(bossTasksArr, BOSS_TASKS_COUNT);
 }
 
 // drop gift from the boss
@@ -511,25 +518,25 @@ void addGiftTasks(void)
   gift.pPic = giftHeartPic;
   moveBezierCurve(&gift.pos.New, &gift.bezLine);
 
-  addTasksArray(giftTasksArr, GIFT_TASKS_COUNT);
+  addTasksArray_P(giftTasksArr, GIFT_TASKS_COUNT);
 }
 
 void addShipSelectTasks(void)
 {
   ship.pos.New.x = SHIP_SELECT_POS_X;
   ship.pos.New.y = SHIP_SELECT_POS_Y;
-  addTasksArray(shipSelTasksArr, SHIP_SEL_TASKS_COUNT);
+  addTasksArray_P(shipSelTasksArr, SHIP_SEL_TASKS_COUNT);
 }
 
 void addStoryTasks(void)
 {
-  addTasksArray(storyTasksArr, STORY_TASKS_COUNT);
+  addTasksArray_P(storyTasksArr, STORY_TASKS_COUNT);
   updateTaskStatus(drawStaticNoise, false);
 }
 
 void addHistoryTasks(void)
 {
-  addTasksArray(historyTasksArr, HISTORY_TASKS_COUNT);
+  addTasksArray_P(historyTasksArr, HISTORY_TASKS_COUNT);
 }
 
 void baseTitleTask(void)
@@ -629,8 +636,11 @@ void initSys(void)
   calibrateJoyStic();
   readScore();
 
-  initTasksArr(&taskArr, &pArr[0], 1); // at start moment need only 1 task
-  baseTitleTask(); // this task
+  // place palette in RAM for faster access
+  memcpy_P(&nesPalette_RAM[0], nesPalette_ext, NES_PALETTE_SIZE);
+
+  initTasksArr(&taskArr, &pArr[0], MAX_GAME_TASKS);
+  baseTitleTask(); // at start moment need only this task
 }
 
 //------------------------- yep, here's how it all began... -------------------//

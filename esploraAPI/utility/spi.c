@@ -1,6 +1,5 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
-
 #include "spi.h"
 
 
@@ -27,7 +26,7 @@
  * about 10% more speed, even if it seems counter-intuitive. At lower
  * speeds it is unnoticed.
  */
-#define SPDR_TX_WAIT  asm volatile("nop"); while (!(SPSR & (1<<SPIF))) ;
+#define SPDR_TX_WAIT  asm volatile("nop"); while((SPSR & (1<<SPIF)) == 0);
 
 typedef union {
     uint16_t val;
@@ -49,7 +48,7 @@ void initSPI(void)
   // automatically switches to Slave, so the data direction of
   // the SS pin MUST be kept as OUTPUT.
   SPCR = (1<<SPE) | (1<<MSTR);
-  SPSR = (1 << SPI2X);  // double speed
+  SPSR = (1<<SPI2X);  // double speed
     /* Iterrupt: disable;
      * SPI: enable;
      * Data order: MSB;

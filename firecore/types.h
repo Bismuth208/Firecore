@@ -144,7 +144,13 @@ typedef struct {
   uint16_t score;  // 65535 score val be enought right?
 } saveData_t;
 
-typedef const taskParams_t * const tasksArr_t;
+typedef union {
+  uint16_t wData;
+  struct {
+    uint8_t u8Data1;
+    uint8_t u8Data2;
+  };
+} wordData_t;
 
 //---------------------------------------------------------------------------//
 

@@ -63,25 +63,28 @@ extern "C"{
 #define GIFT_BONUS_SCORE     150
 
 #define RN             fastRandNum()
-#define RAND_CODE      tftSetCP437(RN % 2);
+#define RAND_CODE      tftSetCP437(RN & 1);
 #define SLOW_CPU       setMainFreq(0x04);
-#define DC(a)          tftDrawChar(a)
+#define SC             tftSetTextColorBG(TXTRNCLR)
+#define RC             RNDCLR(RND_POS_X,RND_POS_Y)
+#define TS             tftSetTextSize(1)
+#define DC(a)          tftDrawCharInt(a)
 
 
 #define STARS_MAX_POS_Y (TFT_H-9)
-#define RAND_STAR_CLR  (((RN % 3)+1)<<4) | (RN % 0x8)
+#define RAND_STAR_CLR  (((RN % 3)+1)<<4) | (RN & 0x7)
 
 // this macros remove monstro constructions...
 #define getConstCharPtr(a, b) (const uint8_t*)pgm_read_word(&(a[b]))
 #define getConstWordPtr(a, b) (const uint16_t*)pgm_read_word(&(a[b]))
 
 #define RND_POS_X ((RN % 26) * 6)
-#define RND_POS_Y ((RN % 16) * 8)
+#define RND_POS_Y ((RN & 15) * 8)
 
 // from (10 to 38) / x seconds; The higher the difficulty the more fires
 // where x - (1 sec / (time to call checkInVadersRay()))
 // for example if time = 500, when x = 2; if time = 250, when x = 4;
-#define RAND_SHOOT_TIME (RN % 4 + 3)
+#define RAND_SHOOT_TIME ((RN & 3) + 3)
 
 //from (1 to 6)  seconds;
 #define RAND_RESPAWN_TIME (RN % 5 + 1)
@@ -291,7 +294,7 @@ extern uint16_t calJoysticX;
 extern uint16_t calJoysticY;
 extern uint16_t currentBackGroundColor;
 extern uint8_t currentBackGroundColorId;
-extern uint16_t replaceColor;
+extern uint8_t replaceColorId;
 
 extern int8_t menuItem;
 extern uint8_t dogeDialogs;
@@ -436,15 +439,18 @@ void drawTitleText(void);
 void drawRows(void);
 void screenSliderEffect(uint16_t color);
 
-void drawFrame(uint16_t posX, uint16_t posY,
+void drawFrame(uint8_t posX, uint8_t posY,
 	            uint8_t w, uint8_t h, uint16_t clr1, uint16_t clr2);
 
-void drawBMP_RLE_P(int16_t x, int16_t y, pic_t *pPic);
+void drawBMP_RLE_P(uint8_t x, uint8_t y, pic_t *pPic);
 
-void fillRectFast(int16_t x, int16_t y, uint8_t w, uint8_t h);
+void fillRectFast(uint8_t x, uint8_t y, uint8_t w, uint8_t h);
 void drawPixelFast(position_t *pPos, uint8_t colorId);
 
 void rocketEpxlosion(rocket_t *pRocket);
+
+
+void drawRandomDoge(void);
 //---------------------------------------------------------------------------//
 
 // Helpfull functions
@@ -463,8 +469,8 @@ void fixPosition(position_t *pPos);
 int8_t checkShipPosition(int8_t pos, uint8_t min, uint8_t max);
 
 bool checkNewPosition(position_t *objOne, position_t *objTwo);
-void applyNewPosition(position_t *objOne, position_t *objTwo, uint16_t picW, uint16_t picH);
-void movePicture(objPosition_t *pObj, uint16_t picW, uint16_t picH);
+void applyNewPosition(position_t *objOne, position_t *objTwo, uint8_t picW, uint8_t picH);
+void movePicture(objPosition_t *pObj, uint8_t picW, uint8_t picH);
 
 void drawEnemy(objPosition_t *pEnemy, uint8_t w, uint8_t h, pic_t *pPic);
 
@@ -476,15 +482,9 @@ bool checkCollision(position_t *pObjOne, uint8_t objOneW, uint8_t objOneH,
                     position_t *pObjTwo, uint8_t objTwoW, uint8_t objTwoH);
 
 void playMusic(void);
-//---------------------------------------------------------------------------//
-//---------------------------------------------------------------------------//
 
-#define T(a) a##Task
-#define TASK_N(a)    const taskParams_t T(a)
-#define TASK(a,b)    TASK_N(a) PROGMEM = {a, b}
-#define TASK_P(a)    (taskParams_t*)&T(a)
-#define TASK_ARR(a)  const tasksArr_t a##TasksArr[] PROGMEM
-
+void printDutyDebug(uint32_t duration);
+//---------------------------------------------------------------------------//
 //---------------------------------------------------------------------------//
 
 extern TASK_N(drawRows);
@@ -495,7 +495,6 @@ extern TASK_N(printDialogeText);
 
 //---------------------------------------------------------------------------//
 
-void addTasksArray(tasksArr_t *pArr, uint8_t size);
 void baseTitleTask(void);
 void addTitleTasks(void);
 void addHistoryTasks(void);
@@ -510,7 +509,7 @@ void addGiftTasks(void);
 #define TITLE_TASKS_COUNT      7
 #define HISTORY_TASKS_COUNT    4
 #define SHIP_SEL_TASKS_COUNT   7
-#define STORY_TASKS_COUNT      6
+#define STORY_TASKS_COUNT      7
 #define LVL_SEL_TASKS_COUNT    5
 #define GAME_TASKS_COUNT      19
 #define BOSS_TASKS_COUNT      14

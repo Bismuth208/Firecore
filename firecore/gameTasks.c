@@ -15,7 +15,6 @@
 #include <avr/pgmspace.h>  // for progmem
 
 #include "taskmanager.h"
-
 #include "common.h"
 
 // just do not try to understand!
@@ -48,7 +47,7 @@ TASK(drawStart, 500);
 TASK(drawShip, 70);
 TASK(moveShip, 70);
 TASK(drawPlayerRockets, 60);
-TASK(checkShipHealth, 500);
+TASK(checkShipHealth, 450);
 TASK(drawShipExplosion, 250);
 
 TASK(drawCurrentShipSelection, 250);
@@ -84,6 +83,7 @@ TASK(printHistory, 40);
 TASK(drawStaticNoise, 50);
 TASK(drawLevelSelect, 250);
 TASK(blinkLevelPointer, 250);
+TASK(drawRandomDoge, 80);
 
 //---------------------------------------------------------------------------//
 
@@ -169,7 +169,8 @@ TASK_ARR( story ) = {
   TASK_P(drawStory),
   TASK_P(blinkLevelPointer),
   TASK_P(printDialogeText),
-  TASK_P(drawStaticNoise)
+  TASK_P(drawStaticNoise),
+  TASK_P(drawRandomDoge)
 };
 
 TASK_ARR( history ) = {

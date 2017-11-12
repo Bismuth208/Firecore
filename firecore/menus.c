@@ -25,6 +25,7 @@ int8_t currentShip = 2;
 int8_t previousShip =0;
 uint8_t dogeDialogs =0;
 bool iconState = false;
+bool rndFlag = false;
 
 // -------------------------- Main menu -------------------------- //
 void drawShipSelectionMenu(void)
@@ -34,10 +35,8 @@ void drawShipSelectionMenu(void)
   screenSliderEffect(currentBackGroundColor);
 
   for(uint8_t count=0; count<(CHARACTER_ICON_NUM+galaxySaved); count++) {
-    drawFrame(posX, CHARACTER_ICON_OFFSET_Y,
-                CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, INDIGO_COLOR, COLOR_WHITE);
-
-    drawBMP_RLE_P(posX, CHARACTER_ICON_OFFSET_Y+1, getConstCharPtr(catsPics, count));
+    drawBMP_RLE_P(posX, CHARACTER_ICON_OFFSET_Y, getConstCharPtr(catsPics, count));
+    tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, COLOR_BLACK);
 
     posX += characterIconStep;
   }
@@ -45,6 +44,7 @@ void drawShipSelectionMenu(void)
   // make tiny frame for ship
   tftDrawRect(SHIP_SELECT_POS_X-5, SHIP_SELECT_POS_Y-4, SHIP_PIC_W+10, SHIP_PIC_H+10, COLOR_WHITE);
   drawTextWindow(selectShipP, buttonA);
+
   addShipSelectTasks();
 }
 
@@ -149,7 +149,7 @@ void checkShipSelect(void)
 }
 //---------------------------------------------------------------------------//
 
-void action(){SLOW_CPU;for(;;){RAND_CODE;DC(RNDCLR(RND_POS_X,RND_POS_Y));}}
+void action(){SLOW_CPU;TS;for(;;){RAND_CODE;SC;DC(RC);}}
 
 void pauseMenu(void)
 {
@@ -227,7 +227,7 @@ void drawGalaxy(void)
   drawBMP_RLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, galaxyPic);
 
   currentBackGroundColorId = getPicByte(lvlColors + curretLevel);
-  currentBackGroundColor = getPicWord(nesPalette_ext, currentBackGroundColorId);
+  currentBackGroundColor = nesPalette_RAM[currentBackGroundColorId];
 }
 
 //---------------------------------------------------------------------------//
@@ -236,11 +236,27 @@ void baseStory(void)
   drawGalaxy();
   drawTextWindow(emptyText, buttonB);
   
-  tftDrawRect(6, 35, 52, 52, COLOR_WHITE); // Frame Dodge
-  drawBMP_RLE_P(7, 36, cityDogePic);
+  tftDrawRect(6, 32, 52, 53, COLOR_WHITE); // Frame Dodge
 
   curretLevel = HOME_PLANET_ID;
   addStoryTasks();
+}
+
+void drawRandomDoge(void)
+{
+  rndFlag = !rndFlag;
+  drawBMP_RLE_P(7, 33+rndFlag, cityDogePic);
+
+  uint16_t *ptr = (uint16_t*)0x0000; // base adress for random
+  uint8_t dataSize = (RN & 31)+1;
+
+  do {
+    ptr += RN; // make offset for random data
+    tftSetAddrPixel(7+(RN%DOGE_PIC_W), 33+(RN%DOGE_PIC_W));
+    pushColorFast(pgm_read_word(ptr));
+  } while(--dataSize);
+
+  updateTaskTimeCheck(drawRandomDoge, (RN & 63) + 40);
 }
 
 void drawStaticNoise(void)
@@ -248,12 +264,12 @@ void drawStaticNoise(void)
   uint16_t *ptr = (uint16_t*)0x0000; // base adress for random
   uint16_t dataSize = 2500; // 50x50 == 2500
 
-  tftSetAddrWindow(7, 36, 6+DOGE_PIC_W, 35+DOGE_PIC_H);
+  tftSetAddrWindow(7, 33, 6+DOGE_PIC_W, 35+DOGE_PIC_H);
 
-  while(dataSize--) {
+  do {
     ptr += RN; // make offset for random data
     pushColorFast(pgm_read_word(ptr));
-  }
+  } while(--dataSize);
 }
 
 void drawStory(void)
@@ -265,8 +281,15 @@ void drawStory(void)
     resetBtnStates();
     if(dogeDialogs < STORY_DOGE_TEXT_SIZE) {
       drawTextWindow(getConstCharPtr(dogePA, dogeDialogs), buttonB);
-      if((++dogeDialogs) == 6) {
-        updateTaskStatus(drawStaticNoise, true);
+
+      switch(++dogeDialogs) {
+        case 5: {
+          updateTaskStatus(drawStaticNoise, true);
+        } break;
+        case 7: {
+          updateTaskStatus(drawRandomDoge, false);
+        } break;
+        default: break;
       }
     } else {
       curretLevel =0;
@@ -279,30 +302,29 @@ void drawStory(void)
 //---------------------------------------------------------------------------//
 void blinkLevelPointer(void)
 {
-  uint8_t posX = getPicByte(lvlCoordinates + curretLevel*2);
-  uint8_t posY = getPicByte(lvlCoordinates + curretLevel*2 + 1);
+  wordData_t tmpData = {.wData = getPicWord(lvlCoordinates, curretLevel*2)};
 
   iconState = !iconState;  // reuse
-  tftDrawCircle(posX, posY, CIRCLE_PONITER_MAP_SIZE, (iconState ? COLOR_RED : COLOR_WHITE));
+
+  tftDrawCircle(tmpData.u8Data1, tmpData.u8Data2, CIRCLE_PONITER_MAP_SIZE, (iconState ? COLOR_RED : COLOR_WHITE));
 }
 
 //---------------------------------------------------------------------------//
 
 void prepareLevelSelect(void)
 {
+  int8_t i= curretLevel+1;
+
   drawGalaxy();
   // add level select tasks
-  addTasksArray(levelSelectTasksArr, LVL_SEL_TASKS_COUNT);
-  drawTextWindow(getConstCharPtr(worldPA, curretLevel), buttonA); // name of current world
+  addTasksArray_P(levelSelectTasksArr, LVL_SEL_TASKS_COUNT);
+  drawTextWindow(getConstCharPtr(worldPA, i-1), buttonA); // name of current world
 
-  uint8_t i=0;
-  uint8_t posX, posY;
   do {
-    posX = getPicByte(lvlCoordinates + i*2);
-    posY = getPicByte(lvlCoordinates + i*2 + 1);
-    tftDrawCircle(posX, posY, CIRCLE_PONITER_MAP_SIZE, COLOR_WHITE);
-    ++i;
-  } while (i < curretLevel);
+    --i;
+    wordData_t tmpData = {.wData = getPicWord(lvlCoordinates, i*2)};
+    tftDrawCircle(tmpData.u8Data1, tmpData.u8Data2, CIRCLE_PONITER_MAP_SIZE, COLOR_WHITE);
+  } while(i);
   
   resetBtnStates();
 }
@@ -401,7 +423,7 @@ void gameOver(void)
   printScore();
 
   // add game over tasks
-  addTasksArray(gameOverTasksArr, GAME_OVER_TASKS_COUNT);
+  addTasksArray_P(gameOverTasksArr, GAME_OVER_TASKS_COUNT);
   resetBtnStates();
 
   curretLevel =0;

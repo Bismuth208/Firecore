@@ -48,8 +48,8 @@ To upload game to your board need to install *esploraAPI* folder to *Arduino's* 
 
 Whole game writed on C (maybe somewhere can be a tiny of C++, but not for a long time...).
 At current moment:
-- whole game consume 27,386 bytes ROM and 655 RAM;
-- all graphics in game consume 8,621 bytes ROM;
+- whole game consume 25,972 bytes ROM and 825 RAM;
+- all graphics in game consume 8,022 bytes ROM;
 
 [To see how does it work check this link](https://www.youtube.com/channel/UCDXVQ9ZfQl8Ddeu_3qiwSiA "My YouTube channel")
 ***

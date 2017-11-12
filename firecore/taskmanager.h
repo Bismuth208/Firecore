@@ -123,6 +123,13 @@
 #endif
 //------------------------------------------//
 
+#define T(a) a##Task
+#define TASK_N(a)    const taskParams_t T(a)
+#define TASK(a,b)    TASK_N(a) PROGMEM = {a, b}
+#define TASK_P(a)    (taskParams_t*)&T(a)
+#define TASK_ARR(a)  const tasksArr_t a##TasksArr[] PROGMEM
+
+//------------------------------------------//
 
 #ifdef __cplusplus
 extern "C"{
@@ -182,12 +189,15 @@ typedef union  {
 #endif
 #pragma pack(pop)
   
+typedef const taskParams_t * const tasksArr_t;
+  
 // * On AVR arch only.
 //---------------------------------------------------------------------------//
   
 //------------------------ Function Prototypes ------------------------------//
 void addTaskToArr(taskStates_t *pTasksArr, pFunc_t pTask, uint16_t timeToCheckTask, bool exec);
 void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec);
+void addTasksArray_P(tasksArr_t *pArr, uint8_t size);
 void replaceTask(pFunc_t pOldTask, pFunc_t pNewTask, uint16_t timeToCheckTask, bool exec);
 void updateTaskStatus(pFunc_t oldTask, bool exec);
 void updateTaskTimeCheck(pFunc_t pTask, uint16_t timeToCheckTask);
