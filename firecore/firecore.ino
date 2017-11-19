@@ -10,11 +10,11 @@
  *  Arduino IDE:  1.8.1   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  25,972
- *  pics:         8,022
- *  code:         17,950
- * Used RAM:       825 bytes
- * Free RAM:      1735 bytes
+ * Program size:  23,776
+ *  pics:         5,762
+ *  code:         18,014
+ * Used RAM:       889 bytes
+ * Free RAM:      1671 bytes
  *
  * Language:      C and C++
  * 
@@ -637,7 +637,7 @@ void initSys(void)
   readScore();
 
   // place palette in RAM for faster access
-  memcpy_P(&nesPalette_RAM[0], nesPalette_ext, NES_PALETTE_SIZE);
+  memcpy_P(&palette_RAM[0], palette_ext, PALETTE_SIZE);
 
   initTasksArr(&taskArr, &pArr[0], MAX_GAME_TASKS);
   baseTitleTask(); // at start moment need only this task

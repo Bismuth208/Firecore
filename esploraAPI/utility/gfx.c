@@ -529,6 +529,14 @@ void tftPrintChar(uint8_t c)
       cursor_x  = 0;
     } break;
       
+    case '\f': {
+      tftFillScreen(COLOR_BLACK);
+    } break;
+      
+    case '\s': {
+      _delayMS(50);
+    } break;
+      
     default: {
       tftDrawCharInt(cursor_x, cursor_y, c);
       cursor_x += textsize*6;
@@ -556,6 +564,8 @@ void tftDrawCharInt(int16_t x, int16_t y, uint8_t c)
 #endif
   
   if(!_cp437 && (c >= 176)) c++; // Handle 'classic' charset behavior
+  
+  c -= 0x20; // offset as reduced font used
   
   uint8_t line;
   int8_t i, j;
@@ -601,6 +611,8 @@ void tftDrawChar(int16_t x, int16_t y, uint8_t c, uint16_t color, uint16_t bg, u
 #endif
   
   if(!_cp437 && (c >= 176)) c++; // Handle 'classic' charset behavior
+  
+  c -= 0x20; // offset as reduced font used
   
   uint8_t line;
   int8_t i, j;

@@ -35,7 +35,7 @@ void drawShipSelectionMenu(void)
   screenSliderEffect(currentBackGroundColor);
 
   for(uint8_t count=0; count<(CHARACTER_ICON_NUM+galaxySaved); count++) {
-    drawBMP_RLE_P(posX, CHARACTER_ICON_OFFSET_Y, getConstCharPtr(catsPics, count));
+    drawBMP_ERLE_P(posX, CHARACTER_ICON_OFFSET_Y, getConstCharPtr(catsPics, count));
     tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, COLOR_BLACK);
 
     posX += characterIconStep;
@@ -149,7 +149,7 @@ void checkShipSelect(void)
 }
 //---------------------------------------------------------------------------//
 
-void action(){SLOW_CPU;TS;for(;;){RAND_CODE;SC;DC(RC);}}
+void action(){TS;for(;;){RAND_CODE;SC;DC(RC);}}
 
 void pauseMenu(void)
 {
@@ -195,10 +195,11 @@ void titleAction(void)
     addHistoryTasks();
     shipHyperJump();
     screenSliderEffect(COLOR_BLACK);
+    drawBMP_ERLE_P(GALAXY_PIC_POS_X, 0, galaxyPic);
     // for text
     tftSetTextColor(COLOR_WHITE);
     tftSetTextSize(1);
-    tftSetCursor(0,0);
+    tftSetCursor(0, 72);
   }
 
   if(getStickVal(LR_OK)) {
@@ -224,10 +225,10 @@ void historyAction(void)
 void drawGalaxy(void)
 {
   screenSliderEffect(COLOR_BLACK);
-  drawBMP_RLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, galaxyPic);
+  drawBMP_ERLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, galaxyPic);
 
   currentBackGroundColorId = getPicByte(lvlColors + curretLevel);
-  currentBackGroundColor = nesPalette_RAM[currentBackGroundColorId];
+  currentBackGroundColor = palette_RAM[currentBackGroundColorId];
 }
 
 //---------------------------------------------------------------------------//
@@ -245,7 +246,7 @@ void baseStory(void)
 void drawRandomDoge(void)
 {
   rndFlag = !rndFlag;
-  drawBMP_RLE_P(7, 33+rndFlag, cityDogePic);
+  drawBMP_ERLE_P(7, 33+rndFlag, cityDogePic);
 
   uint16_t *ptr = (uint16_t*)0x0000; // base adress for random
   uint8_t dataSize = (RN & 31)+1;
@@ -338,7 +339,7 @@ void drawLevelSelect(void)
 #endif
     
     screenSliderEffect(currentBackGroundColor);
-    drawBMP_RLE_P(0, 119, hudGuiPic);
+    drawBMP_ERLE_P(0, 119, hudGuiPic);
     addGameTasks();
   }
 }

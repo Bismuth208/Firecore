@@ -82,7 +82,7 @@ void checkDeathRay(deathRay_t *pWeapon)
         
     if((pDeathRay->pos.x -= (DEATH_RAY_SPEED+difficultyIncrement)) < TFT_W) {
       pDeathRay->state = !pDeathRay->state;
-      drawBMP_RLE_P(pDeathRay->pos.x, pDeathRay->pos.y,
+      drawBMP_ERLE_P(pDeathRay->pos.x, pDeathRay->pos.y,
                          (pDeathRay->state ? deathRayHiPic : deathRayLowPic));
     } else {
       // oooh, we don`t shoot the player, inVeder sooo saaad :(
@@ -144,7 +144,7 @@ void drawInVaders(void)
 
       pAlien->state = !pAlien->state;
       drawEnemy(&pAlien->pos, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H, alienShipV2);
-      drawBMP_RLE_P(pAlien->pos.Base.x+28, pAlien->pos.Base.y+6,
+      drawBMP_ERLE_P(pAlien->pos.Base.x+28, pAlien->pos.Base.y+6,
                    (pAlien->state ? alienShipFireHi : alienShipFireLow));
     }
     ++pAlien;
@@ -358,7 +358,7 @@ void checkBossFire(void)
       moveEnemyV(&pBase->weapon.deathRay.pos, ALIEN_BOSS_ROCKET_SPEED_MOVE);
         
       if((pBase->weapon.deathRay.pos.x -= DEATH_RAY_SPEED) < TFT_W) { 
-        drawBMP_RLE_P(pBase->weapon.deathRay.pos.x, pBase->weapon.deathRay.pos.y, deathRayBossPic);
+        drawBMP_ERLE_P(pBase->weapon.deathRay.pos.x, pBase->weapon.deathRay.pos.y, deathRayBossPic);
       } else {
         // oooh, we don`t shoot the player, inVeder sooo saaad :(
         pBase->weapon.timeToShoot = RAND_SHOOT_TIME;

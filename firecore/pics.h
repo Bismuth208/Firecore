@@ -32,7 +32,7 @@
 
 //---------------------------------------------------------------------------//
 /*
- * Palette based on Typical Famicom\NES (Dendy) Palette.
+ * Palette based on typical old-scool 8bit graphics.
  * Consist of 80 colors (actually 75; 5 transparent colors 0x0F-0x4F).
  *
  * 8 Gray colors 0x0D-0x3D; 0x1E-0x4E
@@ -46,11 +46,11 @@
  * Color adress: 0x00 - 0x4F
  */
 
- #define NES_PALETTE_SIZE 160
+ #define PALETTE_SIZE 160
 
 // size: 160 ( 80 * sizeof(uint16_t) )
-extern const uint16_t nesPalette_ext[];
-extern uint16_t nesPalette_RAM[];
+extern const uint16_t palette_ext[];
+extern uint16_t palette_RAM[];
 //---------------------------------------------------------------------------//
 
 #define LASER_PIC_W 16

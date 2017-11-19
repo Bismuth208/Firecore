@@ -99,13 +99,13 @@ void drawStars(void)
   for(uint8_t count=0; count < MAX_STARS; count++) {
     //drawPixelFast(&pStars->pos, currentBackGroundColorId);
     tftSetAddrPixel(pStars->pos.x, pStars->pos.y);
-    pushColorFast(nesPalette_RAM[currentBackGroundColorId]);
+    pushColorFast(palette_RAM[currentBackGroundColorId]);
     
     // now move them
     if((pStars->pos.x -= pStars->speed) < TFT_W) {
       //drawPixelFast(&pStars->pos, pStars->color);
       tftSetAddrPixel(pStars->pos.x, pStars->pos.y);
-      pushColorFast(nesPalette_RAM[pStars->color]);
+      pushColorFast(palette_RAM[pStars->color]);
     } else {
       pStars->pos.x = TFT_W;
       pStars->pos.y = RN % STARS_MAX_POS_Y;
@@ -151,7 +151,7 @@ void drawShip(void)
   ship.flameState = !ship.flameState;
 
   drawEnemy(&ship.pos, SHIP_PIC_W, SHIP_PIC_H, ship.pBodyPic);
-  drawBMP_RLE_P(ship.pos.Base.x, ship.pos.Base.y+SHIP_FLAME_OFFSET_Y,
+  drawBMP_ERLE_P(ship.pos.Base.x, ship.pos.Base.y+SHIP_FLAME_OFFSET_Y,
                     (ship.flameState ? flameFireHiPic : flameFireLowPic));
 }
 
@@ -159,8 +159,8 @@ void shipHyperJump(void)
 {
   while((ship.pos.Base.x++) < SHIP_MAX_POS_X) {
     // this pic used for left red track on screen
-    drawBMP_RLE_P(ship.pos.Base.x, ship.pos.Base.y, ship.pBodyPic);
-    drawBMP_RLE_P(ship.pos.Base.x, ship.pos.Base.y+SHIP_FLAME_OFFSET_Y, flameFireHiPic);
+    drawBMP_ERLE_P(ship.pos.Base.x, ship.pos.Base.y, ship.pBodyPic);
+    drawBMP_ERLE_P(ship.pos.Base.x, ship.pos.Base.y+SHIP_FLAME_OFFSET_Y, flameFireHiPic);
   }
   movePicture(&ship.pos, SHIP_PIC_W, SHIP_PIC_H); // remove ship from screen
 }
@@ -188,7 +188,7 @@ void drawPlayerRockets(void)
       fillRectFast(pRocket->pos.x, pRocket->pos.y, LASER_PIC_W, LASER_PIC_H);
       
       if(((pRocket->pos.x += PLAYER_ROCKET_SPEED) + LASER_PIC_W) <= TFT_W) {
-        drawBMP_RLE_P(pRocket->pos.x, pRocket->pos.y, ship.weapon.pPic);
+        drawBMP_ERLE_P(pRocket->pos.x, pRocket->pos.y, ship.weapon.pPic);
       } else {
         pRocket->onUse = false;
       }
@@ -217,7 +217,7 @@ void drawStart(void)
 
 void drawTitleText(void)
 {
-  drawBMP_RLE_P(TITLE_PIC_POS_X, TITLE_PIC_POS_Y, titleTextPic);
+  drawBMP_ERLE_P(TITLE_PIC_POS_X, TITLE_PIC_POS_Y, titleTextPic);
 }
 
 // make unfold animation
@@ -233,8 +233,8 @@ void drawRows(void)
     
     addTitleTasks();
   } else {
-    drawBMP_RLE_P(titleRowLPosX, PIC_ROW_L_POS_Y, rowsLeftPic);
-    drawBMP_RLE_P(titleRowRPosX, PIC_ROW_R_POS_Y, rowsRightPic);
+    drawBMP_ERLE_P(titleRowLPosX, PIC_ROW_L_POS_Y, rowsLeftPic);
+    drawBMP_ERLE_P(titleRowRPosX, PIC_ROW_R_POS_Y, rowsRightPic);
   }
 }
 // --------------------------------------------------------------- //
@@ -285,7 +285,7 @@ void getBezierCurve(uint8_t line)
 void drawEnemy(objPosition_t *pEnemy, uint8_t w, uint8_t h, pic_t *pPic)
 {
   movePicture(pEnemy, w, h);
-  drawBMP_RLE_P(pEnemy->Base.x, pEnemy->Base.y, pPic);
+  drawBMP_ERLE_P(pEnemy->Base.x, pEnemy->Base.y, pPic);
 }
 // --------------------------------------------------------------- //
 void fillRectFast(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
@@ -302,41 +302,5 @@ void fillRectFast(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
 void drawPixelFast(position_t *pPos, uint8_t colorId)
 {
   tftSetAddrPixel(pPos->x, pPos->y);
-  pushColorFast(nesPalette_RAM[colorId]);
-}
-
-void drawBMP_RLE_P(uint8_t x, uint8_t y, pic_t *pPic)
-{
-  // This is used
-  // when need maximum pic compression,
-  // and you can waste some CPU resources for it;
-  // It use very simple RLE compression;
-  // Also draw background color;
-  
-  uint16_t repeatColor;
-  uint8_t tmpInd, repeatTimes;
-
-  wordData_t tmpData = {.wData = getPicWord(pPic, 0)};
-  tftSetAddrWindow(x, y, x+tmpData.u8Data1, y+tmpData.u8Data2);
-  
-  pPic+=2; // make offset to picture data
-
-  while((tmpInd = getPicByte(pPic)) != 0xff) { // get color index or repeat times
-
-    if(tmpInd & 0x80) { // is it color index?
-      tmpInd &= 0x7f; // get color index to repeat
-      repeatTimes = getPicByte(++pPic)+2;
-    } else {
-      repeatTimes = 1;
-    }
-    
-    // get color from colorTable by tmpInd color index
-    repeatColor = nesPalette_RAM[(tmpInd == replaceColorId) ? currentBackGroundColorId : tmpInd];
-
-    do {
-      pushColorFast(repeatColor);
-    } while(--repeatTimes);
-
-    ++pPic;
-  };
+  pushColorFast(palette_RAM[colorId]);
 }

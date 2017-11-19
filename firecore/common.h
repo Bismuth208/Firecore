@@ -20,6 +20,7 @@
 #include <avr/eeprom.h>
 
 #include "taskmanager.h"
+#include "rleUnpack.h"
 #include "types.h"
 
 #ifdef __cplusplus
@@ -50,7 +51,7 @@ extern "C"{
 #define DAMAGE_TO_BOSS        10  //
 #define DAMAGE_TO_SHIP        20  //(20*difficult)     //
 
-#define RAND_GIFT_SPAWN_TIME ((RN % (15 SEC) + 5 SEC))
+#define RAND_GIFT_SPAWN_TIME ((RN % (15 SEC) + 10 SEC))
 
 #define PLAYER_ROCKET_CD_REFILL 2  // Global cooldown
 
@@ -282,7 +283,7 @@ extern "C"{
 #define WORLD_7_POS_X   113
 #define WORLD_7_POS_Y   53
 
-#define WORLD_8_POS_X   145
+#define WORLD_8_POS_X   150
 #define WORLD_8_POS_Y   65
 
 #define MAX_WORLDS      9

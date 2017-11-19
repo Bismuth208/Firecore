@@ -44,7 +44,7 @@ typedef struct {
 
 typedef struct {  // 5 bytes RAM
   position_t pos;
-  uint8_t color; // as we use Famicom\NES (Dendy) palette, store only color id
+  uint8_t color; // as we use 8bit palette, store only color id
   uint8_t speed;
 } stars_t;
 
