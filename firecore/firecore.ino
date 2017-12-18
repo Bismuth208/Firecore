@@ -10,11 +10,11 @@
  *  Arduino IDE:  1.8.1   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  23,776
- *  pics:         5,762
- *  code:         18,014
- * Used RAM:       889 bytes
- * Free RAM:      1671 bytes
+ * Program size:  23,104
+ *  pics:         5,644
+ *  code:         17,460
+ * Used RAM:       962 bytes
+ * Free RAM:      1,598 bytes
  *
  * Language:      C and C++
  * 
@@ -69,7 +69,7 @@ uint16_t calJoysticY =0;
 ship_t ship;
 gift_t gift;
 rocket_t playerLasers[MAX_PEW_PEW];
-hudStatus_t hudStatus = {1,1,0}; // need update all
+hudStatus_t hudStatus = {1,1}; // need update all
 btnStatus_t btnStates = {0};
 
 bezier_t bezierLine;
@@ -117,21 +117,14 @@ const uint8_t lvlColors[] PROGMEM = {
 // poll periodically buttons states
 void updateBtnStates(void)
 {
-  if(buttonIsPressed(BUTTON_A)) {
+  if(buttonIsPressed(BUTTON_A))
     btnStates.aBtn = true;
-  }
-
-  if(buttonIsPressed(BUTTON_B)) {
+  if(buttonIsPressed(BUTTON_B))
     btnStates.bBtn = true;
-  }
-
-  if(buttonIsPressed(BUTTON_X)) {
+  if(buttonIsPressed(BUTTON_X))
     btnStates.xBtn = true;
-  }
-
-  if(buttonIsPressed(BUTTON_Y)) {
+  if(buttonIsPressed(BUTTON_Y))
     btnStates.yBtn = true;
-  }
 }
 
 bool getBtnState(uint8_t btn)
@@ -174,30 +167,7 @@ uint8_t getJoyStickValue(uint8_t pin)
   return ((newValuePin * 9) >> 10) + 48; // '>>10' same as '/1024'
 }
 
-void waitReleaseBtn(uint8_t btn)
-{
-  while(!buttonIsPressed(btn));
-  while(buttonIsPressed(btn));
-}
 // --------------------------------------------------------------- //
-
-bool checkNewPosition(position_t *objOne, position_t *objTwo)
-{
-  bool state = false;
-  // is position changed?
-  if((objOne->x != objTwo->x) || (objOne->y != objTwo->y)) {
-    state = true;
-  }
-  return state;
-}
-
-void applyNewPosition(position_t *objOne, position_t *objTwo, uint8_t picW, uint8_t picH)
-{
-  // clear previos position
-  fillRectFast(objOne->x, objOne->y, picW, picH);
-  // store new position
-  *objOne = *objTwo;
-}
 
 void movePicture(objPosition_t *pObj, uint8_t picW, uint8_t picH)
 {
@@ -297,7 +267,7 @@ void checkFireButton(void)
     resetBtnStates();
 
     for(uint8_t i=0; i<MAX_PEW_PEW; i++) {
-      if(pRokets->onUse == false) {
+      if(!pRokets->onUse) {
 #if ADD_SOUND
         sfxPlayPattern(playerShotPattern, SFX_CH_1);
 #endif    
@@ -410,7 +380,7 @@ void checkGift(void)
           giftDone();
 
           ship.states.power += WEAPON_GIFT_BONUS;
-          if((++ship.weapon.level) >= MAX_WEAPON_LVL) {
+          if((++ship.weapon.level) > MAX_WEAPON_LVL) {
             ship.weapon.level = MAX_WEAPON_LVL;
           }
           ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level);
@@ -483,11 +453,6 @@ void levelBaseInit(void)
 }
 
 // --------------------------------------------------------------- //
-void addTitleTasks(void)
-{
-  addTasksArray_P(titleTasksArr, TITLE_TASKS_COUNT);
-}
-
 void addGameTasks(void)
 {
   ship.pos.New.x = SHIP_GAME_POS_X;
@@ -539,12 +504,18 @@ void addHistoryTasks(void)
   addTasksArray_P(historyTasksArr, HISTORY_TASKS_COUNT);
 }
 
+void addTitleTasks(void)
+{
+  addTasksArray_P(titleTasksArr, TITLE_TASKS_COUNT);
+}
+
 void baseTitleTask(void)
 {
   tftFillScreen(currentBackGroundColor);
   deleteAllTasks();
   addTask_P(T(&drawRows));
 }
+
 // --------------------------------------------------------------- //
 
 void setMainFreq(uint8_t ps)
@@ -644,7 +615,7 @@ void initSys(void)
 }
 
 //------------------------- yep, here's how it all began... -------------------//
-__attribute__((OS_main)) int main(void)
+__attribute__((noreturn)) int main(void)
 {
   initSys();
   runTasks();

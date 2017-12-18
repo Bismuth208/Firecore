@@ -7,8 +7,30 @@
  *  - drawBMP_RLE_P;
  *  - drawBMP_ERLE_P;
  *
- * First use as simple as possible RLE compresseion;
+ * First use as simple as possible RLE compression;
  * Second use dictionary in addition to previos version;
+ *
+ *
+ * Structure of every picture for drawBMP_RLE_P:
+ * const uint8_t somePicName[] PROGMEM = {
+ *  width-1, height-1,  // one byte each
+ *  picture data,       // a lot of bytes... or at least one byte ;)
+ *  end marker          // 0xff mean picture data end
+ * };
+ *
+ * Structure of every picture for drawBMP_ERLE_P:
+ * const uint8_t somePicName[] PROGMEM = {
+ *  width-1, height-1,  // one byte each
+ *  offset,             // one byte offset to picture data and dictionary size
+ *  dictionary,         // from zero to 92 bytes
+ *  picture data,       // a lot of bytes... or at least one byte ;)
+ *  end marker          // 0xff mean picture data end
+ * };
+ *
+ * p.s -1 at begin of every pic is conversations to correspond to tft display addr size
+ *
+ * For more info look readme.md for rleEncoder!
+ *
  *
  * Author: Antonov Alexandr (Bismuth208)
  * Date:   11 November, 2017
@@ -30,25 +52,35 @@
 #include "common.h"
 #include "pics.h"
 
-#ifndef __AVR__
-#define getPicByte(a)       (*(const uint8_t *)(a))
-#define getPicWord(a, b)    (*(const uint16_t*)(&(a[b])))
-#endif /* __AVR__ */
+//---------------------------------------------------------------------------//
+#define DATA_MARK        0x7f
+#define RLE_MARK         0x80
+#define MAX_DATA_LENGTH  0xcf
+#define DICT_MARK        0xd0
+#define PIC_DATA_END     0xff
 
 // unsafe but it works on avr, and stm32
-#define setPicWord(a, b)  (*(uint16_t*)(&a[b]))
+#define setPicWData(a, b)   (*(uint16_t*)(&a[b]))
+#ifdef __AVR__
+#define getPicWData(a, b)   pgm_read_word(&(a[(b - DICT_MARK)<<1]))
+#else
+#define getPicByte(a)      (*(const uint8_t *)(a))
+#define getPicWData(a, b)  (*(const uint16_t*)(&(a[b])))
+#endif /* __AVR__ */
 
 //---------------------------------------------------------------------------//
-#define MAX_UNFOLD_SIZE 32
+#define MAX_UNFOLD_SIZE 64
 
 uint8_t buf_packed[MAX_UNFOLD_SIZE<<1];
 uint8_t buf_unpacked[MAX_UNFOLD_SIZE<<1];
+
+uint8_t *pUnpackedData = NULL;
 //---------------------------------------------------------------------------//
 
-uint8_t findPackedMark(uint8_t *ptr, uint8_t sizeData)
+uint8_t findPackedMark(uint8_t *ptr, uint16_t sizeData)
 {
   do {
-    if(*ptr++ > 0xd0) {
+    if(*ptr++ >= DICT_MARK) {
       return 1;
     }
   } while(--sizeData);
@@ -56,17 +88,18 @@ uint8_t findPackedMark(uint8_t *ptr, uint8_t sizeData)
   return 0;
 }
 
-void printBuf_RLE(uint8_t dataSize)
+void printBuf_RLE(uint16_t dataSize)
 {
   uint16_t repeatColor;
   uint8_t repeatTimes, tmpByte;
-  uint8_t *pData = &buf_packed[0];
+  
+  uint8_t *pData = &buf_packed[0]; // pUnpackedData
   
   do { // get color index or repeat times
     tmpByte = *pData;
     
-    if(tmpByte & 0x80) { // is it color index?
-      tmpByte &= 0x7f; // get color index to repeat
+    if(tmpByte & RLE_MARK) { // is it color index?
+      tmpByte &= DATA_MARK; // get color index to repeat
       repeatTimes = *(++pData)+2;
       --dataSize;
     } else {
@@ -84,19 +117,19 @@ void printBuf_RLE(uint8_t dataSize)
   } while(--dataSize);
 }
 
-uint8_t unpackBuf_RLE(const uint8_t *pDict, uint8_t dataSize)
+uint8_t unpackBuf_RLE(const uint8_t *pDict, uint16_t dataSize)
 {
   wordData_t tmpData;
-  uint8_t bufPackedPos,bufUnpackedPos;
-  uint8_t noDictMarker = findPackedMark(&buf_packed[0], dataSize);
+  uint16_t bufPackedPos, bufUnpackedPos;
+  uint8_t dictMarker = findPackedMark(&buf_packed[0], dataSize);
   
-  if(noDictMarker) {
+  if(dictMarker) {
     bufPackedPos =0;
     bufUnpackedPos =0;
     
-    while(noDictMarker) {
-      if(buf_packed[bufPackedPos] > 0xd0) {
-        setPicWord(buf_unpacked, bufUnpackedPos) = getPicWord(pDict, (buf_packed[bufPackedPos] - 0xd1)<<1);
+    while(dictMarker) {
+      if(buf_packed[bufPackedPos] >= DICT_MARK) {
+        setPicWData(buf_unpacked, bufUnpackedPos) = getPicWData(pDict, buf_packed[bufPackedPos]);
         ++bufUnpackedPos;
       } else {
         buf_unpacked[bufUnpackedPos] = buf_packed[bufPackedPos];
@@ -105,19 +138,20 @@ uint8_t unpackBuf_RLE(const uint8_t *pDict, uint8_t dataSize)
       ++bufPackedPos;
       
       if(bufPackedPos >= dataSize) {
-        noDictMarker = findPackedMark(&buf_unpacked[0], bufUnpackedPos);
+        dictMarker = findPackedMark(&buf_unpacked[0], bufUnpackedPos);
         dataSize = bufUnpackedPos;
-        if(noDictMarker) {
-          memcpy_F(&buf_packed[0], &buf_unpacked[0], bufUnpackedPos+1);
+        if(dictMarker) {
+          memcpy_F(&buf_packed[0], &buf_unpacked[0], bufUnpackedPos);
           bufUnpackedPos = 0;
           bufPackedPos =0;
         }
       }
     }
   } else {
-    memcpy_F(&buf_unpacked[0], &buf_packed[0], dataSize+1);
+    pUnpackedData = &buf_packed[0];
   }
   
+  pUnpackedData = &buf_unpacked[0];
   return dataSize;
 }
 
@@ -127,30 +161,32 @@ void drawBMP_ERLE_P(uint8_t x, uint8_t y, const uint8_t *pPic)
   wordData_t tmpData = {.wData = getPicWord(pPic, 0)};
   tftSetAddrWindow(x, y, x+tmpData.u8Data1, y+tmpData.u8Data2);
   
-  uint8_t tmpByte, unfoldPos;
+  uint8_t tmpByte;
+  uint16_t unfoldPos;
   const uint8_t *pDict = &pPic[3];
   pPic += getPicByte(&pPic[2]); // make offset to picture data
   
-  for(;;) {
+  for(;;) { // endless cycle here is bad architecture... but it's works!
     unfoldPos =0;
     
     do {
-      if((tmpByte = getPicByte(++pPic)) < 0xff) {
-        if(tmpByte < 0xd0) {
+      if((tmpByte = getPicByte(++pPic)) < PIC_DATA_END) {
+        if(tmpByte < DICT_MARK) {
           buf_packed[unfoldPos] = tmpByte;
         } else {
-          setPicWord(buf_packed, unfoldPos) = getPicWord(pDict, (tmpByte - 0xd1)<<1);
+          setPicWData(buf_packed, unfoldPos) = getPicWData(pDict, tmpByte);
           ++unfoldPos;
         }
         ++unfoldPos;
       } else {
         break;
       }
-    } while((unfoldPos < MAX_UNFOLD_SIZE) && (tmpByte > 0x7f));
+    } while((unfoldPos < MAX_UNFOLD_SIZE)
+            && ((tmpByte > DATA_MARK) || (tmpByte > MAX_DATA_LENGTH)));
     
-    if(unfoldPos) { // or maybe unfoldPos?
-      //printBuf_RLE(unpackBuf_RLE(pDict, unfoldPos));
-      printBuf_RLE(unfoldPos);
+    if(unfoldPos) {
+      //printBuf_RLE(unpackBuf_RLE(pDict, unfoldPos)); // V3 decoder
+      printBuf_RLE(unfoldPos);  // V2 decoder
     } else {
       return;
     }
@@ -164,16 +200,16 @@ void drawBMP_RLE_P(uint8_t x, uint8_t y, const uint8_t *pPic)
   uint16_t repeatColor;
   uint8_t tmpInd, repeatTimes;
   
-  wordData_t tmpData = {.wData = getPicWord(pPic, 0)};
+  wordData_t tmpData = {.wData = getPicWData(pPic, 0)};
   tftSetAddrWindow(x, y, x+tmpData.u8Data1, y+tmpData.u8Data2);
   
   ++pPic; // make offset to picture data
   
-  while((tmpInd = getPicByte(++pPic)) != 0xff) { // get color index or repeat times
+  while((tmpInd = getPicByte(++pPic)) != PIC_DATA_END) { // get color index or repeat times
     
-    if(tmpInd & 0x80) { // is it color index?
-      tmpInd &= 0x7f; // get color index to repeat
-      repeatTimes = getPicByte(++pPic)+2;
+    if(tmpInd & RLE_MARK) { // is it color index?
+      tmpInd &= DATA_MARK; // get color index to repeat
+      repeatTimes = getPicByte(++pPic)+2; // zero RLE does not exist!
     } else {
       repeatTimes = 1;
     }

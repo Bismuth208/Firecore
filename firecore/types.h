@@ -75,11 +75,11 @@ typedef struct {
   //uint8_t rocketsLeft;
   pic_t *pPic;
   struct {
-    uint8_t overHeated    :1;
-    uint8_t state         :1;
+    uint8_t overHeated;//    :1;
+    uint8_t state;//         :1;
     //uint8_t bombsUnlocked :1;
-    uint8_t level         :3;
-    uint8_t freeRam       :3;
+    uint8_t level;//         :3;
+    //uint8_t freeRam       :3;
   };
 } weapon_t;
 
@@ -104,9 +104,9 @@ typedef struct {  // 8 + 6 + 5 bytes RAM
   bezierLine_t bezLine;
   deathRay_t weapon;
   struct {
-    uint8_t state   :1;     // Pic what we draw
-    uint8_t alive   :1;
-    uint8_t freeRam :6;
+    uint8_t state;//   :1;     // Pic what we draw
+    uint8_t alive;//   :1;
+    //uint8_t freeRam :6;
   };
   int16_t health;
   uint16_t timeToShoot;
@@ -120,9 +120,9 @@ typedef struct {
 
 typedef struct {  // 1 byte RAM
   struct {
-    uint8_t updLife  :1;
-    uint8_t updScore :1;
-    uint8_t freeRam  :6;
+    uint8_t updLife;//  :1;
+    uint8_t updScore;// :1;
+    //uint8_t freeRam :6;
   };
 } hudStatus_t;
 

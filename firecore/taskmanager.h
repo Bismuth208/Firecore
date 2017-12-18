@@ -124,10 +124,11 @@
 //------------------------------------------//
 
 #define T(a) a##Task
-#define TASK_N(a)    const taskParams_t T(a)
-#define TASK(a,b)    TASK_N(a) PROGMEM = {a, b}
-#define TASK_P(a)    (taskParams_t*)&T(a)
-#define TASK_ARR(a)  const tasksArr_t a##TasksArr[] PROGMEM
+#define TASK_N(a)     const taskParams_t T(a)
+#define TASK(a,b)     TASK_N(a) PROGMEM = {a, b}
+#define TASK_P(a)     (taskParams_t*)&T(a)
+#define TASK_ARR_N(a) const tasksArr_t a##TasksArr[]
+#define TASK_ARR(a)   TASK_ARR_N(a) PROGMEM
 
 //------------------------------------------//
 
@@ -197,7 +198,6 @@ typedef const taskParams_t * const tasksArr_t;
 //------------------------ Function Prototypes ------------------------------//
 void addTaskToArr(taskStates_t *pTasksArr, pFunc_t pTask, uint16_t timeToCheckTask, bool exec);
 void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec);
-void addTasksArray_P(tasksArr_t *pArr, uint8_t size);
 void replaceTask(pFunc_t pOldTask, pFunc_t pNewTask, uint16_t timeToCheckTask, bool exec);
 void updateTaskStatus(pFunc_t oldTask, bool exec);
 void updateTaskTimeCheck(pFunc_t pTask, uint16_t timeToCheckTask);
@@ -209,6 +209,7 @@ void deleteAllTasks(void);
 
 #ifdef __AVR__
 void addTask_P(const taskParams_t *pTaskP);
+void addTasksArray_P(tasksArr_t *pArr, uint8_t size);
 #endif
 
 __attribute__ ((noreturn)) void runTasks(void);

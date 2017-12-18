@@ -76,9 +76,11 @@ uint32_t micros(void)
   return ((m << 8) + t) * (64 / clockCyclesPerMicrosecond());
 }
 
-void _delayMS(uint32_t timetoloop)
+void _delayMS(uint16_t timetoloop)
 {
-  while(timetoloop--) _delay_ms(1);
+  do {
+    _delay_ms(1);
+  } while(--timetoloop);
 }
 
 /* Delay for the given number of microseconds.  Assumes a 1, 8, 12, 16, 20 or 24 MHz clock. */

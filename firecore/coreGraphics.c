@@ -158,7 +158,7 @@ void drawShip(void)
 void shipHyperJump(void)
 {
   while((ship.pos.Base.x++) < SHIP_MAX_POS_X) {
-    // this pic used for left red track on screen
+    // this pic used to left red track on screen
     drawBMP_ERLE_P(ship.pos.Base.x, ship.pos.Base.y, ship.pBodyPic);
     drawBMP_ERLE_P(ship.pos.Base.x, ship.pos.Base.y+SHIP_FLAME_OFFSET_Y, flameFireHiPic);
   }
@@ -248,6 +248,21 @@ void screenSliderEffect(uint16_t color)
   }
 }
 
+// ------------------ Q16 ------------------- //
+int32_t fixedDiv16(int32_t x, int32_t y)
+{
+  //return (x / y) * (1 << 16);
+  return ((int64_t)x * (1 << 16)) / y;
+}
+
+int32_t fixedMul16(int32_t x, int32_t y)
+{
+  //return (x * y) / (1 << 16);
+  //return ((int64_t)x * (int64_t)y) >> 16;
+  return ((int64_t)x * (int64_t)y) / (1 << 16);
+}
+// ------------------------------------------ //
+
 void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine)
 {
   bezier_t *pLine = &bezierLine;
@@ -265,9 +280,22 @@ void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine)
   // t  - number of step betwen P0 and P3
   // B = ((1.0 - t)^2)P0 + 2t(1.0 - t)P2 + (t^2)P3
   // t [>= 0 && <= 1]
+#if 1
   float t = ((float)pItemLine->step)/((float)pLine->totalSteps);
   pPos->x = (1.0 - t)*(1.0 - t)*pLine->P0.x + 2*t*(1.0 - t)*pLine->P1.x + t*t*pLine->P2.x;
   pPos->y = (1.0 - t)*(1.0 - t)*pLine->P0.y + 2*t*(1.0 - t)*pLine->P1.y + t*t*pLine->P2.y;
+#else
+  uint32_t t = fixedDiv16((float)pItemLine->step, (float)pLine->totalSteps);
+  uint32_t oneT = (1<<16) - t;
+
+  pPos->x = (uint8_t)((fixedMul16(fixedMul16(oneT, oneT), (float)pLine->P0.x)
+                        + fixedMul16(fixedMul16(fixedMul16(t, (float)2),oneT), (float)pLine->P1.x)
+                        + fixedMul16(fixedMul16(t, t), (float)pLine->P2.x)) >> 16);
+  
+  pPos->y = (uint8_t)((fixedMul16(fixedMul16(oneT, oneT), (float)pLine->P0.y)
+                        + fixedMul16(fixedMul16(fixedMul16(t, 2),oneT), (float)pLine->P1.y)
+                        + fixedMul16(fixedMul16(t, t), (float)pLine->P2.y)) >> 16);
+#endif
 }
 
 void fixPosition(position_t *pPos)

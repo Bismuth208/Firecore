@@ -10,7 +10,7 @@ extern "C"{
 uint32_t uptime(void);
 uint32_t micros(void);
 
-void _delayMS(uint32_t timetoloop);
+void _delayMS(uint16_t timetoloop);
 void _delayMicroseconds(uint16_t us);
 void initSysTickTimer(void);
 

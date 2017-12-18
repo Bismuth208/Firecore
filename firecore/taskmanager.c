@@ -70,8 +70,10 @@ fDrawFastVLine_t fpDrawFastVLine = NULL;
  */
 __attribute__ ((noreturn)) void runTasks(void)
 {
-  register uint8_t count =0;
-  register taskStatesArr_t *pCurArr = NULL;
+  uint8_t count =0;
+  
+  // store pointer in RAM, to reduce instructions
+  taskStatesArr_t *pCurArr = &PAA[0];
   
 #if USE_AUTO_DEFRAG
   uint32_t defragNextMs=0;
@@ -95,8 +97,6 @@ __attribute__ ((noreturn)) void runTasks(void)
 #endif
     
     if(PAC) {
-      // store pointer in RAM, to reduce instructions
-      pCurArr = &PAA[count];
       // Have func?
       if(pCurArr->pTaskFunc) { // problems in future see i here
         if(pCurArr->execute) { // need execute?
@@ -113,7 +113,12 @@ __attribute__ ((noreturn)) void runTasks(void)
           }
         }
       }
-      if(++count >= PAC) count =0;
+
+      ++pCurArr;
+      if(++count >= PAC) {
+        count =0;
+        pCurArr = &PAA[0];
+      }
     }
   }
 }

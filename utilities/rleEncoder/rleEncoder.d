@@ -4,29 +4,23 @@
  + Lang: D
  + Compiler: DMD v2.075.1
  +
- + This program convert and compress by simple RLE
- + raw "*.data" picture files from "Gimp" program to "*.h" files
+ + This program convert and compress by simple RLE and dictionary (like LZ family)
+ + raw ".data" picture files from "GIMP" program to ".h" files.
  +
- + Works ONLY whith data value < 0x50!
- + As unsed 0x2f values ARE USED by this compression!
- +
- + Format:
- +   # (0x80 | data) - marker and data (0x80 - marker specify RLE start)
- +   # repeatTimes - how much to repeat previous data
- +
- + Example:
- +  1# 0x81, 0x00 - mean: 0x01, 0x01, 0x01;
- +  2# 0x01, 0x01, 0x00 - no RLE, only raw data;
- +  3# 0x8f,0x02,0x0e,0x0e - mean: 0x0f,0x0f,0x0f,0x0f,0x0e,0x0e
+ + For more info look readme.md for rleEncoder!
  +/
+
 
 immutable auto fmtSize = "// orig size %d * 2 = %d\n// RLE pic size = %d\n// RLE compress ratio %f\n";
 immutable auto fmt = "const uint8_t %s[] PROGMEM = {\n  _PIC_W-1,_PIC_H-1,";
 
 immutable auto pictureEndMarker = 0xff;
-immutable auto maxDictSize = 45; // maximum dictionary size
+immutable auto maxDictSize = 44; // maximum dictionary size
 immutable auto minMatchCount = 3;
-immutable auto maxDataLength = 0xcf; // actual size is: (maxDataLength -1)
+immutable auto dictPosMarker = 0xd0; // base value of pair bytes in dictionary; (0x80 + 0x50) or (0xff - maxDictSize - 1)
+immutable auto maxDataLength = 0xcf; // actual size is: (maxDataLength -1); (0xff - dictPosMarker -1)
+
+immutable auto compressRatioV2V3Flag = false;  // V3 needs more RAM on unpack
 
 void fillHeader(string headerName, string fileName) {
   import std.file, std.outbuffer;
@@ -59,22 +53,20 @@ auto findMatch(ref ubyte[] buf)
   auto offset = 0;
   auto offsetMax = 0;
   auto matchCount = 0;
-  auto matchCountMax = 0;
   auto allMatchFound = false;
-  auto dictDataBuf = buf[offset..offset+2];
-
-  matchCountMax = cast(int)count(buf[offset..$], dictDataBuf);
+  auto matchCountMax = cast(int)count(buf[offset..$], buf[offset..offset+2]);
 
   while(!allMatchFound) {
-    //++offset;
-    
-    do {
+    if(compressRatioV2V3Flag) {  // v3
       ++offset;
-    } while(((buf[offset] > cast(ubyte)0x7f) || (buf[offset+1] > cast(ubyte)0x7f)) && (offset < buf.length-1));
+    } else { // v2
+      do {
+        ++offset;
+      } while(((buf[offset] >= dictPosMarker) || (buf[offset+1] >= dictPosMarker)) && (offset < buf.length-1));
+    }
   
     if(offset < buf.length-1) {
-      dictDataBuf = buf[offset..offset+2];
-      matchCount = cast(int)count(buf[offset..$], dictDataBuf);
+      matchCount = cast(int)count(buf[offset..$], buf[offset..offset+2]);
 
       if(matchCount > matchCountMax) {
         matchCountMax = matchCount;
@@ -85,33 +77,22 @@ auto findMatch(ref ubyte[] buf)
     }
   }
   
-  
-  dictDataBuf.length = 0;
-  
-  if(matchCountMax >= minMatchCount) {
-    if((buf[offsetMax] < cast(ubyte)0x7f) && (buf[offsetMax+1] < cast(ubyte)0x7f)) {
-      dictDataBuf = buf[offsetMax..offsetMax+2];
-    }
-  }
-  return dictDataBuf; // 2 bytes dictionary
-  
-  //return (matchCountMax >= minMatchCount) ? buf[offsetMax..offsetMax+2] : buf[0..0];
+  return (matchCountMax >= minMatchCount) ? buf[offsetMax..offsetMax+2] : buf[0..0];
 }
 
 auto encodeMatches(ref ubyte[] buf)
 {
   import std.array : replace;
 
-  auto dictPosMarker = cast(ubyte)0xd0; // start value
   auto dictionaryArr = new ubyte[1];
   auto markerBuf = new ubyte[1];
   auto tmpDict = new ubyte[2];
-  auto dictPos = 1;
+  auto dictPos = 0;
   
   do {
     tmpDict = findMatch(buf);
     
-    if(tmpDict.length > 0) { // found something?
+    if(tmpDict.length) { // found something?
       markerBuf[0] = cast(ubyte)(dictPosMarker + dictPos); // replaceVal
       buf = buf.replace(tmpDict, markerBuf);
       dictionaryArr ~= tmpDict;
@@ -120,7 +101,7 @@ auto encodeMatches(ref ubyte[] buf)
   } while((tmpDict.length) && (dictPos <= maxDictSize));
   
   // size of dictionary offset
-  dictionaryArr[0] = cast(ubyte)((dictionaryArr.length > 0) ? dictionaryArr.length+1 : 0x00);
+  dictionaryArr[0] = cast(ubyte)(dictionaryArr.length ? dictionaryArr.length+1 : 0x00);
   return dictionaryArr;
 }
 
@@ -148,7 +129,7 @@ auto compressRLE(ref ubyte[] buf) {
         repeatWrite((rleCount / maxDataLength), maxDataLength-1, tmpByte);
         rleCount -= maxDataLength * (rleCount / maxDataLength);
       }
-      if(rleCount > 1) { // left something?
+      if(rleCount) { // left something?
         repeatWrite(1, rleCount-2, tmpByte);
       }
     } else {

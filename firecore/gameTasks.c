@@ -23,10 +23,11 @@
 
 /*
 #define T(a) a##Task
-#define TASK_N(a)    const taskParams_t T(a)
-#define TASK(a,b)    TASK_N(a) PROGMEM = {a, b}
-#define TASK_P(a)    (taskParams_t*)&T(a)
-#define TASK_ARR(a)  const tasksArr_t a##TasksArr[] PROGMEM
+#define TASK_N(a)     const taskParams_t T(a)
+#define TASK(a,b)     TASK_N(a) PROGMEM = {a, b}
+#define TASK_P(a)     (taskParams_t*)&T(a)
+#define TASK_ARR_N(a) const tasksArr_t a##TasksArr[]
+#define TASK_ARR(a)   TASK_ARR_N(a) PROGMEM
 */
 
 //---------------------------------------------------------------------------//
