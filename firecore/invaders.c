@@ -34,8 +34,8 @@ void setInvaderValue(inVader_t *pAlien, bool state)
   moveBezierCurve(&pAlien->pos.New, &pAlien->bezLine);
 
   //pAlien->pos.New.x = ALIEN_DEFAULT_POS_X;
-  pAlien->weapon.timeToShoot = RAND_SHOOT_TIME;
-  pAlien->respawnTime = RAND_RESPAWN_TIME;
+  pAlien->weapon.timeToShoot = ALIEN_RAND_SHOOT_TIME;
+  pAlien->respawnTime = ALIEN_RAND_RESPAWN_TIME;
   pAlien->health = ALIEN_HEALTH;
   pAlien->alive = state;
 }
@@ -67,7 +67,6 @@ void checkTimeToShoot(deathRay_t *pWeapon, position_t *pPos)
   }
 }
 
-
 void checkDeathRay(deathRay_t *pWeapon)
 {
   rocket_t *pDeathRay = &pWeapon->deathRay;
@@ -75,7 +74,7 @@ void checkDeathRay(deathRay_t *pWeapon)
   if(checkCollision(&pDeathRay->pos, DEATHRAY_PIC_W, DEATHRAY_PIC_H,
                                     &ship.pos.Base, SHIP_PIC_W, SHIP_PIC_H)) {
     applyShipDamage(pDeathRay);
-    pWeapon->timeToShoot = RAND_SHOOT_TIME;
+    pWeapon->timeToShoot = ALIEN_RAND_SHOOT_TIME;
   } else {
     // clear previous shoot
     fillRectFast(pDeathRay->pos.x, pDeathRay->pos.y, DEATHRAY_PIC_W, DEATHRAY_PIC_H);
@@ -86,7 +85,7 @@ void checkDeathRay(deathRay_t *pWeapon)
                          (pDeathRay->state ? deathRayHiPic : deathRayLowPic));
     } else {
       // oooh, we don`t shoot the player, inVeder sooo saaad :(
-      pWeapon->timeToShoot = RAND_SHOOT_TIME;
+      pWeapon->timeToShoot = ALIEN_RAND_SHOOT_TIME;
       pWeapon->deathRay.onUse = false;
     }
   }
@@ -126,7 +125,7 @@ void moveInVaders(void)
 
       if(pAlien->bezLine.step == bezierLine.totalSteps) {
         pAlien->alive = false;
-        pAlien->respawnTime = RAND_RESPAWN_TIME;
+        pAlien->respawnTime = ALIEN_RAND_RESPAWN_TIME;
         fillRectFast(pAlien->pos.Base.x, pAlien->pos.Base.y, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H);
       }
     }
@@ -233,9 +232,9 @@ void checkInVaders(void)
             // if it dead, remove body from battleground
             fillRectFast(pAlien->pos.Base.x, pAlien->pos.Base.y, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H);
  
-            pAlien->alive = false;    // actually now it dead
-            score += SCORE_VAL;           // get cookies
-            hudStatus.updScore = true;    // update score later
+            pAlien->alive = false;     // actually now it dead
+            score += SCORE_VAL;        // get cookies
+            hudStatus.updScore = true; // update score later
             // check total respawns
             if(--totalRespawns <= 0) { // No more respawns left, all army defeated
               totalRespawns =0;
@@ -350,7 +349,7 @@ void checkBossFire(void)
     if(checkCollision(&pBase->weapon.deathRay.pos, DEATHRAY_BOSS_PIC_W, DEATHRAY_BOSS_PIC_H,
                                     &ship.pos.Base, SHIP_PIC_W, SHIP_PIC_H)) {
       applyShipDamage(&pBase->weapon.deathRay);
-      pBase->weapon.timeToShoot = RAND_SHOOT_TIME;
+      pBase->weapon.timeToShoot = ALIEN_RAND_SHOOT_TIME;
     } else {
       // clear previous shoot
       fillRectFast(pBase->weapon.deathRay.pos.x, pBase->weapon.deathRay.pos.y,
@@ -361,7 +360,7 @@ void checkBossFire(void)
         drawBMP_ERLE_P(pBase->weapon.deathRay.pos.x, pBase->weapon.deathRay.pos.y, deathRayBossPic);
       } else {
         // oooh, we don`t shoot the player, inVeder sooo saaad :(
-        pBase->weapon.timeToShoot = RAND_SHOOT_TIME;
+        pBase->weapon.timeToShoot = ALIEN_RAND_SHOOT_TIME;
         pBase->weapon.deathRay.onUse = false;
       }
     }

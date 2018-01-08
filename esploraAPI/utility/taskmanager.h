@@ -94,9 +94,9 @@
 #define PAC pCurrentArrTasks->tasksCount
 
 #if 1
-#define TIMER_FUNC  uptime()
+ #define TIMER_FUNC  uptime()
 #else
-#define TIMER_FUNC // place here your system uptime timer function
+ #define TIMER_FUNC // place here your system uptime timer function
 #endif
 
 //----------- ERROR CODES --------------//
@@ -109,17 +109,20 @@
 #define ADD_FAIL                0x10    // addTask()
 #define ADD_TO_ARR_FAIL         0x20    // addTaskToArr()
 #define DEFRAG_FAIL             0x30    // defragTasksMemory()
+#define FIND_TASK_FAIL          0x40    // searchTask()
 //--------------------------------------//
 
 //---------- Bool definitions --------------//
 #ifndef bool
-#define bool uint8_t
+ #define bool uint8_t
 #endif
+
 #ifndef true
-#define true 1
+ #define true 1
 #endif
+
 #ifndef false
-#define false 0
+ #define false 0
 #endif
 //------------------------------------------//
 
@@ -187,7 +190,7 @@ typedef union  {
     uint8_t pFuncLow;
   };
 } addrCompare_t;
-#endif
+#endif /* __AVR__*/
 #pragma pack(pop)
   
 typedef const taskParams_t * const tasksArr_t;
@@ -237,4 +240,4 @@ void setGfxFunc(fPrint_t, fFillRect_t, fSetCursor_t, fSetTextSize_t, fDrawFastVL
 } // extern "C"
 #endif
 
-#endif
+#endif /*_TASKMANAGER_H*/

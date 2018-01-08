@@ -53,6 +53,12 @@ extern const uint16_t palette_ext[];
 extern uint16_t palette_RAM[];
 //---------------------------------------------------------------------------//
 
+extern uint16_t currentBackGroundColor;
+extern uint8_t currentBackGroundColorId;
+extern uint8_t replaceColorId;
+extern const uint8_t lvlColors[];
+//---------------------------------------------------------------------------//
+
 #define LASER_PIC_W 16
 #define LASER_PIC_H 8
 
@@ -76,6 +82,12 @@ extern const uint8_t giftWeaponPic[];
 #define HUD_GUI_PIC_H     8
 
 extern const uint8_t hudGuiPic[];
+//---------------------------------------------------------------------------//
+
+#define TEXT_WINDOW_PIC_W   160
+#define TEXT_WINDOW_PIC_H    40
+
+extern const uint8_t textWindowPic[];
 //---------------------------------------------------------------------------//
 
 #define DOGE_PIC_W     50

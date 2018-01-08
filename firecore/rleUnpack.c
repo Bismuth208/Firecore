@@ -49,8 +49,8 @@
 #include <esploraAPI.h>
 
 #include "rleUnpack.h"
-#include "common.h"
-#include "pics.h"
+#include "types.h"     // for wordData_t
+#include "pics.h"      // for palette_RAM[]
 
 //---------------------------------------------------------------------------//
 #define DATA_MARK        0x7f
@@ -62,17 +62,17 @@
 // unsafe but it works on avr, and stm32
 #define setPicWData(a, b)   (*(uint16_t*)(&a[b]))
 #ifdef __AVR__
-#define getPicWData(a, b)   pgm_read_word(&(a[(b - DICT_MARK)<<1]))
+ #define getPicWData(a, b)   pgm_read_word(&(a[(b - DICT_MARK)<<1]))
 #else
-#define getPicByte(a)      (*(const uint8_t *)(a))
-#define getPicWData(a, b)  (*(const uint16_t*)(&(a[b])))
+ #define getPicByte(a)      (*(const uint8_t *)(a))
+ #define getPicWData(a, b)  (*(const uint16_t*)(&(a[b])))
 #endif /* __AVR__ */
 
 //---------------------------------------------------------------------------//
-#define MAX_UNFOLD_SIZE 64
+#define MAX_UNFOLD_SIZE 128  // total RAM consumed = MAX_UNFOLD_SIZE * 4
 
-uint8_t buf_packed[MAX_UNFOLD_SIZE<<1];
-uint8_t buf_unpacked[MAX_UNFOLD_SIZE<<1];
+uint8_t buf_packed[MAX_UNFOLD_SIZE<<1];   // \__ unpacked data needs
+uint8_t buf_unpacked[MAX_UNFOLD_SIZE<<1]; // /   minimum 2x more RAM
 
 uint8_t *pUnpackedData = NULL;
 //---------------------------------------------------------------------------//
@@ -92,19 +92,15 @@ void printBuf_RLE(uint16_t dataSize)
 {
   uint16_t repeatColor;
   uint8_t repeatTimes, tmpByte;
-  
-  uint8_t *pData = &buf_packed[0]; // pUnpackedData
+  uint8_t *pData = pUnpackedData; // access to local register: less instructions
   
   do { // get color index or repeat times
-    tmpByte = *pData;
-    
-    if(tmpByte & RLE_MARK) { // is it color index?
+    if((tmpByte = *pData) & RLE_MARK) { // is it color index?
       tmpByte &= DATA_MARK; // get color index to repeat
-      repeatTimes = *(++pData)+2;
+      repeatTimes = *(++pData)+1; // zero RLE does not exist!
       --dataSize;
-    } else {
-      repeatTimes = 1;
     }
+    ++repeatTimes;
     
     // get color from colorTable by tmpInd color index
     repeatColor = palette_RAM[(tmpByte == replaceColorId) ? currentBackGroundColorId : tmpByte];
@@ -117,15 +113,15 @@ void printBuf_RLE(uint16_t dataSize)
   } while(--dataSize);
 }
 
-uint8_t unpackBuf_RLE(const uint8_t *pDict, uint16_t dataSize)
+uint16_t unpackBuf_RLE(const uint8_t *pDict, uint16_t dataSize)
 {
-  wordData_t tmpData;
   uint16_t bufPackedPos, bufUnpackedPos;
   uint8_t dictMarker = findPackedMark(&buf_packed[0], dataSize);
   
   if(dictMarker) {
     bufPackedPos =0;
     bufUnpackedPos =0;
+    pUnpackedData = &buf_unpacked[0];
     
     while(dictMarker) {
       if(buf_packed[bufPackedPos] >= DICT_MARK) {
@@ -141,8 +137,8 @@ uint8_t unpackBuf_RLE(const uint8_t *pDict, uint16_t dataSize)
         dictMarker = findPackedMark(&buf_unpacked[0], bufUnpackedPos);
         dataSize = bufUnpackedPos;
         if(dictMarker) {
-          memcpy_F(&buf_packed[0], &buf_unpacked[0], bufUnpackedPos);
-          bufUnpackedPos = 0;
+          memcpy_F(&buf_packed[0], &buf_unpacked[0], bufUnpackedPos); // maybe swap pointers?
+          bufUnpackedPos =0;
           bufPackedPos =0;
         }
       }
@@ -151,7 +147,6 @@ uint8_t unpackBuf_RLE(const uint8_t *pDict, uint16_t dataSize)
     pUnpackedData = &buf_packed[0];
   }
   
-  pUnpackedData = &buf_unpacked[0];
   return dataSize;
 }
 
@@ -163,8 +158,8 @@ void drawBMP_ERLE_P(uint8_t x, uint8_t y, const uint8_t *pPic)
   
   uint8_t tmpByte;
   uint16_t unfoldPos;
-  const uint8_t *pDict = &pPic[3];
-  pPic += getPicByte(&pPic[2]); // make offset to picture data
+  const uint8_t *pDict = &pPic[3]; // save dictionary pointer
+  pPic += getPicByte(&pPic[2]);    // make offset to picture data
   
   for(;;) { // endless cycle here is bad architecture... but it's works!
     unfoldPos =0;
@@ -185,8 +180,8 @@ void drawBMP_ERLE_P(uint8_t x, uint8_t y, const uint8_t *pPic)
             && ((tmpByte > DATA_MARK) || (tmpByte > MAX_DATA_LENGTH)));
     
     if(unfoldPos) {
-      //printBuf_RLE(unpackBuf_RLE(pDict, unfoldPos)); // V3 decoder
-      printBuf_RLE(unfoldPos);  // V2 decoder
+      printBuf_RLE(unpackBuf_RLE(pDict, unfoldPos)); // V2V3 decoder
+      //printBuf_RLE(unfoldPos);  // V2 only decoder
     } else {
       return;
     }
@@ -206,13 +201,11 @@ void drawBMP_RLE_P(uint8_t x, uint8_t y, const uint8_t *pPic)
   ++pPic; // make offset to picture data
   
   while((tmpInd = getPicByte(++pPic)) != PIC_DATA_END) { // get color index or repeat times
-    
     if(tmpInd & RLE_MARK) { // is it color index?
       tmpInd &= DATA_MARK; // get color index to repeat
-      repeatTimes = getPicByte(++pPic)+2; // zero RLE does not exist!
-    } else {
-      repeatTimes = 1;
+      repeatTimes = getPicByte(++pPic)+1; // zero RLE does not exist!
     }
+    ++repeatTimes;
     
     // get color from colorTable by tmpInd color index
     repeatColor = palette_RAM[(tmpInd == replaceColorId) ? currentBackGroundColorId : tmpInd];

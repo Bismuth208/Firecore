@@ -43,7 +43,6 @@ void printHistory(void)
     sfxPlayPattern(beepPattern, SFX_CH_0);
 #endif
   } else {
-    textHistoryPosX =0;
     updateTaskStatus(printHistory, false);
   }
 }
@@ -73,6 +72,7 @@ void drawTextWindow(const uint8_t *text, const uint8_t *btnText)
   tftSetTextColor(COLOR_WHITE);
 
   drawFrame(TEXT_FRAME_X, TEXT_FRAME_Y,  TEXT_FRAME_W, TEXT_FRAME_H, INDIGO_COLOR, COLOR_WHITE);
+  //drawBMP_ERLE_P(TEXT_FRAME_X, TEXT_FRAME_Y, textWindowPic);
   tftPrintAt_P(TEXT_OK_X, TEXT_OK_Y, (const char *)btnText);
 
   pTextDialoge = text; // draw this text later
@@ -249,6 +249,7 @@ void screenSliderEffect(uint16_t color)
 }
 
 // ------------------ Q16 ------------------- //
+#if 0
 int32_t fixedDiv16(int32_t x, int32_t y)
 {
   //return (x / y) * (1 << 16);
@@ -261,6 +262,7 @@ int32_t fixedMul16(int32_t x, int32_t y)
   //return ((int64_t)x * (int64_t)y) >> 16;
   return ((int64_t)x * (int64_t)y) / (1 << 16);
 }
+#endif
 // ------------------------------------------ //
 
 void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine)

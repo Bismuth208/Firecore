@@ -20,7 +20,6 @@
 #include "textProg.h"
 #include "common.h"
 
-uint8_t galaxySaved = 0;
 int8_t currentShip = 2;
 int8_t previousShip =0;
 uint8_t dogeDialogs =0;
@@ -30,11 +29,11 @@ bool rndFlag = false;
 // -------------------------- Main menu -------------------------- //
 void drawShipSelectionMenu(void)
 {
-  uint16_t posX = CHARACTER_ICON_OFFSET_X;
-  uint8_t characterIconStep = (TFT_W /(CHARACTER_ICON_NUM+galaxySaved));
+  uint8_t posX = CHARACTER_ICON_OFFSET_X;
+  uint8_t characterIconStep = (TFT_W /(CHARACTER_ICON_NUM+gameSaveData.bonusUnlocked));
   screenSliderEffect(currentBackGroundColor);
 
-  for(uint8_t count=0; count<(CHARACTER_ICON_NUM+galaxySaved); count++) {
+  for(uint8_t count=0; count<(CHARACTER_ICON_NUM+gameSaveData.bonusUnlocked); count++) {
     drawBMP_ERLE_P(posX, CHARACTER_ICON_OFFSET_Y, getConstCharPtr(catsPics, count));
     tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, COLOR_BLACK);
 
@@ -48,12 +47,19 @@ void drawShipSelectionMenu(void)
   addShipSelectTasks();
 }
 
+void drawShipStats(uint8_t yPerk, uint8_t yText, uint8_t perk, uint8_t maxPerkVal, const uint8_t *perkText)
+{
+  uint8_t lineSize = mapVal(perk, 0, maxPerkVal, 0, 40);
+  tftDrawFastHLine(BASE_STATS_POS_X, yPerk, lineSize, COLOR_WHITE);
+  tftPrintAt_P(4, yText, (const char*)perkText);
+}
+
 void drawCurrentShipSelection(void)
 {
   iconState = !iconState;
 
-  uint8_t characterIconStep = (TFT_W /(CHARACTER_ICON_NUM+galaxySaved));
-  uint16_t posX = characterIconStep*(currentShip-1) + CHARACTER_ICON_OFFSET_X;
+  uint8_t characterIconStep = (TFT_W /(CHARACTER_ICON_NUM+gameSaveData.bonusUnlocked));
+  uint8_t posX = characterIconStep*(currentShip-1) + CHARACTER_ICON_OFFSET_X;
   uint16_t color = iconState ? COLOR_WHITE : COLOR_BLACK;
   tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, color);
 
@@ -74,17 +80,9 @@ void drawCurrentShipSelection(void)
     previousShip = currentShip;
     updateShipStates();
 
-    uint8_t lineSize = mapVal(ship.states.speed, 0, SHIP_BASE_SPEED, 0, 40);
-    tftDrawFastHLine(BASE_STATS_POS_X, BASE_STATS_POS_Y, lineSize, COLOR_WHITE);
-    tftPrintAt_P(4, BASE_STATS_POS_Y-2, (const char*)shipSpeedStatP);
-
-    lineSize = mapVal(ship.states.power, 0, SHIP_BASE_DAMAGE, 0, 40);
-    tftDrawFastHLine(BASE_STATS_POS_X, BASE_STATS_POS_Y+8, lineSize, COLOR_WHITE);
-    tftPrintAt_P(4, BASE_STATS_POS_Y+6, (const char*)shipPowerStatP);
-
-    lineSize = mapVal(ship.states.durability, 0, SHIP_BASE_DURAB, 0, 40);
-    tftDrawFastHLine(BASE_STATS_POS_X, BASE_STATS_POS_Y+16, lineSize, COLOR_WHITE);
-    tftPrintAt_P(4, BASE_STATS_POS_Y+14, (const char*)shipDurabStatP);
+    drawShipStats(BASE_STATS_POS_Y, BASE_STATS_POS_Y-2, ship.states.speed, SHIP_BASE_SPEED, shipSpeedStatP);
+    drawShipStats(BASE_STATS_POS_Y+8, BASE_STATS_POS_Y+6, ship.states.power, SHIP_BASE_DAMAGE, shipPowerStatP);
+    drawShipStats(BASE_STATS_POS_Y+16, BASE_STATS_POS_Y+14, ship.states.durability, SHIP_BASE_DURAB, shipDurabStatP);
   }
 }
 
@@ -101,8 +99,8 @@ void getShipItem(void)
   
   if(currentShip < MIN_SHIP_ITEM) {
     currentShip = MIN_SHIP_ITEM;
-  } else if(currentShip > (MAX_SHIP_ITEM +galaxySaved)) {
-    currentShip = MAX_SHIP_ITEM +galaxySaved;
+  } else if(currentShip > (MAX_SHIP_ITEM +gameSaveData.bonusUnlocked)) {
+    currentShip = MAX_SHIP_ITEM +gameSaveData.bonusUnlocked;
   }
 }
 
@@ -187,30 +185,44 @@ void pauseWindow(void)
 // switch from title to main menu
 void titleAction(void)
 {
+  uint8_t playOkSound = 0;
+
   if(getBtnState(BUTTON_A)) {
-    resetBtnStates();
-#if ADD_SOUND
-    sfxPlayOK();
-#endif
-    addHistoryTasks();
-    shipHyperJump();
-    screenSliderEffect(COLOR_BLACK);
-    drawBMP_ERLE_P(GALAXY_PIC_POS_X, 0, galaxyPic);
-    // for text
-    tftSetTextColor(COLOR_WHITE);
-    tftSetTextSize(1);
-    tftSetCursor(0, 72);
-  }
+      resetBtnStates();
+      playOkSound = 1;
+
+      addHistoryTasks();
+      shipHyperJump();
+      drawGalaxyAt(0);
+      // for text
+      tftSetTextColor(COLOR_WHITE);
+      tftSetTextSize(1);
+      tftSetCursor(0, 72);
+    }
 
   if(getStickVal(LR_OK)) {
     if(getBtnState(BUTTON_Y) && getBtnState(BUTTON_X)) {
       resetBtnStates();
       resetScore();
-#if ADD_SOUND
-      sfxPlayCancel();
-#endif
+      playOkSound = 1;
     }
+
+#if ADD_SOUND
+    if(getBtnState(BUTTON_A)) {
+      sfxSetVolume(sfxGetGlobalVolume()+1);
+      playOkSound = 1;
+    }
+
+    if(getBtnState(BUTTON_B)) {
+      sfxSetVolume(sfxGetGlobalVolume()-1);
+      playOkSound = 1;
+    }
+#endif
   }
+
+#if ADD_SOUND
+  if(playOkSound) sfxPlayOK();
+#endif
 }
 
 void historyAction(void)
@@ -222,11 +234,15 @@ void historyAction(void)
 }
 
 //---------------------------------------------------------------------------//
-void drawGalaxy(void)
+void drawGalaxyAt(uint8_t y)
 {
   screenSliderEffect(COLOR_BLACK);
-  drawBMP_ERLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, galaxyPic);
+  drawBMP_ERLE_P(GALAXY_PIC_POS_X, y, galaxyPic);
+}
 
+void drawGalaxy(void)
+{
+  drawGalaxyAt(GALAXY_PIC_POS_Y);
   currentBackGroundColorId = getPicByte(lvlColors + curretLevel);
   currentBackGroundColor = palette_RAM[currentBackGroundColorId];
 }
@@ -236,7 +252,6 @@ void baseStory(void)
 {
   drawGalaxy();
   drawTextWindow(emptyText, buttonB);
-  
   tftDrawRect(6, 32, 52, 53, COLOR_WHITE); // Frame Dodge
 
   curretLevel = HOME_PLANET_ID;
@@ -306,7 +321,6 @@ void blinkLevelPointer(void)
   wordData_t tmpData = {.wData = getPicWord(lvlCoordinates, curretLevel*2)};
 
   iconState = !iconState;  // reuse
-
   tftDrawCircle(tmpData.u8Data1, tmpData.u8Data2, CIRCLE_PONITER_MAP_SIZE, (iconState ? COLOR_RED : COLOR_WHITE));
 }
 
@@ -314,7 +328,7 @@ void blinkLevelPointer(void)
 
 void prepareLevelSelect(void)
 {
-  int8_t i= curretLevel+1;
+  int8_t i = curretLevel+1;
 
   drawGalaxy();
   // add level select tasks
@@ -399,14 +413,16 @@ void printScore(void)
   tftPrintAt(80, 60, itoa(score, buf, 10));
 
   // draw hi score
-  uint16_t hiScore = readSaveData(EE_ADDR_SCORE);
+  uint16_t hiScore = gameSaveData.score;
   if(score > hiScore) {
-    writeSaveData(EE_ADDR_SCORE, score);  // save new score
+    gameSaveData.score = score;
     hiScore = score;
   }
   tftPrintAt_P(40, 70, (const char *)maxScoreP);
   tftPrintAt(80, 70, itoa(hiScore, buf, 10));
   score = 0;
+
+  setSaveData(EE_ADDR_SAVE_DATA, &gameSaveData.rawData[0]);
 }
 
 void done(const uint8_t *text) // fantasy end, bad name for function...
@@ -438,8 +454,9 @@ void levelClear(void)
 
 void victory(void)
 {
+  curretLevel =0;
+  gameSaveData.bonusUnlocked =1;
+
   done(victoryP);
   printScore();
-  curretLevel =0;
-  galaxySaved =1;
 }

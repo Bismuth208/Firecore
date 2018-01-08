@@ -19,7 +19,6 @@
  * 
  * Author: Antonov Alexandr (Bismuth208)
  * Date:      7 Dec, 2015
- * Last edit: 29 June, 2017
  * e-mail: bismuth20883@gmail.com
  * 
  * 1 tab = 2 spaces
@@ -30,12 +29,12 @@
 #include <stdbool.h>
 
 #ifdef __AVR__
-#include <avr/pgmspace.h>
+ #include <avr/pgmspace.h>
 #else
-#define PROGMEM
+ #define PROGMEM
 #endif
-#include "utility/systicktimer.h"
 
+#include "systicktimer.h"
 #include "taskmanager.h"
 
 //---------------------------------------------------------------------------//
@@ -83,16 +82,16 @@ __attribute__ ((noreturn)) void runTasks(void)
 #endif
 
   for(;;) {
-#if USE_AUTO_DEFRAG
-    if(TIMER_FUNC >= defragNextMs) {
-      defragTasksMemory();
-      defragNextMs = TIMER_FUNC + AUTO_DEFRAG_TIMEOUT;
-    }
-#endif
 #if USE_AUTO_GEMINI
     if(TIMER_FUNC >= geminiNextMs) {
       rmSameTasks();
       geminiNextMs = TIMER_FUNC + AUTO_GEMINI_TIMEOUT;
+    }
+#endif
+#if USE_AUTO_DEFRAG
+    if(TIMER_FUNC >= defragNextMs) {
+      defragTasksMemory();
+      defragNextMs = TIMER_FUNC + AUTO_DEFRAG_TIMEOUT;
     }
 #endif
     
@@ -175,26 +174,6 @@ void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec)
 #endif    
 }
 
-#ifdef __AVR__
-/**
- * @brief  add one task for execution from PROGMEM section
- * @param  pTaskP: pointer to task stucture
- * @retval None
- */
-void addTask_P(const taskParams_t *pTaskP)
-{
-  // This fuction is really dengerous as no any checks!
-  // Use it if you 100500% sure what you're doing!
-
-  // aaand place params to new index
-  // increase total tasks
-  taskStatesArr_t *ptr = &PAA[PAC++]; // reduce instructions by acces pointer
-  ptr->pTaskFunc = (pFunc_t)pgm_read_word(&pTaskP->task);
-  ptr->timeToRunTask = pgm_read_word(&pTaskP->timeout);
-  ptr->nextCallTime = 0; // every fuction will call immediately
-  ptr->execute = true; // always true...
-}
-#endif /*__AVR__*/
 
 /**
  * @brief  add one task for execution
@@ -205,7 +184,7 @@ void addTask_P(const taskParams_t *pTaskP)
  * @retval None
  */
 void addTaskToArr(taskStates_t *pTasksArr, pFunc_t pTask,
-                                  uint16_t timeToCheckTask, bool exec) 
+                                  uint16_t timeToCheckTask, bool exec)
 {
   // Add task by reallocate memory
   // for dynamic struct array with pointers to funtions.
@@ -252,6 +231,25 @@ void addTaskToArr(taskStates_t *pTasksArr, pFunc_t pTask,
 
 #ifdef __AVR__
 /**
+ * @brief  add one task for execution from PROGMEM section
+ * @param  pTaskP: pointer to task stucture
+ * @retval None
+ */
+void addTask_P(const taskParams_t *pTaskP)
+{
+  // This fuction is really dengerous as no any checks!
+  // Use it if you over 9000% sure what you're doing!
+  
+  // aaand place params to new index
+  // increase total tasks
+  taskStatesArr_t *ptr = &PAA[PAC++]; // reduce instructions by acces pointer
+  ptr->pTaskFunc = (pFunc_t)pgm_read_word(&pTaskP->task);
+  ptr->timeToRunTask = pgm_read_word(&pTaskP->timeout);
+  ptr->nextCallTime = 0; // every fuction will call immediately
+  ptr->execute = true; // always true...
+}
+
+/**
  * @brief  add array of tasks for execution from PROGMEM section
  * @param  pArr: pointer to task stucture whith pointers to tasks
  * @param  size: number of tasks to load
@@ -263,7 +261,7 @@ void addTasksArray_P(tasksArr_t *pArr, uint8_t size)
   
   do {
     // get ponter to task structure and load params from structure
-    addTask_P(pgm_read_word(pArr));
+    addTask_P((taskParams_t*)pgm_read_word(pArr));
     ++pArr;
   } while(--size);
 }
@@ -276,15 +274,15 @@ void addTasksArray_P(tasksArr_t *pArr, uint8_t size)
  */
 void deleteAllTasks(void)
 {
-#if USE_DYNAMIC_MEM
-  free(PAA);
-  PAA = NULL;
-#else
   uint8_t *pBuf = (uint8_t*)PAA;
   uint16_t size = maxTasks * sizeof(taskStates_t);
   do {
     *pBuf++ = 0x00;
   } while(--size);
+  
+#if USE_DYNAMIC_MEM
+  free(PAA);
+  PAA = NULL;
 #endif /*USE_DYNAMIC_MEM*/
   PAC = 0;
   resetTaskCount = true;
@@ -299,12 +297,11 @@ void deleteTask(pFunc_t pTask)
 {
   uint8_t taskId = searchTask(pTask);
 
-  if(taskId < NULL_TASK) {
-    PAA[taskId].pTaskFunc = NULL;    // remove pointer
-    //PAA[taskId].execute = false;     // clear exec flag
-    //defragTasksMemory();
-  }
+  PAA[taskId].pTaskFunc = NULL;    // remove pointer
+  //PAA[taskId].execute = false;     // clear exec flag
   resetTaskCount = true;
+  
+  // don't forget to call: defragTasksMemory();
 }
 
 /**
@@ -315,10 +312,7 @@ void deleteTask(pFunc_t pTask)
 void disableTask(pFunc_t pTask)
 {
   uint8_t taskId = searchTask(pTask);
-
-  if(taskId < NULL_TASK) {
-    PAA[taskId].execute = false;
-  }
+  PAA[taskId].execute = false;
 }
 
 /**
@@ -354,13 +348,7 @@ void enableAllTasks(void)
 void updateTaskStatus(pFunc_t pTask, bool exec)
 {
   uint8_t taskId = searchTask(pTask);
-
-  if(taskId < NULL_TASK) {
-    PAA[taskId].execute = exec;
-  }
-
-  // If we get here, when no such func in pCurrentArrTasks.
-  // Need add task or return 0?
+  PAA[taskId].execute = exec;
 }
 
 /**
@@ -373,14 +361,9 @@ void updateTaskTimeCheck(pFunc_t pTask, uint16_t timeToCheckTask)
 {
   uint8_t taskId = searchTask(pTask);
 
-  if(taskId < NULL_TASK) {
-    taskStatesArr_t *ptr = &PAA[taskId];
-    ptr->timeToRunTask = timeToCheckTask;
-    ptr->nextCallTime = TIMER_FUNC + timeToCheckTask;
-  }
-
-  // If we get here, when no such func in pCurrentArrTasks.
-  // Need add task or return 0?
+  taskStatesArr_t *ptr = &PAA[taskId];
+  ptr->timeToRunTask = timeToCheckTask;
+  ptr->nextCallTime = TIMER_FUNC + timeToCheckTask;
 }
 
 /**
@@ -398,17 +381,11 @@ void replaceTask(pFunc_t pOldTask, pFunc_t pNewTask, uint16_t timeToCheckTask, b
 
   uint8_t taskId = searchTask(pOldTask);
 
-  if(taskId < NULL_TASK) {
-    taskStatesArr_t *ptr = &PAA[taskId];
-    ptr->pTaskFunc = pNewTask;
-    ptr->nextCallTime = TIMER_FUNC + timeToCheckTask;
-    ptr->timeToRunTask = timeToCheckTask;
-    ptr->execute = exec;
-  }
-
-  // If we get here, when no such func or free holes left in pCurrentArrTasks.
-  // Oh! Or maybe recursive call replaceTask(..) whith NULL?
-  //addTask(newTask, timeToCheckTask, true);
+  taskStatesArr_t *ptr = &PAA[taskId];
+  ptr->pTaskFunc = pNewTask;
+  ptr->nextCallTime = TIMER_FUNC + timeToCheckTask;
+  ptr->timeToRunTask = timeToCheckTask;
+  ptr->execute = exec;
 }
 
 /**
@@ -517,15 +494,14 @@ void rmSameTasks(void)
  */
 uint8_t searchTask(pFunc_t pTask)
 {
+  uint8_t count = 0;
+  taskStatesArr_t *ptr = &PAA[0]; // store pointer to X register
+  
 #ifdef __AVR__
   addrCompare_t tmpOne, tmpTwo;
-  
   tmpOne.pFunc = (uint16_t)pTask; // tmpOne.pFunc use only r20,r21
-  taskStatesArr_t *ptr = &PAA[0]; // store pointer to X register
-  //uint8_t count = PAC;
-  
-  for(uint8_t count = 0; count < PAC; count++) {
-  //do {
+
+  do {
     tmpTwo.pFunc = (uint16_t)ptr->pTaskFunc; // store addr to r24,r25
     // compare addr separetly, reque less instructions
     if(tmpOne.pFuncHi == tmpTwo.pFuncHi) { // compare r24,r21
@@ -534,13 +510,18 @@ uint8_t searchTask(pFunc_t pTask)
       }
     }
     ++ptr;
-  };// while(--count);
+  } while((++count) < PAC);
 #else
-  for(uint8_t count=0; count < PAC; count++) {
-    if(PAA[count].pTaskFunc == pTask) {
+  do {
+    if(ptr->pTaskFunc == pTask) {
       return count; // ok, this is it!
     }
-  }
+    ++ptr;
+  } while((++count) < PAC);
+#endif
+
+#if USE_MEM_PANIC
+  panic(FIND_TASK_FAIL | OVER_RANGE_FAIL); // warn what program will work incorrect
 #endif
 
   return NULL_TASK;  // no such func
@@ -602,12 +583,14 @@ void setMaxTasks(uint8_t maximumTasks)
  */
 __attribute__ ((noreturn)) void panic(uint8_t errorCode)
 {
+  (void)errorCode;
+  
 #if USE_MEM_PANIC
   char errBuf[3];
   
   itoa(errorCode, errBuf, 16);
   
-#ifdef USE_GFX_LIB
+ #ifdef USE_GFX_LIB
   fpSetTextSize(3);
   fpSetCursor(0,0);
     
@@ -616,10 +599,9 @@ __attribute__ ((noreturn)) void panic(uint8_t errorCode)
   fpPrint(textError);
   
   fPrint(errBuf);
-#else
-  (void)errorCode;
+ #else
   // place here some another way to print error code
-#endif /*USE_GFX_LIB*/
+ #endif /*USE_GFX_LIB*/
 #endif /*USE_MEM_PANIC*/
   
   while(1); // panic mode: on

@@ -29,3 +29,9 @@ const uint16_t playerShotPattern[] PROGMEM = {
 };
 
 const uint16_t beepPattern[] PROGMEM = {0x8005,0x1A0,0x000};
+
+const uint16_t unfoldPattern[] PROGMEM = {
+    0x8045,0xA10D,0x8241,0x0408,0x0410,0x0408,0x0410,0x0000
+};
+
+

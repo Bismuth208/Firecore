@@ -1,6 +1,4 @@
-#ifdef __AVR__
 #include <avr/io.h>
-#endif
 
 #include "adc.h"
 

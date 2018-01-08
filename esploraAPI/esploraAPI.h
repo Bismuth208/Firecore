@@ -23,6 +23,7 @@
 #include "utility/spi.h"
 #include "utility/sfx.h"
 #include "utility/systicktimer.h"
+#include "utility/taskmanager.h"
 #include "utility/gfx.h"
 #include "utility/st7735.h"
 #include "utility/help.h"

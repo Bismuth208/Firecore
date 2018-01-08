@@ -10,11 +10,11 @@
  *  Arduino IDE:  1.8.1   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  23,104
- *  pics:         5,644
- *  code:         17,460
- * Used RAM:       962 bytes
- * Free RAM:      1,598 bytes
+ * Program size:  22,784
+ *  pics:         5,233
+ *  code:         17,551
+ * Used RAM:      1,355 bytes
+ * Free RAM:      1,205 bytes
  *
  * Language:      C and C++
  * 
@@ -33,8 +33,6 @@
  * 
  */
 
-#include <esploraAPI.h>
-
 #include "pics.h"
 #include "textProg.h"
 #include "common.h"
@@ -47,10 +45,6 @@ taskStatesArr_t pArr[MAX_GAME_TASKS];
 
 bool lowHealthState = false;
 bool pauseState = false;
-#if ADD_SOUND
-//bool soundEnable = true;
-#endif
-
 bool weaponLasers = false;
 bool weaponGift = false;
 
@@ -58,10 +52,6 @@ int8_t menuItem =0;
 uint8_t curretLevel =0;
 uint8_t difficultyIncrement =0;
 uint16_t score =0;
-
-uint16_t currentBackGroundColor = BACKGROUND_COLOR;
-uint8_t currentBackGroundColorId = 0x01;
-uint8_t replaceColorId = 0x01;
 
 uint16_t calJoysticX =0;
 uint16_t calJoysticY =0;
@@ -71,6 +61,8 @@ gift_t gift;
 rocket_t playerLasers[MAX_PEW_PEW];
 hudStatus_t hudStatus = {1,1}; // need update all
 btnStatus_t btnStates = {0};
+
+saveData_t gameSaveData;
 
 bezier_t bezierLine;
 
@@ -99,18 +91,6 @@ const uint8_t lvlCoordinates[] PROGMEM = {
   WORLD_6_POS_X, WORLD_6_POS_Y,
   WORLD_7_POS_X, WORLD_7_POS_Y,
   WORLD_8_POS_X, WORLD_8_POS_Y
-};
-
-const uint8_t lvlColors[] PROGMEM = {
-  0x1E,
-  0x1E,
-  0x1E,
-  0x1E,
-  0x1E,
-  0x1E,
-  0x1E,
-  0x01,
-  0x04
 };
 
 // ------------------------ Poll controls ------------------------ //
@@ -187,6 +167,7 @@ int8_t checkShipPosition(int8_t pos, uint8_t min, uint8_t max)
   } else if(pos > max) {
     pos = max;
   }
+
   return pos;
 }
 
@@ -406,6 +387,7 @@ void checkGift(void)
 void disableWeaponGift(void)
 {
   updateTaskStatus(dropWeaponGift, false); // to be shure and pause fix
+
   updateTaskStatus(moveGift, false);
   updateTaskStatus(checkGift, false);
   updateTaskStatus(drawGift, false);
@@ -416,9 +398,10 @@ void dropWeaponGift(void)
   gift.pPic = giftWeaponPic;
   weaponGift = true;
   updateTaskStatus(dropWeaponGift, false);
-  updateTaskStatus(moveGift, true);
-  updateTaskStatus(drawGift, true);
-  updateTaskStatus(checkGift, true);
+
+  addTask_P(T(&moveGift));
+  addTask_P(T(&drawGift));
+  addTask_P(T(&checkGift));
 }
 
 // --------------------------------------------------------------- //
@@ -464,9 +447,6 @@ void addGameTasks(void)
   gift.bezLine.step =0;
   moveBezierCurve(&gift.pos.New, &gift.bezLine);
   updateTaskTimeCheck(dropWeaponGift, RAND_GIFT_SPAWN_TIME);
-  updateTaskStatus(moveGift, false);
-  updateTaskStatus(drawGift, false);
-  updateTaskStatus(checkGift, false);
 }
 
 void addBossTasks(void)
@@ -501,6 +481,7 @@ void addStoryTasks(void)
 
 void addHistoryTasks(void)
 {
+  textHistoryPosX = 0;
   addTasksArray_P(historyTasksArr, HISTORY_TASKS_COUNT);
 }
 
@@ -514,6 +495,11 @@ void baseTitleTask(void)
   tftFillScreen(currentBackGroundColor);
   deleteAllTasks();
   addTask_P(T(&drawRows));
+  addTask_P(T(&playMusic));
+
+#if ADD_SOUND
+  sfxPlayPattern(unfoldPattern, SFX_CH_0);
+#endif
 }
 
 // --------------------------------------------------------------- //
@@ -531,20 +517,22 @@ void setMainFreq(uint8_t ps)
 // ------------- Init section ---------------------- //
 void readScore(void)
 {
-  uint8_t varCheck = getSaveDataMark(EE_ADDR_MARK);
+  getSaveData(EE_ADDR_SAVE_DATA, &gameSaveData.rawData[0]);
 
-  if(varCheck != HI_SCORE_MARK ) { // no save data in EEPROM?
+  if(gameSaveData.saveDataMark != HI_SCORE_MARK ) { // no save data in EEPROM?
     resetScore();
   }
 }
 
 void resetScore(void)
 {
-  writeSaveData(EE_ADDR_SCORE, score);
-  writeSaveData(EE_ADDR_MARK, HI_SCORE_MARK);
+  memset_F(&gameSaveData.rawData[0], 0x00, sizeof(saveData_t));
+  gameSaveData.saveDataMark = HI_SCORE_MARK;
+
+  setSaveData(EE_ADDR_SAVE_DATA, &gameSaveData.rawData[0]);
 }
 
-void calibrateJoyStic(void)
+void calibrateJoystick(void)
 {
   calJoysticX = getStickVal(LINE_X);
   calJoysticY = getStickVal(LINE_Y);
@@ -565,7 +553,7 @@ void initShip(void)
 void resetShip(void)
 {
   ship.health = SHIP_HEALTH;
-  ship.weapon.level = 0;
+  ship.weapon.level = 1;
   ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level);
   ship.type = 3; // he he he
   ship.pBodyPic = getConstCharPtr(shipsPics, ship.type);
@@ -604,7 +592,7 @@ void initSys(void)
 {
   initEsplora();
   initBaseGameParams();
-  calibrateJoyStic();
+  calibrateJoystick();
   readScore();
 
   // place palette in RAM for faster access

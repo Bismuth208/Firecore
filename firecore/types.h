@@ -140,8 +140,15 @@ typedef struct {
 } btnStatus_t;
 
 typedef struct {
-  uint8_t name[4]; // 3 for name 4 for '\n'
-  uint16_t score;  // 65535 score val be enought right?
+  union {
+    uint8_t rawData[8];
+    struct {
+      uint8_t name[4];        // 3 for name 4 for '\n'
+      uint16_t score;         // 65535 score val be enought, i'm right?
+      uint8_t bonusUnlocked;  // galaxy saved and 4th ship unlocked
+      uint8_t saveDataMark;   // ...
+    };
+  };
 } saveData_t;
 
 typedef union {

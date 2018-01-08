@@ -37,9 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include <systicktimer.h>
-#include <spi.h>
-
+#include "systicktimer.h"
+#include "spi.h"
 #include "gfx.h"
 #include "glcdfont.h"
 

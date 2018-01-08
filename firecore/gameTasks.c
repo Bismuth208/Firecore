@@ -115,9 +115,6 @@ TASK_ARR( game ) = {
   TASK_P(moveInVaders),
   TASK_P(checkInVadersRespawn),
   TASK_P(checkInVadersRay),
-  TASK_P(moveGift),
-  TASK_P(drawGift),
-  TASK_P(checkGift),
   TASK_P(dropWeaponGift)
 };
 //---------------------------------------------------------------------------//
