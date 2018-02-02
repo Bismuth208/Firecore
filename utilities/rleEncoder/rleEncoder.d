@@ -2,7 +2,7 @@
  + Author: Antonov Alexander (Bismuth208)
  + Date: 12 november 2017
  + Lang: D
- + Compiler: DMD v2.075.1
+ + Compiler: DMD v2.078.1
  +
  + This program convert and compress by simple RLE and dictionary (like LZ family)
  + raw ".data" picture files from "GIMP" program to ".h" files.
@@ -14,37 +14,13 @@
 immutable auto fmtSize = "// orig size %d * 2 = %d\n// RLE pic size = %d\n// RLE compress ratio %f\n";
 immutable auto fmt = "const uint8_t %s[] PROGMEM = {\n  _PIC_W-1,_PIC_H-1,";
 
-immutable auto pictureEndMarker = 0xff;
 immutable auto maxDictSize = 44; // maximum dictionary size
 immutable auto minMatchCount = 3;
 immutable auto dictPosMarker = 0xd0; // base value of pair bytes in dictionary; (0x80 + 0x50) or (0xff - maxDictSize - 1)
 immutable auto maxDataLength = 0xcf; // actual size is: (maxDataLength -1); (0xff - dictPosMarker -1)
+immutable auto pictureEndMarker = 0xff;
 
-immutable auto compressRatioV2V3Flag = false;  // V3 needs more RAM on unpack
-
-void fillHeader(string headerName, string fileName) {
-  import std.file, std.outbuffer;
-
-  auto buf = cast(ubyte[])read(fileName);
-  auto bufSize = buf.length;
-  auto array = compressRLE(buf);
-  auto arrayEnd = new OutBuffer();
-  auto dictionaryArr = cast(ubyte[])encodeMatches(array);
-  auto pictureSize = dictionaryArr.length + array.length;
-  
-  auto writeEndArr = (ref ubyte[] refArr, int sep) { // make new line each sep bytes
-    foreach(i, ref pArr; refArr) arrayEnd.writef("%s0x%.2x,", (!(i % sep) ? "\n  " : ""), pArr);
-  };
-  
-  arrayEnd.writef(fmtSize, bufSize, bufSize*2, pictureSize, cast(float)(bufSize)/cast(float)pictureSize);
-  arrayEnd.writef(fmt, headerName);
- 
-  writeEndArr(dictionaryArr, 16);
-  writeEndArr(array, 16);
-  arrayEnd.write("\n};");
-
-  write(headerName ~ ".h", arrayEnd.data); // write end buffer to file
-}
+immutable auto compressRatioV2V3Flag = true;  // V3 needs more RAM on unpack
 
 auto findMatch(ref ubyte[] buf)
 {
@@ -52,9 +28,9 @@ auto findMatch(ref ubyte[] buf)
 
   auto offset = 0;
   auto offsetMax = 0;
-  auto matchCount = 0;
+  auto matchCount = 0UL;
   auto allMatchFound = false;
-  auto matchCountMax = cast(int)count(buf[offset..$], buf[offset..offset+2]);
+  auto matchCountMax = buf.count(buf[0..2]);
 
   while(!allMatchFound) {
     if(compressRatioV2V3Flag) {  // v3
@@ -66,7 +42,7 @@ auto findMatch(ref ubyte[] buf)
     }
   
     if(offset < buf.length-1) {
-      matchCount = cast(int)count(buf[offset..$], buf[offset..offset+2]);
+      matchCount = buf[offset..$].count(buf[offset..offset+2]);
 
       if(matchCount > matchCountMax) {
         matchCountMax = matchCount;
@@ -90,7 +66,7 @@ auto encodeMatches(ref ubyte[] buf)
   auto dictPos = 0;
   
   do {
-    tmpDict = findMatch(buf);
+    tmpDict = buf.findMatch;
     
     if(tmpDict.length) { // found something?
       markerBuf[0] = cast(ubyte)(dictPosMarker + dictPos); // replaceVal
@@ -109,16 +85,16 @@ auto compressRLE(ref ubyte[] buf) {
   import std.stdio, std.outbuffer, std.algorithm : group;
   import std.typecons : tuple, Tuple;
 
-  auto encodedRLE = new OutBuffer();
+  auto encodedRLE = new OutBuffer;
   auto dataBuf = new ubyte[2];
   auto tmpByte = cast(ubyte)0;
-  auto fastGrop = group(buf);  // actually this one make all job...
+  auto fastGrop = buf.group;  // actually this one make all job...
   auto rleCount = 0;
   
-  auto repeatWrite = (int cnt, int sz, ubyte dat) {
-    dataBuf[0] = cast(ubyte)(dat | 0x80);
-    dataBuf[1] = cast(ubyte)sz;
-    while(cnt--){ encodedRLE.write(dataBuf[0..2]);}}; // repeatByte and how much to repeat
+  auto repeatWrite = (int i, int size, ubyte data) {
+    dataBuf[0] = cast(ubyte)(data | 0x80);
+    dataBuf[1] = cast(ubyte)size;
+    while(i--){ encodedRLE.write(dataBuf);}}; // repeatByte and how much to repeat
 
   foreach(rleData; fastGrop) {
     rleCount = rleData[1];
@@ -140,31 +116,51 @@ auto compressRLE(ref ubyte[] buf) {
   }
 
   encodedRLE.write(cast(ubyte)pictureEndMarker);
-  return encodedRLE.toBytes();
+  return encodedRLE.toBytes;
 }
 
-void parallelWorker(string iName)
-{
-  import std.stdio, std.string;
+void fillHeader(string fileName) {
+  import std.file, std.outbuffer;//, std.string;
 
-  auto name = chomp(iName, ".data");
-  writef("\t%s...\n", name);
-  fillHeader(name, iName);
+  auto arrayEnd = new OutBuffer;
+  auto dictionaryArr = new ubyte[0]; 
+  auto array = cast(ubyte[])fileName.read;
+  auto bufSize = array.length;
+  auto pictureSize = 0UL;
+  auto headerName = fileName[0..$-5]; // fileName.chomp(".data");
+  
+  auto writeEndArr = (ref ubyte[] refArr, int sep) { // make new line each sep bytes
+    foreach(i, ref pArr; refArr) arrayEnd.writef("%s0x%.2x,", (!(i % sep) ? "\n  " : ""), pArr);
+  };
+
+  array = array.compressRLE;
+  dictionaryArr = array.encodeMatches;
+  pictureSize = dictionaryArr.length + array.length;
+  
+  arrayEnd.writef(fmtSize, bufSize, bufSize*2, pictureSize, cast(float)(bufSize)/cast(float)pictureSize);
+  arrayEnd.writef(fmt, headerName);
+ 
+  writeEndArr(dictionaryArr, 16);
+  writeEndArr(array, 16); // comressed and encoded array
+  arrayEnd.write("\n};");
+
+  (headerName ~ ".h").write(arrayEnd.data); // write result to file
 }
 
 void main() {
   import std.file, std.stdio, std.conv, std.parallelism;
 
   // search all *.data in execution folder and lower folders
-  auto dataFiles = dirEntries("", "*.{data}", SpanMode.breadth);
+  auto dataFiles = dirEntries("", "*.{data}", SpanMode.breadth, false);
   
-  writeln("Start RLE encode...");
+  "Start RLE encode...".writeln;
   
   // each file parsed in thread,
   // number of threads depend on your CPU and it's number of real cores
   foreach(i; dataFiles.parallel(to!int(totalCPUs))) {
-    parallelWorker(i.name);
+    "\t%s...\n".writef(i.name);
+    i.name.fillHeader;
   }
 
-  writeln("All Done!");
+  "All Done!".writeln;
 }
