@@ -34,8 +34,6 @@ extern "C"{
 #define TFT_H    128
 //---------------------------------------------------------------------------//
 
-#define MAX_GAME_TASKS          19
-
 #define STAR_STEP                6  // move speed for stars
 #define MAX_STARS               40  // how much stars we see on screen
 #define MAX_PEW_PEW              4  // Crysis, nanosuit voice: - "Maximum pew".
@@ -50,9 +48,9 @@ extern "C"{
 #define DENGER_HEALTH_LVL       30  // when RGB LED  start to blink
 #define MAX_DIFFICULT_INCREMENT  2
 
-#define SCORE_VAL             20
-#define BOSS_SCORE_VAL       100
-#define GIFT_BONUS_SCORE     150
+#define SCORE_VAL               20
+#define BOSS_SCORE_VAL         100
+#define GIFT_BONUS_SCORE       150
 
 #define RN             fastRandNum()
 #define RAND_CODE      tftSetCP437(RN & 1);
@@ -64,7 +62,7 @@ extern "C"{
 
 
 #define STARS_MAX_POS_Y (TFT_H-9)
-#define RAND_STAR_CLR  (((RN % 3)+1)<<4) | (RN & 0x7)
+#define RAND_STAR_CLR   (((RN % 3)+1)<<4) | (RN & 0x7)
 
 // this macros remove monstro constructions...
 #define getConstCharPtr(a, b) (const uint8_t*)pgm_read_word(&(a[b]))
@@ -76,7 +74,16 @@ extern "C"{
 #define continue() {CHECK_RULE}
 
 //---------------------------------------------------------------------------//
-#define ADD_SOUND 1
+#define ADD_SOUND             1
+#define BEZIER_FIXED_MATH     0
+//---------------------------------------------------------------------------//
+
+#define M_SWITCH_TITLE        0
+#define M_SWITCH_HISTORY      1
+#define M_SWITCH_SHIP_SELECT  2
+#define M_SWITCH_STORY        3
+#define M_SWITCH_LVL_SELECT   4
+
 //---------------------------------------------------------------------------//
 
 // adrr range used: 0x00 - 0x08
@@ -194,17 +201,17 @@ extern "C"{
 //---------------------------------------------------------------------------//
 
 #define CIRCLE_PONITER_MAP_SIZE  5
-#define CHECK_RULE if(++someCount>10) action();
+#define CHECK_RULE               if(++someCount>10) action();
 //---------------------------------------------------------------------------//
 
-#define ALIEN_MOVE_ZONE_Y_MIN 0
-#define ALIEN_MOVE_ZONE_Y_MAX (TFT_H-ALIEN_SHIP_PIC_H-8)
+#define ALIEN_MOVE_ZONE_Y_MIN         0
+#define ALIEN_MOVE_ZONE_Y_MAX    (TFT_H-ALIEN_SHIP_PIC_H-8)
 
-#define ALIEN_MOVE_ZONE_X_MIN 0
-#define ALIEN_MOVE_ZONE_X_MAX 125
+#define ALIEN_MOVE_ZONE_X_MIN         0
+#define ALIEN_MOVE_ZONE_X_MAX       125
 
-#define ALIEN_DEFAULT_POS_X   125
-#define ALIEN_DEFAULT_POS_Y   20
+#define ALIEN_DEFAULT_POS_X         125
+#define ALIEN_DEFAULT_POS_Y          20
 
 #define ALIEN_BOSS_MOVE_ZONE_Y_MIN    0
 #define ALIEN_BOSS_MOVE_ZONE_Y_MAX    (TFT_H-ALIEN_SHIP_BOSS_PIC_H-8)
@@ -291,11 +298,10 @@ extern ship_t        ship;
 extern gift_t        gift;
 extern inVaderBoss_t alienBoss;
 extern btnStatus_t   btnStates;
-extern hudStatus_t   hudStatus;
 extern bezier_t      bezierLine;
 extern saveData_t    gameSaveData;
 extern stars_t       stars[MAX_STARS];
-extern inVader_t     alien[MAX_ALIENS];
+extern inVader_t     aliens[MAX_ALIENS];
 extern rocket_t      playerLasers[MAX_PEW_PEW];
 //---------------------------------------------------------------------------//
 
@@ -314,12 +320,9 @@ extern const uint16_t unfoldPattern[];
 // Core GUI
 void pauseMenu(void);
 void baseStory(void);
-void drawStory(void);
 void menuAction(void);
 void getMenuItem(void);
-void titleAction(void);
 void selectionMenu(void);
-void historyAction(void);
 void drawMenuItemSelector(void);
 
 void victory(void);
@@ -332,7 +335,6 @@ void waitEnd(void);
 
 void drawStaticNoise(void);
 void blinkLevelPointer(void);
-
 
 void drawGalaxy(void);
 void drawGalaxyAt(uint8_t y);
@@ -347,8 +349,16 @@ void initBaseGameParams(void);
 
 void levelBaseInit(void);
 void createNextLevel(void);
-void drawLevelSelect(void);
+
 void prepareLevelSelect(void);
+//---------------------------------------------------------------------------//
+
+uint8_t drawStory(void);
+uint8_t titleAction(void);
+uint8_t historyAction(void);
+uint8_t drawLevelSelect(void);
+
+void menuSwitchSelect(void);
 //---------------------------------------------------------------------------//
 
 void initInvaders(void);
@@ -376,7 +386,7 @@ void checkShipBossDamage(void);
 void drawCurrentShipSelection(void);
 void drawShipSelectionMenu(void);
 void updateShipStates(void);
-void checkShipSelect(void);
+uint8_t checkShipSelect(void);
 void getShipItem(void);
 
 //---------------------------------------------------------------------------//
@@ -448,7 +458,6 @@ bool checkCollision(position_t *pObjOne, uint8_t objOneW, uint8_t objOneH,
                     position_t *pObjTwo, uint8_t objTwoW, uint8_t objTwoH);
 
 void playMusic(void);
-
 void printDutyDebug(uint32_t duration);
 //---------------------------------------------------------------------------//
 //---------------------------------------------------------------------------//
@@ -463,6 +472,8 @@ void addBossTasks(void);
 void addGiftTasks(void);
 
 //---------------------------------------------------------------------------//
+
+#define MAX_GAME_TASKS        19
 
 #define TITLE_TASKS_COUNT      7
 #define HISTORY_TASKS_COUNT    4

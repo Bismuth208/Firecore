@@ -23,6 +23,7 @@
 int8_t currentShip = 2;
 int8_t previousShip =0;
 uint8_t dogeDialogs =0;
+uint8_t menuSwitchSelectState =0;
 bool iconState = false;
 bool rndFlag = false;
 
@@ -132,19 +133,6 @@ void updateShipStates(void)
     } break;
   }
 }
-
-void checkShipSelect(void)
-{
-  if(getBtnState(BUTTON_A)) {
-    resetBtnStates();
-#if ADD_SOUND
-    sfxPlayOK();
-#endif
-    updateShipStates();
-    previousShip =0;
-    baseStory();
-  }
-}
 //---------------------------------------------------------------------------//
 
 void action(){TS;for(;;){RAND_CODE;SC;DC(RC);}}
@@ -183,22 +171,23 @@ void pauseWindow(void)
 
 //---------------------------------------------------------------------------//
 // switch from title to main menu
-void titleAction(void)
+uint8_t titleAction(void)
 {
   uint8_t playOkSound = 0;
 
   if(getBtnState(BUTTON_A)) {
-      resetBtnStates();
-      playOkSound = 1;
+    resetBtnStates();
+    playOkSound = 1;
 
-      addHistoryTasks();
-      shipHyperJump();
-      drawGalaxyAt(0);
-      // for text
-      tftSetTextColor(COLOR_WHITE);
-      tftSetTextSize(1);
-      tftSetCursor(0, 72);
-    }
+    addHistoryTasks();
+    shipHyperJump();
+    drawGalaxyAt(0);
+    // for history text
+    tftSetTextColor(COLOR_WHITE);
+    tftSetTextSize(1);
+    tftSetCursor(0, 72);
+    return 1;
+  }
 
   if(getStickVal(LR_OK)) {
     if(getBtnState(BUTTON_Y) && getBtnState(BUTTON_X)) {
@@ -207,7 +196,7 @@ void titleAction(void)
       playOkSound = 1;
     }
 
-#if ADD_SOUND
+#if 0
     if(getBtnState(BUTTON_A)) {
       sfxSetVolume(sfxGetGlobalVolume()+1);
       playOkSound = 1;
@@ -223,14 +212,114 @@ void titleAction(void)
 #if ADD_SOUND
   if(playOkSound) sfxPlayOK();
 #endif
+
+  return 0;
 }
 
-void historyAction(void)
+uint8_t historyAction(void)
 {
   if(getBtnState(BUTTON_B)) {
     resetBtnStates();
     drawShipSelectionMenu();
+    return 1;
   }
+  return 0;
+}
+
+uint8_t checkShipSelect(void)
+{
+  if(getBtnState(BUTTON_A)) {
+    resetBtnStates();
+#if ADD_SOUND
+    sfxPlayOK();
+#endif
+    updateShipStates();
+    previousShip =0;
+    baseStory();
+    return 1;
+  }
+  return 0;
+}
+
+uint8_t drawStory(void)
+{
+  if(getBtnState(BUTTON_B)) {
+#if ADD_SOUND
+    sfxPlayCancel();
+#endif
+    resetBtnStates();
+    if(dogeDialogs < STORY_DOGE_TEXT_SIZE) {
+      drawTextWindow(getConstCharPtr(dogePA, dogeDialogs), buttonB);
+
+      switch(++dogeDialogs) {
+        case 5: {
+          updateTaskStatus(drawStaticNoise, true);
+        } break;
+        case 7: {
+          updateTaskStatus(drawRandomDoge, false);
+        } break;
+        default: break;
+      }
+    } else {
+      curretLevel =0;
+      dogeDialogs =0;
+      prepareLevelSelect();
+      return 1;
+    }
+  }
+  return 0;
+}
+
+uint8_t drawLevelSelect(void)
+{
+  if(getBtnState(BUTTON_A)) {
+    resetBtnStates();
+#if ADD_SOUND
+    sfxPlayOK();
+#endif
+    
+    screenSliderEffect(currentBackGroundColor);
+    addGameTasks();
+  }
+  return 0;
+}
+
+//---------------------------------------------------------------------------//
+// tiny state machine
+void menuSwitchSelect(void)
+{
+  uint8_t switchSate = 0;
+
+  switch(menuSwitchSelectState)
+  {
+  case M_SWITCH_TITLE: {
+    switchSate = titleAction();
+  } break;
+
+  case M_SWITCH_HISTORY: {
+    switchSate = historyAction();
+  } break;
+
+  case M_SWITCH_SHIP_SELECT: {
+    switchSate = checkShipSelect();
+  } break;
+
+  case M_SWITCH_STORY: {
+    switchSate = drawStory();
+  } break;
+
+  case M_SWITCH_LVL_SELECT: {
+    switchSate = drawLevelSelect();
+  } break;  
+
+  default: break; // do nothing
+  }
+
+  if(switchSate) {
+    if(++menuSwitchSelectState > M_SWITCH_LVL_SELECT) {
+      menuSwitchSelectState = 0;
+    }
+  }  
 }
 
 //---------------------------------------------------------------------------//
@@ -288,33 +377,6 @@ void drawStaticNoise(void)
   } while(--dataSize);
 }
 
-void drawStory(void)
-{
-  if(getBtnState(BUTTON_B)) {
-#if ADD_SOUND
-    sfxPlayCancel();
-#endif
-    resetBtnStates();
-    if(dogeDialogs < STORY_DOGE_TEXT_SIZE) {
-      drawTextWindow(getConstCharPtr(dogePA, dogeDialogs), buttonB);
-
-      switch(++dogeDialogs) {
-        case 5: {
-          updateTaskStatus(drawStaticNoise, true);
-        } break;
-        case 7: {
-          updateTaskStatus(drawRandomDoge, false);
-        } break;
-        default: break;
-      }
-    } else {
-      curretLevel =0;
-      dogeDialogs =0;
-      prepareLevelSelect();
-    }
-  }
-}
-
 //---------------------------------------------------------------------------//
 void blinkLevelPointer(void)
 {
@@ -343,36 +405,18 @@ void prepareLevelSelect(void)
   
   resetBtnStates();
 }
-
-void drawLevelSelect(void)
-{
-  if(getBtnState(BUTTON_A)) {
-    resetBtnStates();
-#if ADD_SOUND
-    sfxPlayOK();
-#endif
-    
-    screenSliderEffect(currentBackGroundColor);
-    drawBMP_ERLE_P(0, 119, hudGuiPic);
-    addGameTasks();
-  }
-}
 //---------------------------------------------------------------------------//
 
 void drawSomeGUI(void)
 {
-  if(hudStatus.updScore) {
-    hudStatus.updScore = false;
-    char buf[5]; // i'm pretty sure what 5 bytes will be enough...
-    tftSetTextSize(1);
-    tftFillRect(SCORE_POS_X, SCORE_POS_Y, 20, 7, currentBackGroundColor);
-    tftPrintAt(SCORE_POS_X, SCORE_POS_Y, itoa(score, buf, 10));
-  }
+  drawBMP_ERLE_P(0, 119, hudGuiPic);
+  
+  char buf[5]; // i'm pretty sure what 5 bytes will be enough...
+  tftSetTextSize(1);
+  tftFillRect(SCORE_POS_X, SCORE_POS_Y, 20, 7, currentBackGroundColor);
+  tftPrintAt(SCORE_POS_X, SCORE_POS_Y, itoa(score, buf, 10));
 
-  if(hudStatus.updLife) {
-    hudStatus.updLife = false;
-    tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_WHITE);
-  }
+  tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_WHITE);
 }
 
 void waitEnd(void)
@@ -395,13 +439,6 @@ void waitOk(void)
 #endif
     prepareLevelSelect();
   }
-}
-
-void printMessage(const char *text)
-{
-  tftSetTextSize(2);
-  tftSetTextColor(COLOR_WHITE);
-  tftPrintAt_P(20, 40, (const char *)text);
 }
 
 void printScore(void)
@@ -444,6 +481,7 @@ void gameOver(void)
   resetBtnStates();
 
   curretLevel =0;
+  menuSwitchSelectState = 0;
   initBaseGameParams();
 }
 
@@ -455,6 +493,7 @@ void levelClear(void)
 void victory(void)
 {
   curretLevel =0;
+  menuSwitchSelectState = 0;
   gameSaveData.bonusUnlocked =1;
 
   done(victoryP);

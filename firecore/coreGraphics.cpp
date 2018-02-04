@@ -25,7 +25,7 @@
 uint8_t titleRowRPosX = PIC_TITLE_R_BASE_X;
 uint8_t titleRowLPosX = PIC_TITLE_L_BASE_X;
 
-stars_t stars[MAX_STARS];
+stars_t stars[MAX_STARS] = {{0,0}, 0, 0};
 bool startState = true;
 
 const uint8_t *pTextDialoge = NULL;
@@ -87,33 +87,23 @@ void drawFrame(uint8_t posX, uint8_t posY, uint8_t w, uint8_t h, uint16_t clr1, 
   tftDrawRect(posX+1, posY+1, w-2, h-2, clr2);  // Frame 1
 }
 //---------------------------------------------------------------------------//
-
+// Arrrrrghh!!!!
+// How to make it faster?!?!
 void drawStars(void)
 {
-  // Arrrrrghh!!!!
-  // How to make it faster?!?!
-
-  stars_t *pStars = &stars[0];
-
   // draw stars and blow your mind, if still not
-  for(uint8_t count=0; count < MAX_STARS; count++) {
-    //drawPixelFast(&pStars->pos, currentBackGroundColorId);
-    tftSetAddrPixel(pStars->pos.x, pStars->pos.y);
-    pushColorFast(palette_RAM[currentBackGroundColorId]);
+  for(auto &pStar: stars) {
+    drawPixelFast(&pStar.pos, currentBackGroundColorId);
     
     // now move them
-    if((pStars->pos.x -= pStars->speed) < TFT_W) {
-      //drawPixelFast(&pStars->pos, pStars->color);
-      tftSetAddrPixel(pStars->pos.x, pStars->pos.y);
-      pushColorFast(palette_RAM[pStars->color]);
+    if((pStar.pos.x -= pStar.speed) < TFT_W) {
+      drawPixelFast(&pStar.pos, pStar.color);
     } else {
-      pStars->pos.x = TFT_W;
-      pStars->pos.y = RN % STARS_MAX_POS_Y;
-      pStars->color = RAND_STAR_CLR;
-      pStars->speed = RN % STAR_STEP + 1;
+      pStar.pos.x = TFT_W;
+      pStar.pos.y = RN % STARS_MAX_POS_Y;
+      pStar.color = RAND_STAR_CLR;
+      pStar.speed = RN % STAR_STEP + 1;
     }
-
-    ++pStars;
   }
 }
 // --------------------------------------------------------------- //
@@ -125,10 +115,6 @@ void rocketEpxlosion(rocket_t *pRocket)
   pRocket->onUse = false;
   uint16_t posX = pRocket->pos.x;
   uint16_t posY = pRocket->pos.y;
-
-#if ADD_SOUND
-  sfxPlayPattern(enemyHitPattern, SFX_CH_1);
-#endif
 
   for(uint8_t i = 0; i < 5; i++) { // base formation
     tftFillCircle(posX, posY, i*2, COLOR_WHITE);
@@ -142,6 +128,14 @@ void rocketEpxlosion(rocket_t *pRocket)
   for(uint8_t i = 0; i < 7; i++) { // remove smoke
     tftFillCircle(posX, posY, i*2, currentBackGroundColor);
   }
+
+  //drawBMP_ERLE_P(posX, posY, explosion1);
+#if ADD_SOUND
+  sfxPlayPattern(enemyHitPattern, SFX_CH_1); // veeery tyny delay
+#endif
+  //drawBMP_ERLE_P(posX, posY, explosion2);
+
+  //fillRectFast(posX, posY, EXPLOSION_PIC_WH, EXPLOSION_PIC_WH);
 }
 // --------------------------------------------------------------- //
 
@@ -167,7 +161,7 @@ void shipHyperJump(void)
 
 void drawShipExplosion(void)
 {
-  rocket_t *pRocket = &playerLasers[0]; // reuse
+  auto *pRocket = &playerLasers[0]; // reuse
 
   pRocket->pos.x = (RN & (SHIP_PIC_W-1)) + ship.pos.Base.x;
   pRocket->pos.y = (RN & (SHIP_PIC_H-1)) + ship.pos.Base.y;
@@ -180,20 +174,17 @@ void drawShipExplosion(void)
 
 void drawPlayerRockets(void)
 {
-  rocket_t *pRocket = &playerLasers[0];
-
-  for(uint8_t count =0; count < MAX_PEW_PEW; count++) {
-    if(pRocket->onUse) {
+  for(auto &pRocket: playerLasers) {
+    if(pRocket.onUse) {
       // remove previous rocket image
-      fillRectFast(pRocket->pos.x, pRocket->pos.y, LASER_PIC_W, LASER_PIC_H);
+      fillRectFast(pRocket.pos.x, pRocket.pos.y, LASER_PIC_W, LASER_PIC_H);
       
-      if(((pRocket->pos.x += PLAYER_ROCKET_SPEED) + LASER_PIC_W) <= TFT_W) {
-        drawBMP_ERLE_P(pRocket->pos.x, pRocket->pos.y, ship.weapon.pPic);
+      if(((pRocket.pos.x += PLAYER_ROCKET_SPEED) + LASER_PIC_W) <= TFT_W) {
+        drawBMP_ERLE_P(pRocket.pos.x, pRocket.pos.y, ship.weapon.pPic);
       } else {
-        pRocket->onUse = false;
+        pRocket.onUse = false;
       }
     }
-    ++pRocket;
   }
 }
 // --------------------------------------------------------------- //
@@ -249,17 +240,14 @@ void screenSliderEffect(uint16_t color)
 }
 
 // ------------------ Q16 ------------------- //
-#if 0
+#if BEZIER_FIXED_MATH
 int32_t fixedDiv16(int32_t x, int32_t y)
 {
-  //return (x / y) * (1 << 16);
   return ((int64_t)x * (1 << 16)) / y;
 }
 
 int32_t fixedMul16(int32_t x, int32_t y)
 {
-  //return (x * y) / (1 << 16);
-  //return ((int64_t)x * (int64_t)y) >> 16;
   return ((int64_t)x * (int64_t)y) / (1 << 16);
 }
 #endif
@@ -282,21 +270,21 @@ void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine)
   // t  - number of step betwen P0 and P3
   // B = ((1.0 - t)^2)P0 + 2t(1.0 - t)P2 + (t^2)P3
   // t [>= 0 && <= 1]
-#if 1
-  float t = ((float)pItemLine->step)/((float)pLine->totalSteps);
-  pPos->x = (1.0 - t)*(1.0 - t)*pLine->P0.x + 2*t*(1.0 - t)*pLine->P1.x + t*t*pLine->P2.x;
-  pPos->y = (1.0 - t)*(1.0 - t)*pLine->P0.y + 2*t*(1.0 - t)*pLine->P1.y + t*t*pLine->P2.y;
-#else
+#if BEZIER_FIXED_MATH
   uint32_t t = fixedDiv16((float)pItemLine->step, (float)pLine->totalSteps);
   uint32_t oneT = (1<<16) - t;
 
   pPos->x = (uint8_t)((fixedMul16(fixedMul16(oneT, oneT), (float)pLine->P0.x)
-                        + fixedMul16(fixedMul16(fixedMul16(t, (float)2),oneT), (float)pLine->P1.x)
-                        + fixedMul16(fixedMul16(t, t), (float)pLine->P2.x)) >> 16);
+                        + fixedMul16(fixedMul16(fixedMul16(t, (float)2), oneT), (float)pLine->P1.x)
+                        + fixedMul16(fixedMul16(t, t), (float)pLine->P2.x)));
   
   pPos->y = (uint8_t)((fixedMul16(fixedMul16(oneT, oneT), (float)pLine->P0.y)
-                        + fixedMul16(fixedMul16(fixedMul16(t, 2),oneT), (float)pLine->P1.y)
-                        + fixedMul16(fixedMul16(t, t), (float)pLine->P2.y)) >> 16);
+                        + fixedMul16(fixedMul16(fixedMul16(t, (float)2), oneT), (float)pLine->P1.y)
+                        + fixedMul16(fixedMul16(t, t), (float)pLine->P2.y)));
+#else
+  float t = ((float)pItemLine->step)/((float)pLine->totalSteps);
+  pPos->x = (1.0 - t)*(1.0 - t)*pLine->P0.x + 2*t*(1.0 - t)*pLine->P1.x + t*t*pLine->P2.x;
+  pPos->y = (1.0 - t)*(1.0 - t)*pLine->P0.y + 2*t*(1.0 - t)*pLine->P1.y + t*t*pLine->P2.y;
 #endif
 }
 

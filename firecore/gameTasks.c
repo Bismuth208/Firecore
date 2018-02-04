@@ -36,9 +36,6 @@
 TASK(updateBtnStates, 40);
 TASK(checkFireButton, 200);
 
-TASK(titleAction, 400);
-TASK(historyAction, 400);
-
 TASK(drawStars, 50);
 TASK(drawSomeGUI, 500);
 TASK(pauseMenu, 500);
@@ -53,7 +50,6 @@ TASK(drawShipExplosion, 250);
 
 TASK(drawCurrentShipSelection, 250);
 TASK(getShipItem, 250);
-TASK(checkShipSelect, 400);
 
 TASK(checkInVaders, 80);
 TASK(drawInVaders, 150);
@@ -78,20 +74,20 @@ TASK(playMusic, 50);
 TASK(drawRows, 10);
 TASK(waitEnd, 400);
 TASK(waitOk, 400);
-TASK(drawStory, 500);
 TASK(printDialogeText, 40);
 TASK(printHistory, 40);
 TASK(drawStaticNoise, 50);
-TASK(drawLevelSelect, 250);
 TASK(blinkLevelPointer, 250);
 TASK(drawRandomDoge, 80);
+
+TASK(menuSwitchSelect, 400);
 
 //---------------------------------------------------------------------------//
 
 TASK_ARR( title ) = {
   TASK_P(updateBtnStates),
   TASK_P(playMusic),
-  TASK_P(titleAction),
+  TASK_P(menuSwitchSelect),  
   TASK_P(drawStars),
   TASK_P(drawShip),
   TASK_P(drawStart),
@@ -157,14 +153,14 @@ TASK_ARR( shipSel ) = {
   TASK_P(drawShip),
   TASK_P(drawCurrentShipSelection),
   TASK_P(getShipItem),
-  TASK_P(checkShipSelect),
+  TASK_P(menuSwitchSelect),
   TASK_P(printDialogeText)
 };
 
 TASK_ARR( story ) = {
   TASK_P(updateBtnStates),
   TASK_P(playMusic),
-  TASK_P(drawStory),
+  TASK_P(menuSwitchSelect), 
   TASK_P(blinkLevelPointer),
   TASK_P(printDialogeText),
   TASK_P(drawStaticNoise),
@@ -175,13 +171,13 @@ TASK_ARR( history ) = {
   TASK_P(updateBtnStates),
   TASK_P(playMusic),
   TASK_P(printHistory),
-  TASK_P(historyAction)
+  TASK_P(menuSwitchSelect)
 };
 
 TASK_ARR( levelSelect ) = {
   TASK_P(updateBtnStates),
   TASK_P(playMusic),
-  TASK_P(drawLevelSelect),
+  TASK_P(menuSwitchSelect),
   TASK_P(blinkLevelPointer),
   TASK_P(printDialogeText)
 };

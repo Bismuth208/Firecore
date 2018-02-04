@@ -183,4 +183,10 @@ extern const uint8_t rowsLeftPic[];
 extern const uint8_t rowsRightPic[];
 //---------------------------------------------------------------------------//
 
+#define EXPLOSION_PIC_WH 10
+
+extern const uint8_t explosion1[];
+extern const uint8_t explosion2[];
+//---------------------------------------------------------------------------//
+
 #endif  

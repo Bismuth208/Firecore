@@ -63,6 +63,16 @@
 #define AUTO_GEMINI_TIMEOUT 12 SEC
 
 /*
+ * If you are shure what:
+ *   - you wouldn't add new task in IRQ;
+ *   - task array will be always filled at least by one task;
+ *   - other unnown reasons.
+ * When, set USE_NO_TASK_PANIC to 0
+ */
+#define USE_NO_TASK_PANIC 0
+
+
+/*
  * Uncomment this one and enable otuput errors on screen.
  * Add depedencies from gfx lib.
  *
@@ -101,11 +111,13 @@
 
 //----------- ERROR CODES --------------//
 //  NAME:                  ERR CODE:    WHY IT`S HAPPEN:
+#define NO_TASKS_FAIL           0x00    // tasks list is empty!
 #define OVER_LIMIT_FAIL         0x01    // more than: 0xFE
 #define OVER_RANGE_FAIL         0x02    // more than: maxTasks
 #define ALLOC_FAIL              0x03    // not enougth RAM
 
 //                                      WHERE IT`S HAPPEN:
+#define CHECK_TASKS_FAIL        0x00    // runTasks()
 #define ADD_FAIL                0x10    // addTask()
 #define ADD_TO_ARR_FAIL         0x20    // addTaskToArr()
 #define DEFRAG_FAIL             0x30    // defragTasksMemory()
@@ -144,7 +156,6 @@ typedef void (*pFunc_t)(void);
 
 #ifdef USE_GFX_LIB
 typedef void (*fPrint_t)(uint8_t*);
-typedef void (*fSetTextSize_t)(uint8_t);
 typedef void (*fSetCursor_t)(uint16_t, uint16_t);
 typedef void (*fDrawFastVLine_t)(uint16_t, uint16_t, uint16_t, uint16_t);
 typedef void (*fFillRect_t)(uint16_t, uint16_t, uint16_t, uint16_t, uint16_t);
@@ -153,10 +164,25 @@ typedef void (*fFillRect_t)(uint16_t, uint16_t, uint16_t, uint16_t, uint16_t);
     
 //------------------------ Tasks Structures ---------------------------------//
 #pragma pack(push, 1)
+typedef struct {
+#ifdef __AVR__
+  union  {
+    pFunc_t pFunc;    // on avr it get 2 bytes
+    struct {
+      uint8_t hi;
+      uint8_t low;
+    };
+  };
+#else
+  pFunc_t pFunc;     // on 32-bit arch it get 4 bytes
+#endif /* __AVR__*/
+  
+  uint16_t timeOut;   // 65,5 seconds will be enougth? (65535 millis / 1000)
+} taskParams_t;
+  
 typedef struct {            // 9 bytes RAM(*)
   uint32_t nextCallTime;  	// when will be next func call
-  pFunc_t pTaskFunc;        // on avr it get 2 bytes
-  uint16_t timeToRunTask;   // 65,5 seconds will be enougth? (65535 millis / 1000)
+  taskParams_t task;
   uint8_t execute;      		// status flag; need exec or not
   /* // at this moment not need
   struct {
@@ -167,30 +193,14 @@ typedef struct {            // 9 bytes RAM(*)
    */
   // 7 or 5 bytes align here
   //whole size: avr = 9 bytes, arm = 11 bytes
-} taskStatesArr_t;
+} taskFunc_t;
 
-typedef struct {            // (2(*) + tasksCount * taskStatesArr_t) + 1 bytes RAM
-  taskStatesArr_t *pArr;    // pointer to array whith tasks
+typedef struct {            // (2(*) + tasksCount * taskFunc_t) + 1 bytes RAM
+  taskFunc_t *pArr;    // pointer to array whith tasks
   uint8_t tasksCount;       // Note: 0xFF reserved as NULL !
   // 1 or 3 bytes align here
   // whole size: avr = 4 bytes, arm = 8 bytes.
-} taskStates_t;
-  
-typedef struct {
-  pFunc_t task;
-  uint16_t timeout;
-} taskParams_t;
-
-#ifdef __AVR__
-// for AVR only!
-typedef union  {
-  uint16_t pFunc;
-  struct {
-    uint8_t pFuncHi;
-    uint8_t pFuncLow;
-  };
-} addrCompare_t;
-#endif /* __AVR__*/
+} tasksContainer_t;
 #pragma pack(pop)
   
 typedef const taskParams_t * const tasksArr_t;
@@ -199,8 +209,10 @@ typedef const taskParams_t * const tasksArr_t;
 //---------------------------------------------------------------------------//
   
 //------------------------ Function Prototypes ------------------------------//
-void addTaskToArr(taskStates_t *pTasksArr, pFunc_t pTask, uint16_t timeToCheckTask, bool exec);
+void addTaskToArr(tasksContainer_t *pTasksArr, pFunc_t pTask, uint16_t timeToCheckTask, bool exec);
 void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec);
+void addTask_P(const taskParams_t *pTaskP);
+void addTasksArray_P(tasksArr_t *pArr, uint8_t size);
 void replaceTask(pFunc_t pOldTask, pFunc_t pNewTask, uint16_t timeToCheckTask, bool exec);
 void updateTaskStatus(pFunc_t oldTask, bool exec);
 void updateTaskTimeCheck(pFunc_t pTask, uint16_t timeToCheckTask);
@@ -210,15 +222,10 @@ void enableAllTasks(void);
 void deleteTask(pFunc_t pTask);
 void deleteAllTasks(void);
 
-#ifdef __AVR__
-void addTask_P(const taskParams_t *pTaskP);
-void addTasksArray_P(tasksArr_t *pArr, uint8_t size);
-#endif
-
 __attribute__ ((noreturn)) void runTasks(void);
 
-void initTasksArr(taskStates_t *tasks, taskStatesArr_t *taskArr, uint8_t maximumTasks);
-taskStates_t *setTaskArray(taskStates_t *pNewTasksArr);
+void initTasksArr(tasksContainer_t *tasks, taskFunc_t *taskArr, uint8_t maximumTasks);
+tasksContainer_t *setTaskArray(tasksContainer_t *pNewTasksArr);
 uint16_t *getCurrentTaskArray(void);
 void setMaxTasks(uint8_t maximumTasks);
   
@@ -232,7 +239,7 @@ __attribute__ ((noreturn)) void panic(uint8_t errorCode);
 void printTasksMem(uint16_t offset);
   
 #ifdef USE_GFX_LIB
-void setGfxFunc(fPrint_t, fFillRect_t, fSetCursor_t, fSetTextSize_t, fDrawFastVLine_t);
+void setGfxFunc(fPrint_t, fFillRect_t, fSetCursor_t, fDrawFastVLine_t);
 #endif
 //---------------------------------------------------------------------------//
     

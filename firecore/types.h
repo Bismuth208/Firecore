@@ -118,14 +118,6 @@ typedef struct {
   deathRay_t weapons[4];
 } inVaderBoss_t;
 
-typedef struct {  // 1 byte RAM
-  struct {
-    uint8_t updLife;//  :1;
-    uint8_t updScore;// :1;
-    //uint8_t freeRam :6;
-  };
-} hudStatus_t;
-
 typedef struct {
   union {
   	uint8_t zBtn; // for fast reset only

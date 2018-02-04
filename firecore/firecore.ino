@@ -6,15 +6,15 @@
  * 
  *                    
  * 
- * Main IDE:      Sublime Text 2
- *  Arduino IDE:  1.8.1   (as plugin and compiler)
+ * Main IDE:      Sublime Text 3
+ *  Arduino IDE:  1.8.5   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  22,784
+ * Program size:  22,616
  *  pics:         5,233
  *  code:         17,551
- * Used RAM:      1,355 bytes
- * Free RAM:      1,205 bytes
+ * Used RAM:      1,348 bytes
+ * Free RAM:      1,212 bytes
  *
  * Language:      C and C++
  * 
@@ -39,8 +39,8 @@
 
 //---------------------------------------------------------------------------//
 // super puper duper ultra extreemely main structures, DO NOT TOUCH THEM!
-taskStates_t taskArr;
-taskStatesArr_t pArr[MAX_GAME_TASKS];
+tasksContainer_t taskArr;
+taskFunc_t pArr[MAX_GAME_TASKS];
 //---------------------------------------------------------------------------//
 
 bool lowHealthState = false;
@@ -59,7 +59,6 @@ uint16_t calJoysticY =0;
 ship_t ship;
 gift_t gift;
 rocket_t playerLasers[MAX_PEW_PEW];
-hudStatus_t hudStatus = {1,1}; // need update all
 btnStatus_t btnStates = {0};
 
 saveData_t gameSaveData;
@@ -242,22 +241,19 @@ void printDutyDebug(uint32_t duration)
 // --------------------------------------------------------------- //
 void checkFireButton(void)
 {
-  rocket_t *pRokets = &playerLasers[0];
-
   if(getBtnState(BUTTON_A)) {
     resetBtnStates();
 
-    for(uint8_t i=0; i<MAX_PEW_PEW; i++) {
-      if(!pRokets->onUse) {
+    for(auto &pRoket: playerLasers) {
+      if(!pRoket.onUse) {
 #if ADD_SOUND
         sfxPlayPattern(playerShotPattern, SFX_CH_1);
 #endif    
-        pRokets->onUse = true;
-        pRokets->pos.x = ship.pos.Base.x + ROCKET_OFFSET_X; // \__ start position
-        pRokets->pos.y = ship.pos.Base.y + ROCKET_OFFSET_Y; // /
+        pRoket.onUse = true;
+        pRoket.pos.x = ship.pos.Base.x + ROCKET_OFFSET_X; // \__ start position
+        pRoket.pos.y = ship.pos.Base.y + ROCKET_OFFSET_Y; // /
         break;
       }
-      ++pRokets;
     }
   }
 }
@@ -267,13 +263,14 @@ void applyShipDamage(rocket_t *pWeapon)
 {
   rocketEpxlosion(pWeapon);
 
-  // clear previous level
-  tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_RED);
+  if(ship.health) { // this rule preserv us from GUI overflow glitch
+    // clear previous level
+    tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_RED);
 
-  // Calc damage as: MAX_DURAB - (0.5 * SHIP_DURAB) - DAMAGE_TO_SHIP
-  uint8_t damage = SHIP_BASE_DURAB - (ship.states.durability/2 + DAMAGE_TO_SHIP);
-  ship.health -= damage;     // absorb damage
-  hudStatus.updLife = true;  // update new life status later
+    // Calc damage as: MAX_DURAB - (0.5 * SHIP_DURAB) - DAMAGE_TO_SHIP
+    uint8_t damage = SHIP_BASE_DURAB - (ship.states.durability/2 + DAMAGE_TO_SHIP);
+    ship.health -= damage;     // absorb damage
+  }
 }
 
 void checkShipHealth(void)
@@ -338,7 +335,6 @@ void moveGift(void)
 void giftDone(void)
 {
   score += GIFT_BONUS_SCORE;
-  hudStatus.updScore = true;    // update score later
 
   // remove gift from screen
   fillRectFast(gift.pos.Base.x, gift.pos.Base.y, GIFT_PIC_W, GIFT_PIC_H);
@@ -346,15 +342,13 @@ void giftDone(void)
 
 void checkGift(void)
 {
-  rocket_t *pRocket = &playerLasers[0];
-
   if(weaponGift) {
-    for(uint8_t countR =0; countR < MAX_PEW_PEW; countR++) {
-      if(pRocket->onUse) {
-        if(checkCollision(&pRocket->pos, LASER_PIC_W, LASER_PIC_H, 
+    for(auto &pRocket: playerLasers) {
+      if(pRocket.onUse) {
+        if(checkCollision(&pRocket.pos, LASER_PIC_W, LASER_PIC_H, 
                         &gift.pos.Base, GIFT_PIC_W, GIFT_PIC_H)) {
 
-          rocketEpxlosion(pRocket);
+          rocketEpxlosion(&pRocket);
 #if ADD_SOUND
           sfxPlayPattern(playerSuperPattern, SFX_CH_2);
 #endif
@@ -369,7 +363,6 @@ void checkGift(void)
           return;
         }
       }
-      ++pRocket;
     }
   } else { // heart and end of the level
     if(checkCollision(&ship.pos.Base, SHIP_PIC_W, SHIP_PIC_H, 
@@ -383,6 +376,7 @@ void checkGift(void)
     }
   }
 }
+
 
 void disableWeaponGift(void)
 {
@@ -451,6 +445,7 @@ void addGameTasks(void)
 
 void addBossTasks(void)
 {
+  tftFillScreen(currentBackGroundColor);
   addTasksArray_P(bossTasksArr, BOSS_TASKS_COUNT);
 }
 
@@ -553,7 +548,7 @@ void initShip(void)
 void resetShip(void)
 {
   ship.health = SHIP_HEALTH;
-  ship.weapon.level = 1;
+  ship.weapon.level = 0;
   ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level);
   ship.type = 3; // he he he
   ship.pBodyPic = getConstCharPtr(shipsPics, ship.type);
@@ -561,12 +556,9 @@ void resetShip(void)
 
 void initStars(void)
 {
-  for(uint8_t count =0; count < MAX_STARS; count++) {
-    stars[count].pos.x = RN % TFT_W;
-    stars[count].pos.y = RN % STARS_MAX_POS_Y;
-    stars[count].color = RAND_STAR_CLR;
-    stars[count].speed = RN % STAR_STEP + 1;
-  }
+  // init only speed as next drawStars() call will reinit all params
+  for(auto &pStar: stars)
+    pStar.speed = RN % STAR_STEP + 1;
 }
 
 void initRand(void)

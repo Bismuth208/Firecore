@@ -32,6 +32,7 @@
  #include <avr/pgmspace.h>
 #else
  #define PROGMEM
+ #define pgm_read_word(a) (*(const uint16_t*)(a))
 #endif
 
 #include "systicktimer.h"
@@ -46,18 +47,24 @@ static uint8_t maxTasks = 0;
 
 static bool resetTaskCount = false;
 
-static taskStates_t *pCurrentArrTasks = NULL;  // pointer to current tasks array
+static tasksContainer_t *pCurrentArrTasks = NULL;  // pointer to current tasks array
 
 #ifdef USE_MEM_PANIC
 const uint8_t textPanic[] /*PROGMEM*/ = "Sorry...\nMemory panic :(\n\n";
 const uint8_t textError[] /*PROGMEM*/ = "Error code: ";
 #endif
 
+#if USE_AUTO_DEFRAG
+uint32_t defragNextMs=0;
+#endif
+#if USE_AUTO_GEMINI
+uint32_t geminiNextMs=0;
+#endif
+
 #ifdef USE_GFX_LIB
 fPrint_t fpPrint = NULL;
 fFillRect_t fpFillRect = NULL;
 fSetCursor_t fpSetCursor = NULL;
-fSetTextSize_t fpSetTextSize = NULL;
 fDrawFastVLine_t fpDrawFastVLine = NULL;
 #endif
 
@@ -69,17 +76,10 @@ fDrawFastVLine_t fpDrawFastVLine = NULL;
  */
 __attribute__ ((noreturn)) void runTasks(void)
 {
-  uint8_t count =0;
+  uint8_t currentTaskNum =0;
   
-  // store pointer in RAM, to reduce instructions
-  taskStatesArr_t *pCurArr = &PAA[0];
-  
-#if USE_AUTO_DEFRAG
-  uint32_t defragNextMs=0;
-#endif
-#if USE_AUTO_GEMINI
-  uint32_t geminiNextMs=0;
-#endif
+  // store pointer from RAM, to reduce instructions
+  taskFunc_t *pCurArr = &PAA[0];
 
   for(;;) {
 #if USE_AUTO_GEMINI
@@ -95,30 +95,36 @@ __attribute__ ((noreturn)) void runTasks(void)
     }
 #endif
     
+#if USE_NO_TASK_PANIC
     if(PAC) {
+#endif
       // Have func?
-      if(pCurArr->pTaskFunc) { // problems in future see i here
+      if(pCurArr->task.pFunc) { // problems in future see i here
         if(pCurArr->execute) { // need execute?
           // check timeout
           if(TIMER_FUNC >= pCurArr->nextCallTime) {
-            pCurArr->pTaskFunc(); // execute
+            pCurArr->task.pFunc(); // execute
             
             if(resetTaskCount) {
               resetTaskCount = false;
             } else {
               // get time of next exec
-              pCurArr->nextCallTime = TIMER_FUNC + pCurArr->timeToRunTask;
+              pCurArr->nextCallTime = TIMER_FUNC + pCurArr->task.timeOut;
             }
           }
         }
       }
 
       ++pCurArr;
-      if(++count >= PAC) {
-        count =0;
+      if(++currentTaskNum >= PAC) {
+        currentTaskNum =0;
         pCurArr = &PAA[0];
       }
+#if USE_NO_TASK_PANIC
+    } else {
+      panic(CHECK_TASKS_FAIL | NO_TASKS_FAIL);
     }
+#endif
   }
 }
 
@@ -148,7 +154,7 @@ void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec)
 
 #if USE_DYNAMIC_MEM
   // reallocate block of RAM for new task
-  PAA = (taskStatesArr_t*) realloc (PAA, PAC * sizeof(taskStatesArr_t));
+  PAA = (taskFunc_t*) realloc (PAA, PAC * sizeof(taskFunc_t));
 #else
   if(PAC > maxTasks) {
       panic(OVER_RANGE_FAIL | ADD_FAIL);
@@ -158,9 +164,9 @@ void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec)
   if(PAA != NULL) {
     // aaand place params to new index
     // why -1? because we can`t allocate 0 bytes :)
-    taskStatesArr_t *ptr = &PAA[PAC-1]; // reduce instructions by acces pointer
-    ptr->pTaskFunc = pTask;
-    ptr->timeToRunTask = timeToCheckTask;
+    taskFunc_t *ptr = &PAA[PAC-1]; // reduce instructions by acces pointer
+    ptr->task.pFunc = pTask;
+    ptr->task.timeOut = timeToCheckTask;
     ptr->nextCallTime = 0;//TIMER_FUNC;
     ptr->execute = exec;
     
@@ -183,7 +189,7 @@ void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec)
  * @param  exec: need execute or not (aka reserve mem for future)
  * @retval None
  */
-void addTaskToArr(taskStates_t *pTasksArr, pFunc_t pTask,
+void addTaskToArr(tasksContainer_t *pTasksArr, pFunc_t pTask,
                                   uint16_t timeToCheckTask, bool exec)
 {
   // Add task by reallocate memory
@@ -202,8 +208,8 @@ void addTaskToArr(taskStates_t *pTasksArr, pFunc_t pTask,
 
 #if USE_DYNAMIC_MEM
   // reallocate block of RAM for new task
-  pTasksArr->pArr = (taskStatesArr_t*) realloc (pTasksArr->pArr,
-                                  pTasksArr->tasksCount * sizeof(taskStatesArr_t));
+  pTasksArr->pArr = (taskFunc_t*) realloc (pTasksArr->pArr,
+                                  pTasksArr->tasksCount * sizeof(taskFunc_t));
 #else
   if(pTasksArr->tasksCount > maxTasks) {
     panic(OVER_RANGE_FAIL | ADD_TO_ARR_FAIL);
@@ -213,9 +219,9 @@ void addTaskToArr(taskStates_t *pTasksArr, pFunc_t pTask,
   if(pTasksArr->pArr != NULL) {
     // aaand place params to new index
     // why -1? because we can`t allocate 0 bytes :)
-    taskStatesArr_t *ptr = &pTasksArr->pArr[pTasksArr->tasksCount-1]; // same as addTask()
-    ptr->pTaskFunc = pTask;
-    ptr->timeToRunTask = timeToCheckTask;
+    taskFunc_t *ptr = &pTasksArr->pArr[pTasksArr->tasksCount-1]; // same as addTask()
+    ptr->task.pFunc = pTask;
+    ptr->task.timeOut = timeToCheckTask;
     ptr->nextCallTime = 0;//TIMER_FUNC;
     ptr->execute = exec;
     
@@ -229,9 +235,8 @@ void addTaskToArr(taskStates_t *pTasksArr, pFunc_t pTask,
 #endif
 }
 
-#ifdef __AVR__
 /**
- * @brief  add one task for execution from PROGMEM section
+ * @brief  add one task for execution from const (PROGMEM) section
  * @param  pTaskP: pointer to task stucture
  * @retval None
  */
@@ -242,9 +247,9 @@ void addTask_P(const taskParams_t *pTaskP)
   
   // aaand place params to new index
   // increase total tasks
-  taskStatesArr_t *ptr = &PAA[PAC++]; // reduce instructions by acces pointer
-  ptr->pTaskFunc = (pFunc_t)pgm_read_word(&pTaskP->task);
-  ptr->timeToRunTask = pgm_read_word(&pTaskP->timeout);
+  taskFunc_t *ptr = &PAA[PAC++]; // reduce instructions by acces pointer
+  ptr->task.pFunc = (pFunc_t)pgm_read_word(&pTaskP->pFunc);
+  ptr->task.timeOut = pgm_read_word(&pTaskP->timeOut);
   ptr->nextCallTime = 0; // every fuction will call immediately
   ptr->execute = true; // always true...
 }
@@ -265,7 +270,6 @@ void addTasksArray_P(tasksArr_t *pArr, uint8_t size)
     ++pArr;
   } while(--size);
 }
-#endif /*__AVR__*/
 
 /**
  * @brief  remove all tasks
@@ -275,7 +279,7 @@ void addTasksArray_P(tasksArr_t *pArr, uint8_t size)
 void deleteAllTasks(void)
 {
   uint8_t *pBuf = (uint8_t*)PAA;
-  uint16_t size = maxTasks * sizeof(taskStates_t);
+  uint16_t size = maxTasks * sizeof(tasksContainer_t);
   do {
     *pBuf++ = 0x00;
   } while(--size);
@@ -297,7 +301,7 @@ void deleteTask(pFunc_t pTask)
 {
   uint8_t taskId = searchTask(pTask);
 
-  PAA[taskId].pTaskFunc = NULL;    // remove pointer
+  PAA[taskId].task.pFunc = NULL;    // remove pointer
   //PAA[taskId].execute = false;     // clear exec flag
   resetTaskCount = true;
   
@@ -361,8 +365,8 @@ void updateTaskTimeCheck(pFunc_t pTask, uint16_t timeToCheckTask)
 {
   uint8_t taskId = searchTask(pTask);
 
-  taskStatesArr_t *ptr = &PAA[taskId];
-  ptr->timeToRunTask = timeToCheckTask;
+  taskFunc_t *ptr = &PAA[taskId];
+  ptr->task.timeOut = timeToCheckTask;
   ptr->nextCallTime = TIMER_FUNC + timeToCheckTask;
 }
 
@@ -381,10 +385,10 @@ void replaceTask(pFunc_t pOldTask, pFunc_t pNewTask, uint16_t timeToCheckTask, b
 
   uint8_t taskId = searchTask(pOldTask);
 
-  taskStatesArr_t *ptr = &PAA[taskId];
-  ptr->pTaskFunc = pNewTask;
+  taskFunc_t *ptr = &PAA[taskId];
+  ptr->task.pFunc = pNewTask;
   ptr->nextCallTime = TIMER_FUNC + timeToCheckTask;
-  ptr->timeToRunTask = timeToCheckTask;
+  ptr->task.timeOut = timeToCheckTask;
   ptr->execute = exec;
 }
 
@@ -403,14 +407,14 @@ void defragTasksMemory(void)
   uint8_t nullCount =0;
   uint8_t i=0, j=0;
   
-  taskStatesArr_t tmpTask;
+  taskFunc_t tmpTask;
   
   // First: find all NULL pointers and move them to end of array
 #if 1
   // bubble sort
   for(i = 0; i < (PAC); i++) {
     for(j = 0; j < (PAC - i - 1); j++) {
-      if(PAA[j].pTaskFunc == NULL) {
+      if(PAA[j].task.pFunc == NULL) {
         
         tmpTask = PAA[j];
         PAA[j] = PAA[j + 1];
@@ -430,7 +434,7 @@ void defragTasksMemory(void)
   if(defraged) {
     // search all NULL ponters from end of array
     for(i=PAC-1; i > 1; i--) {
-      if(PAA[i].pTaskFunc != NULL) {
+      if(PAA[i].task.pFunc != NULL) {
         break;
       } else {
         nullCount++; // count how much NULL`s need to cut off
@@ -441,7 +445,7 @@ void defragTasksMemory(void)
     
 #if USE_DYNAMIC_MEM
     // free some RAM
-    PAA = (taskStatesArr_t*)realloc(PAA, PAC * sizeof(taskStatesArr_t));
+    PAA = (taskFunc_t*)realloc(PAA, PAC * sizeof(taskFunc_t));
 #if USE_MEM_PANIC
     if(PAA == NULL) {
       deleteAllTasks();
@@ -471,10 +475,10 @@ void rmSameTasks(void)
 
   for (i=0; i<PAC; i++) { //
     for (j=1; j<(PAC-i); j++) {
-      if((PAA[i].pTaskFunc) && (PAA[i+j].pTaskFunc)) {
-        if(PAA[i].pTaskFunc == PAA[i+j].pTaskFunc) {
+      if((PAA[i].task.pFunc) && (PAA[i+j].task.pFunc)) {
+        if(PAA[i].task.pFunc == PAA[i+j].task.pFunc) {
           
-          PAA[i+j].pTaskFunc = NULL;
+          PAA[i+j].task.pFunc = NULL;
         }
       }
     }
@@ -494,30 +498,30 @@ void rmSameTasks(void)
  */
 uint8_t searchTask(pFunc_t pTask)
 {
-  uint8_t count = 0;
-  taskStatesArr_t *ptr = &PAA[0]; // store pointer to X register
+  uint8_t i = 0;
+  taskFunc_t *ptr = &PAA[0]; // store pointer to X register
   
 #ifdef __AVR__
-  addrCompare_t tmpOne, tmpTwo;
-  tmpOne.pFunc = (uint16_t)pTask; // tmpOne.pFunc use only r20,r21
+  taskParams_t tmpOne, tmpTwo;
+  tmpOne.pFunc = pTask; // tmpOne.pFunc use only r20,r21
 
   do {
-    tmpTwo.pFunc = (uint16_t)ptr->pTaskFunc; // store addr to r24,r25
+    tmpTwo.pFunc = (uint16_t)ptr->task.pFunc; // store addr to r24,r25
     // compare addr separetly, reque less instructions
-    if(tmpOne.pFuncHi == tmpTwo.pFuncHi) { // compare r24,r21
-      if(tmpOne.pFuncLow == tmpTwo.pFuncLow) { // compare r25,r20
-        return count; // ok, this is it!
+    if(tmpOne.hi == tmpTwo.hi) { // compare r24,r21
+      if(tmpOne.low == tmpTwo.low) { // compare r25,r20
+        return i; // ok, this is it!
       }
     }
     ++ptr;
-  } while((++count) < PAC);
+  } while((++i) < PAC);
 #else
   do {
-    if(ptr->pTaskFunc == pTask) {
-      return count; // ok, this is it!
+    if(ptr->task.pFunc == pTask) {
+      return i; // ok, this is it!
     }
     ++ptr;
-  } while((++count) < PAC);
+  } while((++i) < PAC);
 #endif
 
 #if USE_MEM_PANIC
@@ -536,7 +540,7 @@ uint8_t searchTask(pFunc_t pTask)
  * @warning  all pointers must be inited propertly otherwise: undefined bahavor!
  * @retval none
  */
-void initTasksArr(taskStates_t *tasks, taskStatesArr_t *taskArr, uint8_t maximumTasks)
+void initTasksArr(tasksContainer_t *tasks, taskFunc_t *taskArr, uint8_t maximumTasks)
 {
   pCurrentArrTasks = tasks;
   PAA = taskArr;
@@ -550,9 +554,9 @@ void initTasksArr(taskStates_t *tasks, taskStatesArr_t *taskArr, uint8_t maximum
  * @param  pNewTasksArr: pointer to current task states
  * @retval pointer to previous task states scturct
  */
-taskStates_t *setTaskArray(taskStates_t *pNewTasksArr)
+tasksContainer_t *setTaskArray(tasksContainer_t *pNewTasksArr)
 {
-  taskStates_t *pOldTaskArr = pCurrentArrTasks; // make a copy
+  tasksContainer_t *pOldTaskArr = pCurrentArrTasks; // make a copy
   pCurrentArrTasks = pNewTasksArr; // replace pointers
   return pOldTaskArr; // previous pointer
 }
@@ -591,7 +595,6 @@ __attribute__ ((noreturn)) void panic(uint8_t errorCode)
   itoa(errorCode, errBuf, 16);
   
  #ifdef USE_GFX_LIB
-  fpSetTextSize(3);
   fpSetCursor(0,0);
     
   fpFillRect(0,0,GFX_SCR_W,GFX_SCR_H,COLOR_BLUE);
@@ -646,7 +649,6 @@ void printTasksMem(uint16_t offset)
   char buf[10];
   char adrBuf[5];
   
-  fpSetTextSize(1);
   fpFillRect(offset, 0, 36, 8*PAC, GFX_COLOR_BLUE);
   fpDrawFastVLine(offset+37, 0, 8*PAC, GFX_COLOR_WHITE);
   
@@ -657,7 +659,7 @@ void printTasksMem(uint16_t offset)
     fpSetCursor(offset, 8*i);
     
     strcat(buf, "0x");
-    strcat(buf, itoa(PAA[i].pTaskFunc, adrBuf, 16));
+    strcat(buf, itoa(PAA[i].task.pFunc, adrBuf, 16));
     strcat(buf, "\n");
     
     fpPrint(buf);
@@ -669,17 +671,15 @@ void printTasksMem(uint16_t offset)
  * @param  fPrint: draw text
  * @param  fFillRect: draw rectangle
  * @param  fSetCursor: set text cursor on X and Y position
- * @param  fSetTextSize: set size of text on screen
  * @param  fDrawFastVLine: draw vertical line
  * @retval none
  */
 void setGfxFunc(fPrint_t fPrint, fFillRect_t fFillRect, fSetCursor_t fSetCursor,
-                fSetTextSize_t fSetTextSize, fDrawFastVLine_t fDrawFastVLine)
+                                                fDrawFastVLine_t fDrawFastVLine)
 {
   fpPrint = fPrint;
   fpFillRect = fFillRect;
   fpSetCursor = fSetCursor;
-  fpSetTextSize = fSetTextSize;
   fpDrawFastVLine = fDrawFastVLine;
 }
 #endif /*USE_GFX_LIB*/
