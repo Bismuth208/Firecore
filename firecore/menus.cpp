@@ -14,8 +14,6 @@
 
 #include <esploraAPI.h>
 
-#include "taskmanager.h"
-
 #include "pics.h"
 #include "textProg.h"
 #include "common.h"
@@ -91,47 +89,39 @@ void getShipItem(void)
 {
   uint16_t newValueXY = getStickVal(LINE_X);
   if(newValueXY != calJoysticY) {
-    if(newValueXY < calJoysticY) {
-      ++currentShip;
-    } else {
-      --currentShip;
-    }
+    currentShip += (newValueXY < calJoysticY) ? 1 : -1;
   }
   
   if(currentShip < MIN_SHIP_ITEM) {
     currentShip = MIN_SHIP_ITEM;
-  } else if(currentShip > (MAX_SHIP_ITEM +gameSaveData.bonusUnlocked)) {
-    currentShip = MAX_SHIP_ITEM +gameSaveData.bonusUnlocked;
+  } else if(currentShip > (MAX_SHIP_ITEM + gameSaveData.bonusUnlocked)) {
+    currentShip = MAX_SHIP_ITEM + gameSaveData.bonusUnlocked;
   }
 }
 
 void updateShipStates(void)
 {
+  auto state = shipStats_t{0,0,0};
+
   switch(currentShip) {
     case 1: { // speed
-      ship.states.speed = SHIP_BASE_SPEED;
-      ship.states.power = SHIP_BASE_DAMAGE-10;
-      ship.states.durability = SHIP_BASE_DURAB-20;
+      state = {SHIP_BASE_SPEED, SHIP_BASE_DAMAGE-10, SHIP_BASE_DURAB-20};
     } break;
 
     case 2: { // power
-      ship.states.speed = SHIP_BASE_SPEED-1;
-      ship.states.power = SHIP_BASE_DAMAGE;
-      ship.states.durability = SHIP_BASE_DURAB-10;
+      state = {SHIP_BASE_SPEED-1, SHIP_BASE_DAMAGE, SHIP_BASE_DURAB-10};
     } break;
 
     case 3: { // durability
-      ship.states.speed = SHIP_BASE_SPEED-2;
-      ship.states.power = SHIP_BASE_DAMAGE-5;
-      ship.states.durability = SHIP_BASE_DURAB;
+      state = {SHIP_BASE_SPEED-2, SHIP_BASE_DAMAGE-5, SHIP_BASE_DURAB};
     } break;
 
     case 4: { // unclock after saving the galaxy
-      ship.states.speed = SHIP_BASE_SPEED;
-      ship.states.power = SHIP_BASE_DAMAGE;
-      ship.states.durability = SHIP_BASE_DURAB;
+      state = {SHIP_BASE_SPEED, SHIP_BASE_DAMAGE, SHIP_BASE_DURAB};
     } break;
   }
+
+  ship.states = state;
 }
 //---------------------------------------------------------------------------//
 
@@ -145,6 +135,7 @@ void pauseMenu(void)
       disableAllTasks();
       updateTaskStatus(updateBtnStates, true);
       updateTaskStatus(pauseMenu, true);
+      updateTaskStatus(playMusic, true);
       pauseWindow();
     }
     
@@ -171,7 +162,7 @@ void pauseWindow(void)
 
 //---------------------------------------------------------------------------//
 // switch from title to main menu
-uint8_t titleAction(void)
+bool titleAction(void)
 {
   uint8_t playOkSound = 0;
 
@@ -186,7 +177,7 @@ uint8_t titleAction(void)
     tftSetTextColor(COLOR_WHITE);
     tftSetTextSize(1);
     tftSetCursor(0, 72);
-    return 1;
+    return true;
   }
 
   if(getStickVal(LR_OK)) {
@@ -212,21 +203,20 @@ uint8_t titleAction(void)
 #if ADD_SOUND
   if(playOkSound) sfxPlayOK();
 #endif
-
-  return 0;
+  return false;
 }
 
-uint8_t historyAction(void)
+bool historyAction(void)
 {
   if(getBtnState(BUTTON_B)) {
     resetBtnStates();
     drawShipSelectionMenu();
-    return 1;
+    return true;
   }
-  return 0;
+  return false;
 }
 
-uint8_t checkShipSelect(void)
+bool checkShipSelect(void)
 {
   if(getBtnState(BUTTON_A)) {
     resetBtnStates();
@@ -236,12 +226,12 @@ uint8_t checkShipSelect(void)
     updateShipStates();
     previousShip =0;
     baseStory();
-    return 1;
+    return true;
   }
-  return 0;
+  return false;
 }
 
-uint8_t drawStory(void)
+bool drawStory(void)
 {
   if(getBtnState(BUTTON_B)) {
 #if ADD_SOUND
@@ -264,13 +254,13 @@ uint8_t drawStory(void)
       curretLevel =0;
       dogeDialogs =0;
       prepareLevelSelect();
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
-uint8_t drawLevelSelect(void)
+bool drawLevelSelect(void)
 {
   if(getBtnState(BUTTON_A)) {
     resetBtnStates();
@@ -281,14 +271,14 @@ uint8_t drawLevelSelect(void)
     screenSliderEffect(currentBackGroundColor);
     addGameTasks();
   }
-  return 0;
+  return false;
 }
 
 //---------------------------------------------------------------------------//
 // tiny state machine
 void menuSwitchSelect(void)
 {
-  uint8_t switchSate = 0;
+  bool switchSate = false;
 
   switch(menuSwitchSelectState)
   {
@@ -380,7 +370,7 @@ void drawStaticNoise(void)
 //---------------------------------------------------------------------------//
 void blinkLevelPointer(void)
 {
-  wordData_t tmpData = {.wData = getPicWord(lvlCoordinates, curretLevel*2)};
+  auto tmpData = getPicSize(lvlCoordinates, curretLevel*2);
 
   iconState = !iconState;  // reuse
   tftDrawCircle(tmpData.u8Data1, tmpData.u8Data2, CIRCLE_PONITER_MAP_SIZE, (iconState ? COLOR_RED : COLOR_WHITE));
@@ -399,7 +389,7 @@ void prepareLevelSelect(void)
 
   do {
     --i;
-    wordData_t tmpData = {.wData = getPicWord(lvlCoordinates, i*2)};
+    auto tmpData = getPicSize(lvlCoordinates, i*2);
     tftDrawCircle(tmpData.u8Data1, tmpData.u8Data2, CIRCLE_PONITER_MAP_SIZE, COLOR_WHITE);
   } while(i);
   
@@ -464,10 +454,7 @@ void printScore(void)
 
 void done(const uint8_t *text) // fantasy end, bad name for function...
 {
-  tftSetTextSize(2);
-  tftSetTextColor(COLOR_WHITE);
-  tftPrintAt_P(20, 40, (const char *)text);
-
+  drawText(20, 40, 2, text);
   levelBaseInit();
 }
 

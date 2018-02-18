@@ -20,15 +20,26 @@ extern "C"{
 #endif
 
 //---------------------------------------------------------------------------//
+#define MAX_PEW_PEW              4  // Crysis, nanosuit voice: - "Maximum pew".
+#define ALIEN_BOSS_DEATH_RAYS    4
+
+//---------------------------------------------------------------------------//
 typedef struct { // 4 bytes RAM
   uint8_t x;
   uint8_t y;
 } position_t;
 
+typedef const uint8_t pic_t;
+
 typedef struct {  // need for collision check
   position_t Base;
   position_t New;
 } objPosition_t;
+
+typedef struct {
+  objPosition_t pos;
+  pic_t *pPic;
+} sprite_t;
 
 typedef struct {
   position_t P0;
@@ -46,7 +57,7 @@ typedef struct {  // 5 bytes RAM
   position_t pos;
   uint8_t color; // as we use 8bit palette, store only color id
   uint8_t speed;
-} stars_t;
+} star_t;
 
 typedef struct {  // 5 bytes RAM
   position_t pos;
@@ -61,8 +72,6 @@ typedef struct {
   rocket_t deathRay;
   uint16_t timeToShoot;
 } deathRay_t;
-
-typedef const uint8_t pic_t;
 
 typedef struct {  // 8 bytes RAM
   objPosition_t pos;
@@ -91,9 +100,10 @@ typedef struct {
 
 typedef struct {  // 8 + 5 + 5 bytes RAM
   objPosition_t pos;
+  pic_t *pBodyPic;
   shipStats_t states;
   weapon_t weapon;
-  pic_t *pBodyPic;
+  rocket_t lasers[MAX_PEW_PEW];
   int16_t health;
   uint8_t type;
   bool flameState;
@@ -115,7 +125,7 @@ typedef struct {  // 8 + 6 + 5 bytes RAM
 
 typedef struct {
   inVader_t base;
-  deathRay_t weapons[4];
+  deathRay_t weapons[ALIEN_BOSS_DEATH_RAYS];
 } inVaderBoss_t;
 
 typedef struct {

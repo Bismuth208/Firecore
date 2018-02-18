@@ -50,15 +50,15 @@ uint8_t currentBackGroundColorId = 0x01;
 uint8_t replaceColorId = 0x01;
 
 const uint8_t lvlColors[] PROGMEM = {
-  0x1E,
-  0x1E,
-  0x1E,
-  0x1E,
-  0x1E,
-  0x1E,
-  0x1E,
+  0x1E, // deepspace
+  0x2E, // space fog
+  0x0C, // near supernova
+  0x1C, // supernova
   0x01,
-  0x04
+  0x11,
+  0x1E, // once again empty space
+  0x01,
+  0x04  // homeworld in fire
 };
 //---------------------------------------------------------------------------//
 

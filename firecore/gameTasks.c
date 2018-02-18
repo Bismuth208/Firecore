@@ -14,7 +14,7 @@
 
 #include <avr/pgmspace.h>  // for progmem
 
-#include "taskmanager.h"
+#include <esploraAPI.h>
 #include "common.h"
 
 // just do not try to understand!
@@ -24,7 +24,7 @@
 /*
 #define T(a) a##Task
 #define TASK_N(a)     const taskParams_t T(a)
-#define TASK(a,b)     TASK_N(a) PROGMEM = {a, b}
+#define TASK(a,b)     TASK_N(a) PROGMEM = {.pFunc=a, .timeOut=b}
 #define TASK_P(a)     (taskParams_t*)&T(a)
 #define TASK_ARR_N(a) const tasksArr_t a##TasksArr[]
 #define TASK_ARR(a)   TASK_ARR_N(a) PROGMEM
@@ -33,32 +33,33 @@
 //---------------------------------------------------------------------------//
 // Thanks to macro below, only one pointer copy of each task are possible
 
-TASK(updateBtnStates, 40);
-TASK(checkFireButton, 200);
+TASK(updateBtnStates, 25);
+TASK(checkFireButton, 190);
 
-TASK(drawStars, 50);
+TASK(drawStars, 30);
 TASK(drawSomeGUI, 500);
 TASK(pauseMenu, 500);
 TASK(drawTitleText, 1 SEC);
 TASK(drawStart, 500);
 
-TASK(drawShip, 70);
-TASK(moveShip, 70);
+TASK(drawShip, 40);
+TASK(moveShip, 40);
 TASK(drawPlayerRockets, 60);
-TASK(checkShipHealth, 450);
+TASK(checkShipHealth, 400);
 TASK(drawShipExplosion, 250);
 
 TASK(drawCurrentShipSelection, 250);
 TASK(getShipItem, 250);
 
-TASK(checkInVaders, 80);
-TASK(drawInVaders, 150);
-TASK(moveInVaders, 160);  // this is must be more than drawInVaders()
+TASK(checkInVaders, 150);
+TASK(drawInVaders, 60);
+TASK(moveInVaders, 70);  // this is must be more than drawInVaders()
 TASK(checkInVadersRespawn, 1 SEC);
-TASK(checkInVadersRay, 180);
+TASK(checkInVadersRay, 200);
+TASK(checkInVadersCollision, 150);
 
 TASK(drawBoss, 130);
-TASK(moveBossVertical, 150);
+TASK(moveBossVertical, 75);
 TASK(checkBossDamage, 80);
 TASK(checkBossFire, 150);
 TASK(checkBossRays, 200);
@@ -66,7 +67,7 @@ TASK(drawBossExplosion, 250);
 
 TASK(moveGift, 120);
 TASK(drawGift, 150);
-TASK(checkGift, 80);
+TASK(checkGift, 100);
 TASK(dropWeaponGift, 10 SEC);
 
 TASK(playMusic, 50);
@@ -111,6 +112,7 @@ TASK_ARR( game ) = {
   TASK_P(moveInVaders),
   TASK_P(checkInVadersRespawn),
   TASK_P(checkInVadersRay),
+  TASK_P(checkInVadersCollision),
   TASK_P(dropWeaponGift)
 };
 //---------------------------------------------------------------------------//

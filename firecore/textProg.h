@@ -29,6 +29,7 @@ extern const uint8_t levelClearP[];
 extern const uint8_t victoryP[];
 extern const uint8_t scoreP[];
 extern const uint8_t maxScoreP[];
+extern const uint8_t bossWarningP[];
 
 extern const uint8_t selectShipP[];
 extern const uint8_t shipSpeedStatP[];

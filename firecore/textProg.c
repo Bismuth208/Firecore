@@ -36,6 +36,8 @@ const uint8_t gameOverP[] PROGMEM = {"GAME OOVER"};
 const uint8_t levelClearP[] PROGMEM = {"LEVEL CLEAR"};
 const uint8_t victoryP[] PROGMEM = {"VICTORY!"};
 
+const uint8_t bossWarningP[] PROGMEM = {"!WARNING!"};
+
 
 const uint8_t buttonA[] PROGMEM = {"'A'"};
 const uint8_t buttonB[] PROGMEM = {"'B'"};
@@ -58,7 +60,7 @@ const uint8_t * const dogePA[] PROGMEM = {
 };
 
 
-const uint8_t modeP1[] PROGMEM = {"STOY"};
+const uint8_t modeP1[] PROGMEM = {"STORY"};
 const uint8_t modeP2[] PROGMEM = {"ENDLESS"};
 const uint8_t * const modePA[] PROGMEM = {modeP1, modeP2};
 

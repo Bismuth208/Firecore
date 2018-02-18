@@ -10,7 +10,6 @@ extern "C"{
 
 void drawBMP_ERLE_P(uint8_t x, uint8_t y, const uint8_t *pPic);
 void drawBMP_RLE_P(uint8_t x, uint8_t y, const uint8_t *pPic);
-  
 
 #ifdef __cplusplus
 } // extern "C"

@@ -73,8 +73,6 @@
 
 uint8_t buf_packed[MAX_UNFOLD_SIZE<<1];   // \__ unpacked data needs
 uint8_t buf_unpacked[MAX_UNFOLD_SIZE<<1]; // /   minimum 2x more RAM
-
-uint8_t *pUnpackedData = NULL;
 //---------------------------------------------------------------------------//
 
 uint8_t findPackedMark(uint8_t *ptr, uint16_t sizeData)
@@ -88,35 +86,42 @@ uint8_t findPackedMark(uint8_t *ptr, uint16_t sizeData)
   return 0;
 }
 
-void printBuf_RLE(uint16_t dataSize)
+void printBuf_RLE(uint8_t *pData) // access to local register: less instructions
 {
   uint16_t repeatColor;
   uint8_t repeatTimes, tmpByte;
-  uint8_t *pData = pUnpackedData; // access to local register: less instructions
   
-  do { // get color index or repeat times
-    if((tmpByte = *pData) & RLE_MARK) { // is it color index?
+  while((tmpByte = *pData) != PIC_DATA_END) { // get color index or repeat times
+    if(tmpByte & RLE_MARK) { // is it color index?
       tmpByte &= DATA_MARK; // get color index to repeat
       repeatTimes = *(++pData)+1; // zero RLE does not exist!
-      --dataSize;
     }
     ++repeatTimes;
+    ++pData;
     
     // get color from colorTable by tmpInd color index
     repeatColor = palette_RAM[(tmpByte == replaceColorId) ? currentBackGroundColorId : tmpByte];
     
     do {
+#ifdef __AVR__  // really dirt trick... but... FOR THE PERFOMANCE!
+      SPDR_t in = {.val = repeatColor};
+      SPDR = in.msb;
+      SPDR_TX_WAIT;
+
+      SPDR = in.lsb;
+      SPDR_TX_WAIT;
+#else
       pushColorFast(repeatColor);
+#endif
     } while(--repeatTimes);
-    
-    ++pData;
-  } while(--dataSize);
+  }
 }
 
-uint16_t unpackBuf_RLE(const uint8_t *pDict, uint16_t dataSize)
+uint8_t *unpackBuf_RLE(const uint8_t *pDict, uint16_t dataSize)
 {
   uint16_t bufPackedPos, bufUnpackedPos;
   uint8_t dictMarker = findPackedMark(&buf_packed[0], dataSize);
+  uint8_t *pUnpackedData = nullptr;
   
   if(dictMarker) {
     bufPackedPos =0;
@@ -143,17 +148,20 @@ uint16_t unpackBuf_RLE(const uint8_t *pDict, uint16_t dataSize)
         }
       }
     }
+
+    buf_unpacked[dataSize] = PIC_DATA_END;
   } else {
+    buf_packed[dataSize] = PIC_DATA_END;
     pUnpackedData = &buf_packed[0];
   }
-  
-  return dataSize;
+
+  return pUnpackedData;
 }
 
 // extended RLE, a bit slower but better compression
 void drawBMP_ERLE_P(uint8_t x, uint8_t y, const uint8_t *pPic)
 {
-  wordData_t tmpData = {.wData = getPicWord(pPic, 0)};
+  auto tmpData = getPicSize(pPic, 0);
   tftSetAddrWindow(x, y, x+tmpData.u8Data1, y+tmpData.u8Data2);
   
   uint8_t tmpByte;
@@ -176,12 +184,11 @@ void drawBMP_ERLE_P(uint8_t x, uint8_t y, const uint8_t *pPic)
       } else {
         break;
       }
-    } while((unfoldPos < MAX_UNFOLD_SIZE)
+    } while((unfoldPos < MAX_UNFOLD_SIZE-1)
             && ((tmpByte > DATA_MARK) || (tmpByte > MAX_DATA_LENGTH)));
     
     if(unfoldPos) {
       printBuf_RLE(unpackBuf_RLE(pDict, unfoldPos)); // V2V3 decoder
-      //printBuf_RLE(unfoldPos);  // V2 only decoder
     } else {
       return;
     }
@@ -194,8 +201,8 @@ void drawBMP_RLE_P(uint8_t x, uint8_t y, const uint8_t *pPic)
 {
   uint16_t repeatColor;
   uint8_t tmpInd, repeatTimes;
-  
-  wordData_t tmpData = {.wData = getPicWData(pPic, 0)};
+
+  auto tmpData = getPicSize(pPic, 0);
   tftSetAddrWindow(x, y, x+tmpData.u8Data1, y+tmpData.u8Data2);
   
   ++pPic; // make offset to picture data

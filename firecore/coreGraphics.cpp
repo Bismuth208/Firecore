@@ -14,8 +14,6 @@
 
 #include <esploraAPI.h>
 
-#include "taskmanager.h"
-
 #include "pics.h"
 #include "textProg.h"
 #include "common.h"
@@ -25,7 +23,7 @@
 uint8_t titleRowRPosX = PIC_TITLE_R_BASE_X;
 uint8_t titleRowLPosX = PIC_TITLE_L_BASE_X;
 
-stars_t stars[MAX_STARS] = {{0,0}, 0, 0};
+star_t stars[MAX_STARS] = {{0, 0}, 0, 0};
 bool startState = true;
 
 const uint8_t *pTextDialoge = NULL;
@@ -68,16 +66,22 @@ void printDialogeText(void)
 
 void drawTextWindow(const uint8_t *text, const uint8_t *btnText)
 {
-  tftSetTextSize(1);
-  tftSetTextColor(COLOR_WHITE);
-
   drawFrame(TEXT_FRAME_X, TEXT_FRAME_Y,  TEXT_FRAME_W, TEXT_FRAME_H, INDIGO_COLOR, COLOR_WHITE);
   //drawBMP_ERLE_P(TEXT_FRAME_X, TEXT_FRAME_Y, textWindowPic);
-  tftPrintAt_P(TEXT_OK_X, TEXT_OK_Y, (const char *)btnText);
+  drawText(TEXT_OK_X, TEXT_OK_Y, 1, btnText);
 
   pTextDialoge = text; // draw this text later
   textDialogePosX =0;  // reset position
   updateTaskStatus(printDialogeText, true); // It is so epic retro !!!!
+}
+
+
+//---------------------------------------------------------------------------//
+void drawText(uint8_t posX, uint8_t posY, uint8_t textSize, const uint8_t *pText)
+{
+  tftSetTextSize(textSize);
+  tftSetTextColor(COLOR_WHITE);
+  tftPrintAt_P(posX, posY, (const char *)pText);
 }
 //---------------------------------------------------------------------------//
 
@@ -99,8 +103,7 @@ void drawStars(void)
     if((pStar.pos.x -= pStar.speed) < TFT_W) {
       drawPixelFast(&pStar.pos, pStar.color);
     } else {
-      pStar.pos.x = TFT_W;
-      pStar.pos.y = RN % STARS_MAX_POS_Y;
+      pStar.pos = {TFT_W, RN % STARS_MAX_POS_Y};
       pStar.color = RAND_STAR_CLR;
       pStar.speed = RN % STAR_STEP + 1;
     }
@@ -139,12 +142,12 @@ void rocketEpxlosion(rocket_t *pRocket)
 }
 // --------------------------------------------------------------- //
 
-// draws in ~3.2ms
+// draws in ~3.6 - 4.7ms
 void drawShip(void)
 {
   ship.flameState = !ship.flameState;
 
-  drawEnemy(&ship.pos, SHIP_PIC_W, SHIP_PIC_H, ship.pBodyPic);
+  drawEnemy(&ship.pos, ship.pBodyPic);
   drawBMP_ERLE_P(ship.pos.Base.x, ship.pos.Base.y+SHIP_FLAME_OFFSET_Y,
                     (ship.flameState ? flameFireHiPic : flameFireLowPic));
 }
@@ -156,12 +159,12 @@ void shipHyperJump(void)
     drawBMP_ERLE_P(ship.pos.Base.x, ship.pos.Base.y, ship.pBodyPic);
     drawBMP_ERLE_P(ship.pos.Base.x, ship.pos.Base.y+SHIP_FLAME_OFFSET_Y, flameFireHiPic);
   }
-  movePicture(&ship.pos, SHIP_PIC_W, SHIP_PIC_H); // remove ship from screen
+  movePicture(&ship.pos, ship.pBodyPic); // remove ship from screen
 }
 
 void drawShipExplosion(void)
 {
-  auto *pRocket = &playerLasers[0]; // reuse
+  auto pRocket = &ship.lasers[0]; // reuse
 
   pRocket->pos.x = (RN & (SHIP_PIC_W-1)) + ship.pos.Base.x;
   pRocket->pos.y = (RN & (SHIP_PIC_H-1)) + ship.pos.Base.y;
@@ -174,7 +177,7 @@ void drawShipExplosion(void)
 
 void drawPlayerRockets(void)
 {
-  for(auto &pRocket: playerLasers) {
+  for(auto &pRocket: ship.lasers) {
     if(pRocket.onUse) {
       // remove previous rocket image
       fillRectFast(pRocket.pos.x, pRocket.pos.y, LASER_PIC_W, LASER_PIC_H);
@@ -191,7 +194,7 @@ void drawPlayerRockets(void)
 
 void drawGift(void)
 {
-  drawEnemy(&gift.pos, GIFT_PIC_W, GIFT_PIC_H, gift.pPic);
+  drawEnemy(&gift.pos, gift.pPic);
 }
 // --------------------------------------------------------------- //
 
@@ -238,24 +241,11 @@ void screenSliderEffect(uint16_t color)
     tftDrawFastVLine(TFT_W-i-1, 0, TFT_H, color);
   }
 }
-
-// ------------------ Q16 ------------------- //
-#if BEZIER_FIXED_MATH
-int32_t fixedDiv16(int32_t x, int32_t y)
-{
-  return ((int64_t)x * (1 << 16)) / y;
-}
-
-int32_t fixedMul16(int32_t x, int32_t y)
-{
-  return ((int64_t)x * (int64_t)y) / (1 << 16);
-}
-#endif
 // ------------------------------------------ //
 
 void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine)
 {
-  bezier_t *pLine = &bezierLine;
+  auto pLine = &bezierLine;
 
   // init Bezier line
   getBezierCurve(pItemLine->id);
@@ -270,22 +260,9 @@ void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine)
   // t  - number of step betwen P0 and P3
   // B = ((1.0 - t)^2)P0 + 2t(1.0 - t)P2 + (t^2)P3
   // t [>= 0 && <= 1]
-#if BEZIER_FIXED_MATH
-  uint32_t t = fixedDiv16((float)pItemLine->step, (float)pLine->totalSteps);
-  uint32_t oneT = (1<<16) - t;
-
-  pPos->x = (uint8_t)((fixedMul16(fixedMul16(oneT, oneT), (float)pLine->P0.x)
-                        + fixedMul16(fixedMul16(fixedMul16(t, (float)2), oneT), (float)pLine->P1.x)
-                        + fixedMul16(fixedMul16(t, t), (float)pLine->P2.x)));
-  
-  pPos->y = (uint8_t)((fixedMul16(fixedMul16(oneT, oneT), (float)pLine->P0.y)
-                        + fixedMul16(fixedMul16(fixedMul16(t, (float)2), oneT), (float)pLine->P1.y)
-                        + fixedMul16(fixedMul16(t, t), (float)pLine->P2.y)));
-#else
   float t = ((float)pItemLine->step)/((float)pLine->totalSteps);
   pPos->x = (1.0 - t)*(1.0 - t)*pLine->P0.x + 2*t*(1.0 - t)*pLine->P1.x + t*t*pLine->P2.x;
   pPos->y = (1.0 - t)*(1.0 - t)*pLine->P0.y + 2*t*(1.0 - t)*pLine->P1.y + t*t*pLine->P2.y;
-#endif
 }
 
 void fixPosition(position_t *pPos)
@@ -300,9 +277,9 @@ void getBezierCurve(uint8_t line)
 }
 
 // --------------------------------------------------------------- //
-void drawEnemy(objPosition_t *pEnemy, uint8_t w, uint8_t h, pic_t *pPic)
+void drawEnemy(objPosition_t *pEnemy, pic_t *pPic)
 {
-  movePicture(pEnemy, w, h);
+  movePicture(pEnemy, pPic);
   drawBMP_ERLE_P(pEnemy->Base.x, pEnemy->Base.y, pPic);
 }
 // --------------------------------------------------------------- //
@@ -313,7 +290,15 @@ void fillRectFast(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
   uint16_t dataSize = w*h;
 
   do {
+#ifdef __AVR__  // really dirt trick... but... FOR THE PERFOMANCE!
+    SPDR_t in = {.val = currentBackGroundColor};
+    SPDR = in.msb;
+    SPDR_TX_WAIT;
+    SPDR = in.lsb;
+    SPDR_TX_WAIT;
+#else
     pushColorFast(currentBackGroundColor);
+#endif
   } while(--dataSize);
 }
 

@@ -164,11 +164,11 @@ void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec)
   if(PAA != NULL) {
     // aaand place params to new index
     // why -1? because we can`t allocate 0 bytes :)
-    taskFunc_t *ptr = &PAA[PAC-1]; // reduce instructions by acces pointer
-    ptr->task.pFunc = pTask;
-    ptr->task.timeOut = timeToCheckTask;
-    ptr->nextCallTime = 0;//TIMER_FUNC;
-    ptr->execute = exec;
+   taskFunc_t *ptr = &PAA[PAC-1]; // reduce instructions by acces pointer
+   ptr->task.pFunc = pTask;
+   ptr->task.timeOut = timeToCheckTask;
+   ptr->nextCallTime = 0;//TIMER_FUNC;
+   ptr->execute = exec;
     
 #if USE_MEM_PANIC   
   } else {

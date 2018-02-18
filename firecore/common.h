@@ -36,7 +36,6 @@ extern "C"{
 
 #define STAR_STEP                6  // move speed for stars
 #define MAX_STARS               40  // how much stars we see on screen
-#define MAX_PEW_PEW              4  // Crysis, nanosuit voice: - "Maximum pew".
 
 #define PLAYER_ROCKET_SPEED     16  //(16/difficult)     // in future will be based on ship type
 #define PLAYER_ROCKET_COST       1  //(5*difficult)      // in future will be based on ship type
@@ -49,6 +48,7 @@ extern "C"{
 #define MAX_DIFFICULT_INCREMENT  2
 
 #define SCORE_VAL               20
+#define SCORE_PENALTY           10
 #define BOSS_SCORE_VAL         100
 #define GIFT_BONUS_SCORE       150
 
@@ -90,8 +90,8 @@ extern "C"{
 #define EE_ADDR_SAVE_DATA  0x00
 #define HI_SCORE_MARK      0x41
 
-#define getSaveData(addr, val)  eeprom_read_block((void*)val, (const void*)addr, sizeof(saveData_t));
-#define setSaveData(addr, val)  eeprom_update_block((void*)val, (const void*)addr, sizeof(saveData_t));
+#define getSaveData(addr, val)  eeprom_read_block((void*)val, (void*)addr, sizeof(saveData_t));
+#define setSaveData(addr, val)  eeprom_update_block((void*)val, (void*)addr, sizeof(saveData_t));
 //---------------------------------------------------------------------------//
 
 #define BASE_STATS_POS_X    50
@@ -219,15 +219,14 @@ extern "C"{
 // 20 is the most interesting and hardcore!
 #define ALIEN_DENSITY                30  // It cannot be less invader1_height (i.e. ! < 18 px)
 #define ALIEN_HEALTH                 90  //(30*difficult)     // if d = 4 then shoots = 10 to kill
-#define ALIEN_BOSS_HEALTH           800  //
-#define ALIEN_KILLS_TO_BOSS          15
+#define ALIEN_BOSS_HEALTH          1600  //
+#define ALIEN_KILLS_TO_BOSS          20
 #define ALIEN_BOSS_SPEED_MOVE         2
 #define ALIEN_BOSS_ROCKET_SPEED_MOVE  2
 #define ALIEN_BOSS_EXPLOSIONS        15
-#define ALIEN_BOSS_DEATH_RAYS         4
 #define ALIEN_BOSS_MOVE_UP_ID         6
 #define ALIEN_BOSS_MOVE_DOWN_ID       7
-#define ALIEN_RAND_SHOOT_TIME         ((RN & 3) + 3) // see p.s.1
+#define ALIEN_RAND_SHOOT_TIME         ((RN & 7) + 1) // see p.s.1
 #define ALIEN_RAND_RESPAWN_TIME       (RN % 5 + 1)   // from (1 to 6)  seconds;
 
 #define MAX_ALIENS                    4
@@ -286,7 +285,7 @@ extern uint8_t textHistoryPosX;
 extern uint8_t someCount;
 extern int8_t  totalRespawns;
 
-extern uint16_t score;
+extern int16_t score;
 
 extern uint8_t  difficultyIncrement;
 
@@ -300,9 +299,8 @@ extern inVaderBoss_t alienBoss;
 extern btnStatus_t   btnStates;
 extern bezier_t      bezierLine;
 extern saveData_t    gameSaveData;
-extern stars_t       stars[MAX_STARS];
+extern star_t        stars[MAX_STARS];
 extern inVader_t     aliens[MAX_ALIENS];
-extern rocket_t      playerLasers[MAX_PEW_PEW];
 //---------------------------------------------------------------------------//
 
 extern const uint16_t enemyShotPattern[];
@@ -353,11 +351,6 @@ void createNextLevel(void);
 void prepareLevelSelect(void);
 //---------------------------------------------------------------------------//
 
-uint8_t drawStory(void);
-uint8_t titleAction(void);
-uint8_t historyAction(void);
-uint8_t drawLevelSelect(void);
-
 void menuSwitchSelect(void);
 //---------------------------------------------------------------------------//
 
@@ -367,6 +360,7 @@ void drawInVaders(void);
 void checkInVaders(void);
 void checkInVadersRay(void);
 void checkInVadersRespawn(void);
+void checkInVadersCollision(void);
 
 void setInvaderValue(inVader_t *pAlien, bool state);
 void setDeathRayState(rocket_t *pAlien, position_t *pPos, bool state);
@@ -386,7 +380,6 @@ void checkShipBossDamage(void);
 void drawCurrentShipSelection(void);
 void drawShipSelectionMenu(void);
 void updateShipStates(void);
-uint8_t checkShipSelect(void);
 void getShipItem(void);
 
 //---------------------------------------------------------------------------//
@@ -407,6 +400,8 @@ void checkShipHealth(void);
 
 // core graphics
 void drawTextWindow(const uint8_t *text, const uint8_t *btnText);
+void drawText(uint8_t posX, uint8_t posY, uint8_t textSize, const uint8_t *pText);
+
 void printDialogeText(void);
 void printHistory(void);
 void drawStart(void);
@@ -446,19 +441,23 @@ int8_t checkShipPosition(int8_t pos, uint8_t min, uint8_t max);
 
 bool checkNewPosition(position_t *objOne, position_t *objTwo);
 void applyNewPosition(position_t *objOne, position_t *objTwo, uint8_t picW, uint8_t picH);
-void movePicture(objPosition_t *pObj, uint8_t picW, uint8_t picH);
+void movePicture(objPosition_t *pObj, pic_t *pPic);
 
-void drawEnemy(objPosition_t *pEnemy, uint8_t w, uint8_t h, pic_t *pPic);
+void drawEnemy(objPosition_t *pEnemy, pic_t *pPic);
 
 void setMainFreq(uint8_t ps);
 
+
+void done(const uint8_t *text);
+
 void applyShipDamage(rocket_t *pWeapon);
 
-bool checkCollision(position_t *pObjOne, uint8_t objOneW, uint8_t objOneH,
-                    position_t *pObjTwo, uint8_t objTwoW, uint8_t objTwoH);
+bool checkCollision(position_t *pObjOne, pic_t *pPicOne,
+                    position_t *pObjTwo, pic_t *pPicTwo);
 
 void playMusic(void);
 void printDutyDebug(uint32_t duration);
+
 //---------------------------------------------------------------------------//
 //---------------------------------------------------------------------------//
 
@@ -473,14 +472,14 @@ void addGiftTasks(void);
 
 //---------------------------------------------------------------------------//
 
-#define MAX_GAME_TASKS        19
+#define MAX_GAME_TASKS        20
 
 #define TITLE_TASKS_COUNT      7
 #define HISTORY_TASKS_COUNT    4
 #define SHIP_SEL_TASKS_COUNT   7
 #define STORY_TASKS_COUNT      7
 #define LVL_SEL_TASKS_COUNT    5
-#define GAME_TASKS_COUNT      16  // actually +3 for gift
+#define GAME_TASKS_COUNT      17  // actually +3 for gift
 #define BOSS_TASKS_COUNT      14
 #define GIFT_TASKS_COUNT      10
 #define GAME_OVER_TASKS_COUNT  4

@@ -21,6 +21,7 @@
 
 #define getPicByte(a)     pgm_read_byte(a)
 #define getPicWord(a, b)  pgm_read_word(&(a[b]))
+#define getPicSize(a, b)  wordData_t{.wData = getPicWord(a, b)}
 //---------------------------------------------------------------------------//
 
 // Color definitions

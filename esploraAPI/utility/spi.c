@@ -20,22 +20,6 @@
 #define SET_SCK_HI      SET_BIT(SPI_PORTx, SCK_PIN)
 #define SET_SS_HI       SET_BIT(SPI_PORTx, SC_SS_PIN)
 
-/*
- * The following NOP introduces a small delay that can prevent the wait
- * loop form iterating when running at the maximum speed. This gives
- * about 10% more speed, even if it seems counter-intuitive. At lower
- * speeds it is unnoticed.
- */
-#define SPDR_TX_WAIT  asm volatile("nop"); while((SPSR & (1<<SPIF)) == 0);
-
-typedef union {
-    uint16_t val;
-    struct {
-        uint8_t lsb;
-        uint8_t msb;
-    };
-} SPDR_t;    // this one will use only registers
-
 void initSPI(void)
 {
   uint8_t backupSREG = SREG;
@@ -76,6 +60,29 @@ void sendData16_SPI1(uint16_t data)
   
   SPDR = in.lsb;
   SPDR_TX_WAIT;
+}
+
+// bData - 8bit data to be loaded in SPDR
+// len - number of cycles to wait
+inline void sendData8Dirt_SPI1(uint8_t bData, uint8_t len)
+{
+  // +2 mov cycles
+  asm volatile(
+    "out %[spdr], %[bData] \n"  //  1 - transmit byte
+    "dec %[len]            \n"  //  1 - decrease count
+    "brne .-4              \n"  //  1 -false 2-true; is it 0?
+
+    :
+    [bData] "=r" (bData),
+    [len]   "=r" (len)
+
+    :
+    "[bData]" (bData),
+    "[len]" (len),
+    [spdr]  "I" (_SFR_IO_ADDR(SPDR))   // SPI data register
+
+    : "cc"  // indicates what flags may be clobbered
+  );
 }
 
 void sendArrSPI(uint8_t *buf, uint16_t size)
