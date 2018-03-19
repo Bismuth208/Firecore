@@ -28,6 +28,7 @@
 #define TASK_P(a)     (taskParams_t*)&T(a)
 #define TASK_ARR_N(a) const tasksArr_t a##TasksArr[]
 #define TASK_ARR(a)   TASK_ARR_N(a) PROGMEM
+#define TASK_END      NULL
 */
 
 //---------------------------------------------------------------------------//
@@ -92,7 +93,8 @@ TASK_ARR( title ) = {
   TASK_P(drawStars),
   TASK_P(drawShip),
   TASK_P(drawStart),
-  TASK_P(drawTitleText)
+  TASK_P(drawTitleText),
+  TASK_END
 };
 //---------------------------------------------------------------------------//
 
@@ -113,7 +115,8 @@ TASK_ARR( game ) = {
   TASK_P(checkInVadersRespawn),
   TASK_P(checkInVadersRay),
   TASK_P(checkInVadersCollision),
-  TASK_P(dropWeaponGift)
+  TASK_P(dropWeaponGift),
+  TASK_END
 };
 //---------------------------------------------------------------------------//
 
@@ -131,7 +134,8 @@ TASK_ARR( boss )= {
   TASK_P(moveBossVertical),
   TASK_P(checkBossDamage),
   TASK_P(checkBossFire),
-  TASK_P(checkBossRays)
+  TASK_P(checkBossRays),
+  TASK_END
 };
 //---------------------------------------------------------------------------//
 
@@ -145,7 +149,8 @@ TASK_ARR( gift ) = {
   TASK_P(drawBossExplosion),
   TASK_P(moveGift),
   TASK_P(drawGift),
-  TASK_P(checkGift)
+  TASK_P(checkGift),
+  TASK_END
 };
 //---------------------------------------------------------------------------//
 
@@ -156,7 +161,8 @@ TASK_ARR( shipSel ) = {
   TASK_P(drawCurrentShipSelection),
   TASK_P(getShipItem),
   TASK_P(menuSwitchSelect),
-  TASK_P(printDialogeText)
+  TASK_P(printDialogeText),
+  TASK_END
 };
 
 TASK_ARR( story ) = {
@@ -166,14 +172,16 @@ TASK_ARR( story ) = {
   TASK_P(blinkLevelPointer),
   TASK_P(printDialogeText),
   TASK_P(drawStaticNoise),
-  TASK_P(drawRandomDoge)
+  TASK_P(drawRandomDoge),
+  TASK_END
 };
 
 TASK_ARR( history ) = {
   TASK_P(updateBtnStates),
   TASK_P(playMusic),
   TASK_P(printHistory),
-  TASK_P(menuSwitchSelect)
+  TASK_P(menuSwitchSelect),
+  TASK_END
 };
 
 TASK_ARR( levelSelect ) = {
@@ -181,12 +189,14 @@ TASK_ARR( levelSelect ) = {
   TASK_P(playMusic),
   TASK_P(menuSwitchSelect),
   TASK_P(blinkLevelPointer),
-  TASK_P(printDialogeText)
+  TASK_P(printDialogeText),
+  TASK_END
 };
 
 TASK_ARR( gameOver ) = {
   TASK_P(updateBtnStates),
   TASK_P(playMusic),
   TASK_P(waitEnd),
-  TASK_P(drawShipExplosion)
+  TASK_P(drawShipExplosion),
+  TASK_END
 };

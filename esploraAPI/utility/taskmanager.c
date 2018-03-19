@@ -250,6 +250,7 @@ void addTask_P(const taskParams_t *pTaskP)
   taskFunc_t *ptr = &PAA[PAC++]; // reduce instructions by acces pointer
   ptr->task.pFunc = (pFunc_t)pgm_read_word(&pTaskP->pFunc);
   ptr->task.timeOut = pgm_read_word(&pTaskP->timeOut);
+  //memcpy_P(&ptr->task, pTaskP, sizeof(taskParams_t));
   ptr->nextCallTime = 0; // every fuction will call immediately
   ptr->execute = true; // always true...
 }
@@ -260,15 +261,17 @@ void addTask_P(const taskParams_t *pTaskP)
  * @param  size: number of tasks to load
  * @retval None
  */
-void addTasksArray_P(tasksArr_t *pArr, uint8_t size)
+void addTasksArray_P(tasksArr_t *pArr)
 {
   deleteAllTasks();
-  
-  do {
-    // get ponter to task structure and load params from structure
-    addTask_P((taskParams_t*)pgm_read_word(pArr));
+
+  const taskParams_t *pTask = NULL;
+
+  // get ponter to task structure and load params from structure
+  while((pTask = (taskParams_t*)pgm_read_word(pArr)) != NULL) {
+    addTask_P(pTask);
     ++pArr;
-  } while(--size);
+  }
 }
 
 /**
@@ -320,6 +323,17 @@ void disableTask(pFunc_t pTask)
 }
 
 /**
+ * @brief  enable execution only for single task
+ * @param  pTask: pointer to task what to enable
+ * @retval None
+ */
+void enableTask(pFunc_t pTask)
+{
+  uint8_t taskId = searchTask(pTask);
+  PAA[taskId].execute = true;
+}
+
+/**
  * @brief  disable execution for all tasks
  * @param  None
  * @retval None
@@ -332,7 +346,7 @@ void disableAllTasks(void)
 }
 
 /**
- * @brief  eneable execution for all tasks
+ * @brief  enable execution for all tasks
  * @param  None
  * @retval None
  */

@@ -144,6 +144,7 @@
 #define TASK_P(a)     (taskParams_t*)&T(a)
 #define TASK_ARR_N(a) const tasksArr_t a##TasksArr[]
 #define TASK_ARR(a)   TASK_ARR_N(a) PROGMEM
+#define TASK_END      NULL
 
 //------------------------------------------//
 
@@ -212,11 +213,12 @@ typedef const taskParams_t * const tasksArr_t;
 void addTaskToArr(tasksContainer_t *pTasksArr, pFunc_t pTask, uint16_t timeToCheckTask, bool exec);
 void addTask(pFunc_t pTask, uint16_t timeToCheckTask, bool exec);
 void addTask_P(const taskParams_t *pTaskP);
-void addTasksArray_P(tasksArr_t *pArr, uint8_t size);
+void addTasksArray_P(tasksArr_t *pArr);
 void replaceTask(pFunc_t pOldTask, pFunc_t pNewTask, uint16_t timeToCheckTask, bool exec);
 void updateTaskStatus(pFunc_t oldTask, bool exec);
 void updateTaskTimeCheck(pFunc_t pTask, uint16_t timeToCheckTask);
 void disableTask(pFunc_t pTask);
+void enableTask(pFunc_t pTask);
 void disableAllTasks(void);
 void enableAllTasks(void);
 void deleteTask(pFunc_t pTask);
