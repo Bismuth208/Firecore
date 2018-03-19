@@ -416,12 +416,19 @@ void screenSliderEffect(uint16_t color);
 void drawFrame(uint8_t posX, uint8_t posY,
 	            uint8_t w, uint8_t h, uint16_t clr1, uint16_t clr2);
 
-void fillRectFast(uint8_t x, uint8_t y, uint8_t w, uint8_t h);
+void fillRectFast(position_t *pPos, pic_t *pPic);
+
 void drawPixelFast(position_t *pPos, uint8_t colorId);
+
+void updateSprite(sprite_t *pSprite);
+void drawSprite(sprite_t *pSprite);
+void moveSprite(sprite_t *pSprite);
+void removeSprite(sprite_t *pSprite);
 
 void rocketEpxlosion(rocket_t *pRocket);
 
 void drawRandomDoge(void);
+void printDutyDebug(uint32_t duration);
 //---------------------------------------------------------------------------//
 
 // Helpfull functions
@@ -441,9 +448,6 @@ int8_t checkShipPosition(int8_t pos, uint8_t min, uint8_t max);
 
 bool checkNewPosition(position_t *objOne, position_t *objTwo);
 void applyNewPosition(position_t *objOne, position_t *objTwo, uint8_t picW, uint8_t picH);
-void movePicture(objPosition_t *pObj, pic_t *pPic);
-
-void drawEnemy(objPosition_t *pEnemy, pic_t *pPic);
 
 void setMainFreq(uint8_t ps);
 
@@ -451,12 +455,9 @@ void setMainFreq(uint8_t ps);
 void done(const uint8_t *text);
 
 void applyShipDamage(rocket_t *pWeapon);
-
-bool checkCollision(position_t *pObjOne, pic_t *pPicOne,
-                    position_t *pObjTwo, pic_t *pPicTwo);
+bool checkSpriteCollision(sprite_t *pSprOne, sprite_t *pSprTwo);
 
 void playMusic(void);
-void printDutyDebug(uint32_t duration);
 
 //---------------------------------------------------------------------------//
 //---------------------------------------------------------------------------//

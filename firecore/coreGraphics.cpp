@@ -23,7 +23,7 @@
 uint8_t titleRowRPosX = PIC_TITLE_R_BASE_X;
 uint8_t titleRowLPosX = PIC_TITLE_L_BASE_X;
 
-star_t stars[MAX_STARS] = {{0, 0}, 0, 0};
+star_t stars[MAX_STARS];
 bool startState = true;
 
 const uint8_t *pTextDialoge = NULL;
@@ -41,7 +41,7 @@ void printHistory(void)
     sfxPlayPattern(beepPattern, SFX_CH_0);
 #endif
   } else {
-    updateTaskStatus(printHistory, false);
+    disableTask(printHistory);
   }
 }
 
@@ -58,7 +58,7 @@ void printDialogeText(void)
 #endif
   } else {
     // all text printed
-    updateTaskStatus(printDialogeText, false);
+    disableTask(printDialogeText);
     pTextDialoge = NULL;
     textDialogePosX =0;
   }
@@ -72,7 +72,7 @@ void drawTextWindow(const uint8_t *text, const uint8_t *btnText)
 
   pTextDialoge = text; // draw this text later
   textDialogePosX =0;  // reset position
-  updateTaskStatus(printDialogeText, true); // It is so epic retro !!!!
+  enableTask(printDialogeText); // It is so epic retro !!!!
 }
 
 
@@ -96,16 +96,16 @@ void drawFrame(uint8_t posX, uint8_t posY, uint8_t w, uint8_t h, uint16_t clr1, 
 void drawStars(void)
 {
   // draw stars and blow your mind, if still not
-  for(auto &pStar: stars) {
-    drawPixelFast(&pStar.pos, currentBackGroundColorId);
+  for(auto &star : stars) {
+    drawPixelFast(&star.pos, currentBackGroundColorId);
     
     // now move them
-    if((pStar.pos.x -= pStar.speed) < TFT_W) {
-      drawPixelFast(&pStar.pos, pStar.color);
+    if((star.pos.x -= star.speed) < TFT_W) {
+      drawPixelFast(&star.pos, star.color);
     } else {
-      pStar.pos = {TFT_W, RN % STARS_MAX_POS_Y};
-      pStar.color = RAND_STAR_CLR;
-      pStar.speed = RN % STAR_STEP + 1;
+      star.pos = {TFT_W, RN % STARS_MAX_POS_Y};
+      star.color = RAND_STAR_CLR;
+      star.speed = RN % STAR_STEP + 1;
     }
   }
 }
@@ -116,8 +116,8 @@ void rocketEpxlosion(rocket_t *pRocket)
   // Please, don`t say anything about this...
 
   pRocket->onUse = false;
-  uint16_t posX = pRocket->pos.x;
-  uint16_t posY = pRocket->pos.y;
+  uint8_t posX = pRocket->sprite.pos.Old.x;
+  uint8_t posY = pRocket->sprite.pos.Old.y;
 
   for(uint8_t i = 0; i < 5; i++) { // base formation
     tftFillCircle(posX, posY, i*2, COLOR_WHITE);
@@ -147,29 +147,31 @@ void drawShip(void)
 {
   ship.flameState = !ship.flameState;
 
-  drawEnemy(&ship.pos, ship.pBodyPic);
-  drawBMP_ERLE_P(ship.pos.Base.x, ship.pos.Base.y+SHIP_FLAME_OFFSET_Y,
+  updateSprite(&ship.sprite);
+  drawBMP_ERLE_P(ship.sprite.pos.Old.x, ship.sprite.pos.Old.y+SHIP_FLAME_OFFSET_Y,
                     (ship.flameState ? flameFireHiPic : flameFireLowPic));
 }
 
 void shipHyperJump(void)
 {
-  while((ship.pos.Base.x++) < SHIP_MAX_POS_X) {
+  auto sprite = &ship.sprite;
+
+  while((sprite->pos.Old.x++) < SHIP_MAX_POS_X) {
     // this pic used to left red track on screen
-    drawBMP_ERLE_P(ship.pos.Base.x, ship.pos.Base.y, ship.pBodyPic);
-    drawBMP_ERLE_P(ship.pos.Base.x, ship.pos.Base.y+SHIP_FLAME_OFFSET_Y, flameFireHiPic);
+    drawSprite(sprite);
+    drawBMP_ERLE_P(sprite->pos.Old.x, sprite->pos.Old.y+SHIP_FLAME_OFFSET_Y, flameFireHiPic);
   }
-  movePicture(&ship.pos, ship.pBodyPic); // remove ship from screen
+  moveSprite(sprite); // remove ship from screen
 }
 
 void drawShipExplosion(void)
 {
-  auto pRocket = &ship.lasers[0]; // reuse
+  auto pLaser = &ship.weapon.lasers[0]; // reuse
 
-  pRocket->pos.x = (RN & (SHIP_PIC_W-1)) + ship.pos.Base.x;
-  pRocket->pos.y = (RN & (SHIP_PIC_H-1)) + ship.pos.Base.y;
+  pLaser->sprite.pos.Old.x = (RN & (SHIP_PIC_W-1)) + ship.sprite.pos.Old.x;
+  pLaser->sprite.pos.Old.y = (RN & (SHIP_PIC_H-1)) + ship.sprite.pos.Old.y;
   
-  rocketEpxlosion(pRocket);
+  rocketEpxlosion(pLaser);
 #if ADD_SOUND
   sfxPlayPattern(playerDestroyPattern, SFX_CH_0);
 #endif
@@ -177,15 +179,15 @@ void drawShipExplosion(void)
 
 void drawPlayerRockets(void)
 {
-  for(auto &pRocket: ship.lasers) {
-    if(pRocket.onUse) {
+  for(auto &laser : ship.weapon.lasers) {
+    if(laser.onUse) {
       // remove previous rocket image
-      fillRectFast(pRocket.pos.x, pRocket.pos.y, LASER_PIC_W, LASER_PIC_H);
+      removeSprite(&laser.sprite);
       
-      if(((pRocket.pos.x += PLAYER_ROCKET_SPEED) + LASER_PIC_W) <= TFT_W) {
-        drawBMP_ERLE_P(pRocket.pos.x, pRocket.pos.y, ship.weapon.pPic);
+      if(((laser.sprite.pos.Old.x += PLAYER_ROCKET_SPEED) + LASER_PIC_W) <= TFT_W) {
+        drawSprite(&laser.sprite);
       } else {
-        pRocket.onUse = false;
+        laser.onUse = false;
       }
     }
   }
@@ -194,7 +196,7 @@ void drawPlayerRockets(void)
 
 void drawGift(void)
 {
-  drawEnemy(&gift.pos, gift.pPic);
+  updateSprite(&gift.sprite);
 }
 // --------------------------------------------------------------- //
 
@@ -277,17 +279,39 @@ void getBezierCurve(uint8_t line)
 }
 
 // --------------------------------------------------------------- //
-void drawEnemy(objPosition_t *pEnemy, pic_t *pPic)
+void updateSprite(sprite_t *pSprite)
 {
-  movePicture(pEnemy, pPic);
-  drawBMP_ERLE_P(pEnemy->Base.x, pEnemy->Base.y, pPic);
+  moveSprite(pSprite);
+  drawSprite(pSprite);
 }
-// --------------------------------------------------------------- //
-void fillRectFast(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
+
+void moveSprite(sprite_t *pSprite)
 {
+  //is position changed?
+  if((pSprite->pos.Old.x != pSprite->pos.New.x) || (pSprite->pos.Old.y != pSprite->pos.New.y)) {
+    removeSprite(pSprite); // clear previos position
+    pSprite->pos.Old = pSprite->pos.New; // store new position
+  }
+}
+
+void drawSprite(sprite_t *pSprite)
+{
+  drawBMP_ERLE_P(pSprite->pos.Old.x, pSprite->pos.Old.y, pSprite->pPic);
+}
+
+void removeSprite(sprite_t *pSprite)
+{
+  fillRectFast(&pSprite->pos.Old, pSprite->pPic);
+}
+
+// --------------------------------------------------------------- //
+void fillRectFast(position_t *pPos, pic_t *pPic)
+{
+  auto tmpData = getPicSize(pPic, 0);
+
   // -1 == convert to display addr size
-  tftSetAddrWindow(x, y, x+w-1, y+h-1);
-  uint16_t dataSize = w*h;
+  tftSetAddrWindow(pPos->x, pPos->y, pPos->x+tmpData.u8Data1, pPos->y+tmpData.u8Data2);
+  uint16_t dataSize = (tmpData.u8Data1+1) * (tmpData.u8Data2+1);
 
   do {
 #ifdef __AVR__  // really dirt trick... but... FOR THE PERFOMANCE!
@@ -307,3 +331,14 @@ void drawPixelFast(position_t *pPos, uint8_t colorId)
   tftSetAddrPixel(pPos->x, pPos->y);
   pushColorFast(palette_RAM[colorId]);
 }
+
+// --------------------------------------------------------------- //
+void printDutyDebug(uint32_t duration)
+{
+  char buf[10];
+
+  tftSetTextSize(1);
+  tftFillRect(0, 0, 36, 7, currentBackGroundColor);
+  tftPrintAt(0, 0, itoa(duration, buf, 10));
+}
+

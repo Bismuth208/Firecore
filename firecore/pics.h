@@ -190,4 +190,4 @@ extern const uint8_t explosion1[];
 extern const uint8_t explosion2[];
 //---------------------------------------------------------------------------//
 
-#endif  
+#endif /*_PICS_H*/ 

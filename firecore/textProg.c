@@ -21,7 +21,7 @@
 const uint8_t emptyText[] PROGMEM = {" "};
 const uint8_t pauseP0[] PROGMEM = {"PAUSE"};
 const uint8_t pressAtext[] PROGMEM = {"PRESS A"};
-const uint8_t versionP0[] PROGMEM = {"V0.2A"};
+const uint8_t versionP0[] PROGMEM = {"V0.3A"};
 const uint8_t creditP0[] PROGMEM = {"2017 @BISMUTH208"};
 const uint8_t scoreP[] PROGMEM = {"SCORE: "};
 const uint8_t maxScoreP[] PROGMEM = {"MAX: "};

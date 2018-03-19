@@ -30,11 +30,11 @@ void setInvaderValue(inVader_t *pAlien, bool state)
 {
   pAlien->bezLine.step = 0; //RN % 10;
   pAlien->bezLine.id = RN % MAX_BEZIER_LINES;
-  moveBezierCurve(&pAlien->pos.New, &pAlien->bezLine);
+  moveBezierCurve(&pAlien->sprite.pos.New, &pAlien->bezLine);
 
-  //pAlien->pos.New.x = ALIEN_DEFAULT_POS_X;
   pAlien->weapon.timeToShoot = ALIEN_RAND_SHOOT_TIME;
   pAlien->respawnTime = ALIEN_RAND_RESPAWN_TIME;
+  pAlien->sprite.pPic = alienShipV2;
   pAlien->health = ALIEN_HEALTH;
   pAlien->alive = state;
 }
@@ -42,19 +42,19 @@ void setInvaderValue(inVader_t *pAlien, bool state)
 void setDeathRayState(rocket_t *deathRay, position_t *pPos, bool state)
 {
   deathRay->onUse = state;
-  deathRay->state = ((RN & 1) ? false : true); // ste of picture
-  deathRay->pos = {pPos->x, pPos->y+5}; // +5 is offset to make center align
+  //deathRay->state = ((RN & 1) ? false : true); // ste of picture
+  deathRay->sprite.pos.Old = {pPos->x, pPos->y+5};// +5 is offset to make center align
 }
 
 void moveEnemyV(position_t *pPos, uint8_t moveSize)
 {
-  pPos->y += (int8_t)((moveSize + difficultyIncrement)*((ship.pos.Base.y > pPos->y) ? 1 : -1));
+  pPos->y += (int8_t)((moveSize + difficultyIncrement)*((ship.sprite.pos.Old.y > pPos->y) ? 1 : -1));
 }
 
 void checkTimeToShoot(deathRay_t &pWeapon, position_t &pPos)
 {
   if((pWeapon.timeToShoot--) == 0) {  // decrease timeout to shoot; Captain Obvious :)
-    setDeathRayState(&pWeapon.deathRay, &pPos, true);
+    setDeathRayState(&pWeapon.ray, &pPos, true);
 #if ADD_SOUND
     sfxPlayPattern(enemyShotPattern, SFX_CH_0);
 #endif
@@ -63,23 +63,23 @@ void checkTimeToShoot(deathRay_t &pWeapon, position_t &pPos)
 
 void checkDeathRay(deathRay_t &pWeapon)
 {
-  auto pDeathRay = &pWeapon.deathRay;
   // check damage from deathRay
-  if(checkCollision(&pDeathRay->pos, deathRayHiPic, &ship.pos.Base, ship.pBodyPic)) {
-    applyShipDamage(pDeathRay);
+  if(checkSpriteCollision(&pWeapon.ray.sprite, &ship.sprite)) {
+    applyShipDamage(&pWeapon.ray);
     pWeapon.timeToShoot = ALIEN_RAND_SHOOT_TIME;
   } else {
     // clear previous shoot
-    fillRectFast(pDeathRay->pos.x, pDeathRay->pos.y, DEATHRAY_PIC_W, DEATHRAY_PIC_H);
+    removeSprite(&pWeapon.ray.sprite);
         
-    if((pDeathRay->pos.x -= (DEATH_RAY_SPEED+difficultyIncrement)) < TFT_W) {
-      pDeathRay->state = !pDeathRay->state;
-      drawBMP_ERLE_P(pDeathRay->pos.x, pDeathRay->pos.y,
-                         (pDeathRay->state ? deathRayHiPic : deathRayLowPic));
+    if((pWeapon.ray.sprite.pos.Old.x -= (DEATH_RAY_SPEED+difficultyIncrement)) < TFT_W) {
+      //pWeapon.ray.state = !pWeapon.ray.state;
+      pWeapon.ray.sprite.pPic = ((RN & 1) ? deathRayHiPic : deathRayLowPic);
+
+      drawSprite(&pWeapon.ray.sprite);
     } else {
       // oooh, we don`t shoot the player, inVeder sooo saaad :(
       pWeapon.timeToShoot = ALIEN_RAND_SHOOT_TIME;
-      pWeapon.deathRay.onUse = false;
+      pWeapon.ray.onUse = false;
     }
   }
 }
@@ -88,32 +88,29 @@ void checkDeathRay(deathRay_t &pWeapon)
 
 void initInvaders(void)
 {
-  bool aliveState;
-  for(auto &pAlien: aliens) {
-    pAlien.state = ((RN & 1) ? false : true);
-    aliveState = ((RN & 1) ? false : true);
-
-    setInvaderValue(&pAlien, aliveState);
-    setDeathRayState(&pAlien.weapon.deathRay, &pAlien.pos.New, false);
+  for(auto &alien : aliens) {
+    setInvaderValue(&alien, ((RN & 1) ? false : true));
+    setDeathRayState(&alien.weapon.ray, &alien.sprite.pos.New, false);
   }
 }
 //---------------------------------------------------------------------------//
 
 void moveInVaders(void)
 {
-  for(auto &pAlien: aliens) {
-    if(pAlien.alive) {
-      moveBezierCurve(&pAlien.pos.New, &pAlien.bezLine);
-      fixPosition(&pAlien.pos.New);
+  for(auto &alien : aliens) {
+    if(alien.alive) {
+      auto sprite = &alien.sprite;
+      moveBezierCurve(&sprite->pos.New, &alien.bezLine);
+      fixPosition(&sprite->pos.New);
 
-      if(pAlien.pos.New.y > ALIEN_MOVE_ZONE_Y_MAX) {
-        pAlien.pos.New.y = ALIEN_MOVE_ZONE_Y_MAX;
+      if(sprite->pos.New.y > ALIEN_MOVE_ZONE_Y_MAX) {
+        sprite->pos.New.y = ALIEN_MOVE_ZONE_Y_MAX;
       }
 
-      if(pAlien.bezLine.step == bezierLine.totalSteps) {
-        pAlien.alive = false;
-        pAlien.respawnTime = ALIEN_RAND_RESPAWN_TIME;
-        fillRectFast(pAlien.pos.Base.x, pAlien.pos.Base.y, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H);
+      if(alien.bezLine.step == bezierLine.totalSteps) {
+        alien.alive = false;
+        alien.respawnTime = ALIEN_RAND_RESPAWN_TIME;
+        removeSprite(sprite);
       }
     }
   }
@@ -122,23 +119,21 @@ void moveInVaders(void)
 // each invader consume ~6ms in total for 4 = ~24ms
 void drawInVaders(void)
 {
-  for(auto &pAlien: aliens) {
-    if(pAlien.alive) { // ALIIIVEE! IT`S ALIIVEEE!
-
-      pAlien.state = !pAlien.state;
-      drawEnemy(&pAlien.pos, alienShipV2);
-      drawBMP_ERLE_P(pAlien.pos.Base.x+28, pAlien.pos.Base.y+6,
-                   (pAlien.state ? alienShipFireHi : alienShipFireLow));
+  for(auto &alien : aliens) {
+    if(alien.alive) { // ALIIIVEE! IT`S ALIIVEEE!
+      updateSprite(&alien.sprite);
+      drawBMP_ERLE_P(alien.sprite.pos.Old.x+28, alien.sprite.pos.Old.y+6,
+                   ((RN & 1) ? alienShipFireHi : alienShipFireLow));
     }
   }
 }
 
 void checkInVadersRespawn(void)
 {
-  for(auto &pAlien: aliens) {
-    if(!pAlien.alive)
-      if((pAlien.respawnTime--) == 0)
-        setInvaderValue(&pAlien, true); // make it alive, and update params
+  for(auto &alien : aliens) {
+    if(!alien.alive)
+      if((alien.respawnTime--) == 0)
+        setInvaderValue(&alien, true); // make it alive, and update params
   }
 }
 
@@ -147,23 +142,23 @@ void checkAliveAliens(void)
 {
   uint8_t deadAliens=0;
 
-  for(auto &pAlien: aliens) {
-    if(!pAlien.alive) ++deadAliens;
+  for(auto &alien : aliens) {
+    if(!alien.alive) ++deadAliens;
   }
 
   if(deadAliens == MAX_ALIENS) {
-    bossInit(); // No more respawns left, all army defeated
+    addBossTasks(); // No more respawns left, all army defeated
   }
 }
 
 void checkInVadersRay(void)
 {
-  for(auto &pAlien: aliens) {
-    if(pAlien.weapon.deathRay.onUse) { // is it shoot already?
-      checkDeathRay(pAlien.weapon);
+  for(auto &alien : aliens) {
+    if(alien.weapon.ray.onUse) { // is it shoot already?
+      checkDeathRay(alien.weapon);
     } else {
-      if(pAlien.alive) {
-        checkTimeToShoot(pAlien.weapon, pAlien.pos.New);
+      if(alien.alive) {
+        checkTimeToShoot(alien.weapon, alien.sprite.pos.New);
       }
     }
   }
@@ -174,22 +169,21 @@ void checkInVaders(void)
 {
   // recalc all collisions between player's rockets and each alien
   // i.e. rounds = MAX_PEW_PEW x MAX_ALIENS (in worst case of course)
-  for(auto &pRocket: ship.lasers) {
-    for(auto &pAlien: aliens) {
-      if((pRocket.onUse) && (pAlien.alive)) {
-        if(checkCollision(&pRocket.pos, ship.weapon.pPic,
-                       &pAlien.pos.Base, alienShipV2)) {
+  for(auto &laser : ship.weapon.lasers) {
+    for(auto &alien : aliens) {
+      if((laser.onUse) && (alien.alive)) {
+        if(checkSpriteCollision(&laser.sprite, &alien.sprite)) {
 
-          rocketEpxlosion(&pRocket);
+          rocketEpxlosion(&laser);
             
-          if((pAlien.health -= ship.states.power) <= 0) { // alien absorb damage
+          if((alien.health -= ship.states.power) <= 0) { // alien absorb damage
 #if ADD_SOUND
             sfxPlayPattern(enemyDestroyPattern, SFX_CH_0);
 #endif
             // if it dead, remove body from battleground
-            fillRectFast(pAlien.pos.Base.x, pAlien.pos.Base.y, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H);
+            removeSprite(&alien.sprite);
  
-            pAlien.alive = false;      // actually now it dead
+            alien.alive = false;       // actually now it dead
             score += SCORE_VAL;        // get cookies
             // check total respawns
             if(--totalRespawns <= 0) { // No more respawns left, all army defeated
@@ -208,19 +202,18 @@ void checkInVaders(void)
 //---------------------------------------------------------------------------//
 void checkInVadersCollision(void)
 {
-  auto gopher = rocket_t{0}; // Do you see it? No? But it's exist!
+  auto gopher = rocket_t{0,0}; // Do you see it? No? But it's exist!
 
-  for(auto &pAlien: aliens) {
-    if(pAlien.alive) {
-      if(checkCollision(&ship.pos.Base, ship.pBodyPic,
-                            &pAlien.pos.Base, alienShipV2)) {
+  for(auto &alien : aliens) {
+    if(alien.alive) {
+      if(checkSpriteCollision(&ship.sprite, &alien.sprite)) {
 
-        gopher.pos = pAlien.pos.Base;
-        rocketEpxlosion(&gopher);
-        fillRectFast(pAlien.pos.Base.x, pAlien.pos.Base.y, ALIEN_SHIP_PIC_W, ALIEN_SHIP_PIC_H);
+        gopher.sprite.pos.Old = alien.sprite.pos.Old;
+        rocketEpxlosion(&gopher); // now make gopher to explode \(^_^)/
+        removeSprite(&alien.sprite);
 
-        pAlien.alive = false;      // actually now it dead, again...
-        score -= SCORE_PENALTY;    // lost my treasure!
+        alien.alive = false;      // actually now it dead, again...
+        score -= SCORE_PENALTY;   // lost my treasure!
         if(score < 0) score = 0;
       }
     }
@@ -231,75 +224,78 @@ void checkInVadersCollision(void)
 
 void bossInit(void)
 {
-  setInvaderValue(&alienBoss.base, true);
-  setDeathRayState(&alienBoss.base.weapon.deathRay, &alienBoss.base.pos.New, false);
+  auto pAlien = &alienBoss.base;
 
-  alienBoss.base.health = ALIEN_BOSS_HEALTH;
+  setInvaderValue(pAlien, true);
+  setDeathRayState(&pAlien->weapon.ray, &pAlien->sprite.pos.New, false);
+
+  pAlien->health = ALIEN_BOSS_HEALTH;
+  pAlien->sprite.pPic = bossShip;
   // move up or move down
-  alienBoss.base.bezLine.id = ((RN & 1) ? ALIEN_BOSS_MOVE_UP_ID : ALIEN_BOSS_MOVE_DOWN_ID);
-  alienBoss.base.bezLine.step = 25; // start animation at centere
-  moveBezierCurve(&alienBoss.base.pos.New, &alienBoss.base.bezLine);
+  pAlien->bezLine.id = ((RN & 1) ? ALIEN_BOSS_MOVE_UP_ID : ALIEN_BOSS_MOVE_DOWN_ID);
+  pAlien->bezLine.step = 25; // start animation at centere
+  moveBezierCurve(&pAlien->sprite.pos.New, &pAlien->bezLine);
 
-  for(auto &pWeapons: alienBoss.weapons)
-    setDeathRayState(&pWeapons.deathRay, &alienBoss.base.pos.New, false);
-
-  addBossTasks();
+  for(auto &weapon : alienBoss.weapons)
+    setDeathRayState(&weapon.ray, &pAlien->sprite.pos.New, false);
 }
 
 void moveBossVertical(void)
 {
+  auto pAlien = &alienBoss.base;
+
   // move fully controlled by curve and no fix need
-  moveBezierCurve(&alienBoss.base.pos.New, &alienBoss.base.bezLine);
+  moveBezierCurve(&pAlien->sprite.pos.New, &pAlien->bezLine);
 
   // reach end of move?
-  if(alienBoss.base.bezLine.step == bezierLine.totalSteps) {
+  if(pAlien->bezLine.step == bezierLine.totalSteps) {
     // flip direction move
-    if(alienBoss.base.bezLine.id == ALIEN_BOSS_MOVE_UP_ID) {
-      alienBoss.base.bezLine.id = ALIEN_BOSS_MOVE_DOWN_ID;
+    if(pAlien->bezLine.id == ALIEN_BOSS_MOVE_UP_ID) {
+      pAlien->bezLine.id = ALIEN_BOSS_MOVE_DOWN_ID;
     } else {
-      alienBoss.base.bezLine.id = ALIEN_BOSS_MOVE_UP_ID;
+      pAlien->bezLine.id = ALIEN_BOSS_MOVE_UP_ID;
     }
-    alienBoss.base.bezLine.step = 0;
+    pAlien->bezLine.step = 0;
   }
 }
 
 void drawBoss(void)
 {
   if(alienBoss.base.alive) { // ALIIIVEE! IT`S ALIIVEEE!
-    drawEnemy(&alienBoss.base.pos, bossShip);
+    updateSprite(&alienBoss.base.sprite);
   }
 }
 
 void drawBossExplosion(void)
 {
   // reuse death ray
-  auto pPos = &alienBoss.base.weapon.deathRay.pos;
-  pPos->x = RN % ALIEN_SHIP_BOSS_PIC_W + alienBoss.base.pos.Base.x;
-  pPos->y = RN % ALIEN_SHIP_BOSS_PIC_H + alienBoss.base.pos.Base.y;
+  auto pAlien = &alienBoss.base;
+  auto pPos = &pAlien->weapon.ray.sprite.pos.Old;
+  pPos->x = RN % ALIEN_SHIP_BOSS_PIC_W + pAlien->sprite.pos.Old.x;
+  pPos->y = RN % ALIEN_SHIP_BOSS_PIC_H + pAlien->sprite.pos.Old.y;
 
-  rocketEpxlosion(&alienBoss.base.weapon.deathRay);
+  rocketEpxlosion(&pAlien->weapon.ray);
 }
 
 void checkBossDamage(void)
 {
-  auto pBase = &alienBoss.base;
+  auto pAlien = &alienBoss.base;
 
-  if(pBase->alive) {
-    for(auto &pRocket: ship.lasers) {
-      if(pRocket.onUse) {
-        if(checkCollision(&pRocket.pos, ship.weapon.pPic,
-              &pBase->pos.Base, bossShip)) {
+  if(pAlien->alive) {
+    for(auto &laser : ship.weapon.lasers) {
+      if(laser.onUse) {
+        if(checkSpriteCollision(&laser.sprite, &pAlien->sprite)) {
 
-          rocketEpxlosion(&pRocket);
+          rocketEpxlosion(&laser);
 
-          if((pBase->health -= ship.states.power) <= 0) {  // alien absorb damage
+          if((pAlien->health -= ship.states.power) <= 0) {  // alien absorb damage
 #if ADD_SOUND
             sfxPlayPattern(enemyDestroyPattern, SFX_CH_0);
 #endif
             // if it dead, remove body from battleground
-            fillRectFast(pBase->pos.Base.x, pBase->pos.Base.y, ALIEN_SHIP_BOSS_PIC_W, ALIEN_SHIP_BOSS_PIC_H);
+            removeSprite(&pAlien->sprite);
  
-            pBase->alive = false;      // actually now it dead
+            pAlien->alive = false;     // actually now it dead
             score += BOSS_SCORE_VAL;   // get cookies
             bossDie();                 // was it easy no?
           }
@@ -312,39 +308,37 @@ void checkBossDamage(void)
 
 void checkBossFire(void)
 {
-  auto pBase = &alienBoss.base;
+  auto pAlien = &alienBoss.base;
 
-  if(pBase->weapon.deathRay.onUse) { // is it shoot already?
-    if(checkCollision(&pBase->weapon.deathRay.pos, deathRayBossPic,
-                                    &ship.pos.Base, ship.pBodyPic)) {
-      applyShipDamage(&pBase->weapon.deathRay);
-      pBase->weapon.timeToShoot = ALIEN_RAND_SHOOT_TIME;
+  if(pAlien->weapon.ray.onUse) { // is it shoot already?
+    if(checkSpriteCollision(&pAlien->weapon.ray.sprite, &ship.sprite)) {
+      applyShipDamage(&pAlien->weapon.ray);
+      pAlien->weapon.timeToShoot = ALIEN_RAND_SHOOT_TIME;
     } else {
       // clear previous shoot
-      fillRectFast(pBase->weapon.deathRay.pos.x, pBase->weapon.deathRay.pos.y,
-                                   DEATHRAY_BOSS_PIC_W, DEATHRAY_BOSS_PIC_H);
-      moveEnemyV(&pBase->weapon.deathRay.pos, ALIEN_BOSS_ROCKET_SPEED_MOVE);
+      removeSprite(&pAlien->weapon.ray.sprite);
+      moveEnemyV(&pAlien->weapon.ray.sprite.pos.Old, ALIEN_BOSS_ROCKET_SPEED_MOVE);
         
-      if((pBase->weapon.deathRay.pos.x -= DEATH_RAY_SPEED) < TFT_W) { 
-        drawBMP_ERLE_P(pBase->weapon.deathRay.pos.x, pBase->weapon.deathRay.pos.y, deathRayBossPic);
+      if((pAlien->weapon.ray.sprite.pos.Old.x -= DEATH_RAY_SPEED) < TFT_W) { 
+        drawSprite(&pAlien->weapon.ray.sprite);
       } else {
         // oooh, we don`t shoot the player, inVeder sooo saaad :(
-        pBase->weapon.timeToShoot = ALIEN_RAND_SHOOT_TIME;
-        pBase->weapon.deathRay.onUse = false;
+        pAlien->weapon.timeToShoot = ALIEN_RAND_SHOOT_TIME;
+        pAlien->weapon.ray.onUse = false;
       }
     }
   } else {
-    checkTimeToShoot(pBase->weapon, pBase->pos.New);
+    checkTimeToShoot(pAlien->weapon, pAlien->sprite.pos.New);
   }
 }
 
 void checkBossRays(void)
 {
-  for(auto &pWeapon: alienBoss.weapons) {
-    if(pWeapon.deathRay.onUse) { // is it shoot already?
+  for(auto &pWeapon : alienBoss.weapons) {
+    if(pWeapon.ray.onUse) { // is it shoot already?
       checkDeathRay(pWeapon);
     } else {
-      checkTimeToShoot(pWeapon, alienBoss.base.pos.New);
+      checkTimeToShoot(pWeapon, alienBoss.base.sprite.pos.New);
     }
   }
 }
@@ -352,9 +346,9 @@ void checkBossRays(void)
 void bossDie(void)
 {
   // boss defeated and it's shot exploded. Why? Just because Simon say: "boom"!
-  for(auto &pWeapon: alienBoss.weapons)
-    rocketEpxlosion(&pWeapon.deathRay);
-  rocketEpxlosion(&alienBoss.base.weapon.deathRay);
+  for(auto &pWeapon : alienBoss.weapons)
+    rocketEpxlosion(&pWeapon.ray);
+  rocketEpxlosion(&alienBoss.base.weapon.ray);
 
   addGiftTasks();
 }

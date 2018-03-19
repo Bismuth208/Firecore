@@ -1,3 +1,4 @@
+#!/bin/bash
 # make asm listing for AVR from ELF
 
 OBJDUMP="/Applications/Arduino.app/Contents/Java/hardware/tools/avr/bin/avr-objdump"

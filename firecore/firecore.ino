@@ -10,17 +10,17 @@
  *  Arduino IDE:  1.8.5   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  22,776
- *  pics:         5,233
- *  code:         17,551
- * Used RAM:      1,367 bytes
- * Free RAM:      1,193 bytes
+ * Program size:  22,490
+ *  pics:         5,202
+ *  code:         17,288
+ * Used RAM:      1,422 bytes
+ * Free RAM:      1,138 bytes
  *
  * Language:      C and C++
  * 
  * Author: Antonov Alexandr (Bismuth208)
  * Date:   2 June, 2017
- * Last:   18 Feb, 2018
+ * Last:   17 Mar, 2018
  * e-mail: bismuth20883@gmail.com
  * 
  *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
@@ -59,7 +59,7 @@ uint16_t calJoysticY =0;
 
 ship_t ship;
 gift_t gift;
-btnStatus_t btnStates = {0};
+btnStatus_t btnStates;
 saveData_t gameSaveData;
 bezier_t bezierLine;
 
@@ -145,19 +145,6 @@ uint8_t getJoyStickValue(uint8_t pin)
 }
 
 // --------------------------------------------------------------- //
-
-void movePicture(objPosition_t *pObj, pic_t *pPic)
-{
-  // is position changed?
-  if((pObj->Base.x != pObj->New.x) || (pObj->Base.y != pObj->New.y)) {
-    // clear previos position
-    auto tmpData = getPicSize(pPic, 0);
-    fillRectFast(pObj->Base.x, pObj->Base.y, tmpData.u8Data1+1, tmpData.u8Data2+1); //correction -1 not need
-    // store new position
-    pObj->Base = pObj->New;
-  }
-}
-
 int8_t checkShipPosition(int8_t pos, uint8_t min, uint8_t max)
 { 
   return (pos < min) ? min : (pos > max) ? max : pos;
@@ -171,18 +158,17 @@ void applyShipDirection(uint16_t pos, uint16_t valOne, uint8_t line)
   }  
 }
 
-bool checkCollision(position_t *pObjOne, pic_t *pPicOne,
-                    position_t *pObjTwo, pic_t *pPicTwo)
+bool checkSpriteCollision(sprite_t *pSprOne, sprite_t *pSprTwo)
 {
-  auto tmpDataOne = getPicSize(pPicOne, 0);
-  auto tmpDataTwo = getPicSize(pPicTwo, 0);
+  auto tmpDataOne = getPicSize(pSprOne->pPic, 0);
+  auto tmpDataTwo = getPicSize(pSprTwo->pPic, 0);
 
   /* ----------- Check X position ----------- */
-  uint16_t objOnePosEndX = (pObjOne->x + tmpDataOne.u8Data1);
+  uint8_t objOnePosEndX = (pSprOne->pos.Old.x + tmpDataOne.u8Data1);
 
-  if(objOnePosEndX >= pObjTwo->x) {
-    uint16_t objTwoPosEndX = (pObjTwo->x + tmpDataTwo.u8Data1);
-    if(pObjOne->x >= objTwoPosEndX) {
+  if(objOnePosEndX >= pSprTwo->pos.Old.x) {
+    uint8_t objTwoPosEndX = (pSprTwo->pos.Old.x + tmpDataTwo.u8Data1);
+    if(pSprOne->pos.Old.x >= objTwoPosEndX) {
       return false; // nope, different X positions
     }
     // ok, objects on same X lines; Go next...
@@ -192,11 +178,11 @@ bool checkCollision(position_t *pObjOne, pic_t *pPicOne,
 
   /* ---------------------------------------- */
   /* ----------- Check Y position ----------- */
-  uint16_t objOnePosEndY = (pObjOne->y + tmpDataOne.u8Data2);
+  uint8_t objOnePosEndY = (pSprOne->pos.Old.y + tmpDataOne.u8Data2);
   
-  if(objOnePosEndY>= pObjTwo->y) {
-    uint16_t objTwoPosEndY = (pObjTwo->y + tmpDataTwo.u8Data2);
-    if(pObjOne->y <= objTwoPosEndY) {
+  if(objOnePosEndY>= pSprTwo->pos.Old.y) {
+    uint8_t objTwoPosEndY = (pSprTwo->pos.Old.y + tmpDataTwo.u8Data2);
+    if(pSprOne->pos.Old.y <= objTwoPosEndY) {
       // ok, objects on same Y lines; Go next...
       // yep, if we are here
       // then, part of one object collide wthith another object
@@ -213,32 +199,26 @@ void playMusic(void)
 {
 #if ADD_SOUND
   // 1/20s or every 50ms
-  sfxUpdateAll(); // update sound each frame, as sound engine is frame based
+  sfxUpdateAll(); // update sound each frame, as sound engine is frame Oldd
 #endif
 }
 
-void printDutyDebug(uint32_t duration)
-{
-  char buf[10];
-
-  tftSetTextSize(1);
-  tftFillRect(0, 0, 36, 7, currentBackGroundColor);
-  tftPrintAt(0, 0, itoa(duration, buf, 10));
-}
 // --------------------------------------------------------------- //
 void checkFireButton(void)
 {
   if(getBtnState(BUTTON_A)) {
     resetBtnStates();
 
-    for(auto &pRoket: ship.lasers) {
-      if(!pRoket.onUse) {
+    for(auto &laser : ship.weapon.lasers) {
+      if(!laser.onUse) {
 #if ADD_SOUND
         sfxPlayPattern(playerShotPattern, SFX_CH_1);
-#endif    
-        pRoket.onUse = true;
-        pRoket.pos.x = ship.pos.Base.x + ROCKET_OFFSET_X; // \__ start position
-        pRoket.pos.y = ship.pos.Base.y + ROCKET_OFFSET_Y; // /
+#endif
+        laser.onUse = true;
+        //start position
+        laser.sprite.pos.Old.x = ship.sprite.pos.Old.x + ROCKET_OFFSET_X;
+        laser.sprite.pos.Old.y = ship.sprite.pos.Old.y + ROCKET_OFFSET_Y;
+        laser.sprite.pPic = getConstCharPtr(laserPics, ship.weapon.level);
         break;
       }
     }
@@ -276,8 +256,8 @@ void checkShipHealth(void)
 void moveShip(void)
 {
   uint16_t newValueXY =0; // store temp value
-  position_t pos = ship.pos.New;
   uint8_t speed = ship.states.speed;
+  auto pos = ship.sprite.pos.New;
 
   newValueXY = getStickVal(LINE_X);
   if(newValueXY != calJoysticX) {
@@ -299,18 +279,18 @@ void moveShip(void)
   }
   //applyShipDirection(ship.posNew.y, calJoysticY, LINE_Y); 
 
-  ship.pos.New.x = checkShipPosition(pos.x, SHIP_MIN_POS_X, SHIP_MAX_POS_X);
-  ship.pos.New.y = checkShipPosition(pos.y, SHIP_MIN_POS_Y, SHIP_MAX_POS_Y);
+  ship.sprite.pos.New.x = checkShipPosition(pos.x, SHIP_MIN_POS_X, SHIP_MAX_POS_X);
+  ship.sprite.pos.New.y = checkShipPosition(pos.y, SHIP_MIN_POS_Y, SHIP_MAX_POS_Y);
 }
 
 //---------------------------------------------------------------------------//
 void moveGift(void)
 {
-  moveBezierCurve(&gift.pos.New, &gift.bezLine);
+  moveBezierCurve(&gift.sprite.pos.New, &gift.bezLine);
 
   // reach end of move?
   if(gift.bezLine.step == bezierLine.totalSteps) {
-    movePicture(&gift.pos, gift.pPic); // remove gift from screen
+    moveSprite(&gift.sprite); // remove gift from screen
     if(weaponGift) {
       disableWeaponGift();
     } else {
@@ -322,19 +302,17 @@ void moveGift(void)
 void giftDone(void)
 {
   score += GIFT_BONUS_SCORE;
-
-  // remove gift from screen
-  fillRectFast(gift.pos.Base.x, gift.pos.Base.y, GIFT_PIC_W, GIFT_PIC_H);
+  removeSprite(&gift.sprite); //remove gift from screen
 }
 
 void checkGift(void)
 {
   if(weaponGift) {
-    for(auto &pRocket: ship.lasers) {
-      if(pRocket.onUse) {
-        if(checkCollision(&pRocket.pos, ship.weapon.pPic, &gift.pos.Base, gift.pPic)) {
+    for(auto &laser : ship.weapon.lasers) {
+      if(laser.onUse) {
+        if(checkSpriteCollision(&laser.sprite, &gift.sprite)) {
 
-          rocketEpxlosion(&pRocket);
+          rocketEpxlosion(&laser);
 #if ADD_SOUND
           sfxPlayPattern(playerSuperPattern, SFX_CH_2);
 #endif
@@ -344,14 +322,13 @@ void checkGift(void)
           if((++ship.weapon.level) > MAX_WEAPON_LVL) {
             ship.weapon.level = MAX_WEAPON_LVL;
           }
-          ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level);
           disableWeaponGift();
           return;
         }
       }
     }
   } else { // heart and end of the level
-    if(checkCollision(&ship.pos.Base, ship.pBodyPic, &gift.pos.Base, gift.pPic)) {
+    if(checkSpriteCollision(&ship.sprite, &gift.sprite)) {
       giftDone();
 
       if((ship.health += GIFT_HEALTH_RESTORE) > SHIP_HEALTH) {
@@ -362,21 +339,19 @@ void checkGift(void)
   }
 }
 
-
 void disableWeaponGift(void)
 {
-  updateTaskStatus(dropWeaponGift, false); // to be shure and pause fix
-
-  updateTaskStatus(moveGift, false);
-  updateTaskStatus(checkGift, false);
-  updateTaskStatus(drawGift, false);
+  disableTask(dropWeaponGift); // to be shure and pause fix
+  disableTask(moveGift);
+  disableTask(checkGift);
+  disableTask(drawGift);
 }
 
 void dropWeaponGift(void)
 {
-  gift.pPic = giftWeaponPic;
+  gift.sprite.pPic = giftWeaponPic;
   weaponGift = true;
-  updateTaskStatus(dropWeaponGift, false);
+  disableTask(dropWeaponGift);
 
   addTask_P(T(&moveGift));
   addTask_P(T(&drawGift));
@@ -403,7 +378,7 @@ void createNextLevel(void)
     addTask_P(T(&waitOk));
     addTask_P(T(&playMusic));
     addTask_P(T(&printDialogeText));
-    updateTaskStatus(printDialogeText, false);
+    disableTask(printDialogeText);
   }  
 }
 
@@ -418,18 +393,20 @@ void levelBaseInit(void)
 // --------------------------------------------------------------- //
 void addGameTasks(void)
 {
-  addTasksArray_P(gameTasksArr, GAME_TASKS_COUNT);
+  addTasksArray_P(gameTasksArr);
 
-  ship.pos.New = {SHIP_GAME_POS_X, SHIP_GAME_POS_Y};
+  ship.sprite.pos.New = {SHIP_GAME_POS_X, SHIP_GAME_POS_Y};
   gift.bezLine = {GIFT_MOVE_ID, 0};
-  moveBezierCurve(&gift.pos.New, &gift.bezLine);
+  moveBezierCurve(&gift.sprite.pos.New, &gift.bezLine);
   updateTaskTimeCheck(dropWeaponGift, RAND_GIFT_SPAWN_TIME);
 }
 
 void addBossTasks(void)
 {
+  bossInit();
   tftFillScreen(currentBackGroundColor);
-  addTasksArray_P(bossTasksArr, BOSS_TASKS_COUNT);
+
+  addTasksArray_P(bossTasksArr);
 }
 
 // drop gift from the boss
@@ -437,33 +414,33 @@ void addGiftTasks(void)
 {
   weaponGift = false;
   gift.bezLine = {GIFT_MOVE_ID, 0};
-  gift.pPic = giftHeartPic;
-  moveBezierCurve(&gift.pos.New, &gift.bezLine);
+  gift.sprite.pPic = giftHeartPic;
+  moveBezierCurve(&gift.sprite.pos.New, &gift.bezLine);
 
-  addTasksArray_P(giftTasksArr, GIFT_TASKS_COUNT);
+  addTasksArray_P(giftTasksArr);
 }
 
 void addShipSelectTasks(void)
 {
-  ship.pos.New = {SHIP_SELECT_POS_X, SHIP_SELECT_POS_Y};
-  addTasksArray_P(shipSelTasksArr, SHIP_SEL_TASKS_COUNT);
+  ship.sprite.pos.New = {SHIP_SELECT_POS_X, SHIP_SELECT_POS_Y};
+  addTasksArray_P(shipSelTasksArr);
 }
 
 void addStoryTasks(void)
 {
-  addTasksArray_P(storyTasksArr, STORY_TASKS_COUNT);
-  updateTaskStatus(drawStaticNoise, false);
+  addTasksArray_P(storyTasksArr);
+  disableTask(drawStaticNoise);
 }
 
 void addHistoryTasks(void)
 {
   textHistoryPosX = 0;
-  addTasksArray_P(historyTasksArr, HISTORY_TASKS_COUNT);
+  addTasksArray_P(historyTasksArr);
 }
 
 void addTitleTasks(void)
 {
-  addTasksArray_P(titleTasksArr, TITLE_TASKS_COUNT);
+  addTasksArray_P(titleTasksArr);
 }
 
 void baseTitleTask(void)
@@ -514,31 +491,31 @@ void calibrateJoystick(void)
   calJoysticY = getStickVal(LINE_Y);
 }
 
-// caled every level
+// call every new level
 void initShip(void)
 {
-  ship.pos.New = {SHIP_TITLE_POS_X, SHIP_TITLE_POS_Y};
-  //ship.weapon.rocketsLeft = MAX_PEW_PEW;
-  ship.weapon.overHeated = false;
-  ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level);
+  ship.sprite.pos.New = {SHIP_TITLE_POS_X, SHIP_TITLE_POS_Y};
 
-  memset_F(ship.lasers, 0x00, sizeof(rocket_t)*MAX_PEW_PEW);
+  memset_F(ship.weapon.lasers, 0x00, sizeof(rocket_t)*MAX_PEW_PEW);
 }
 
 void resetShip(void)
 {
   ship.health = SHIP_HEALTH;
   ship.weapon.level = 0;
-  ship.weapon.pPic = getConstCharPtr(laserPics, ship.weapon.level);
   ship.type = 3; // he he he
-  ship.pBodyPic = getConstCharPtr(shipsPics, ship.type);
+  ship.sprite.pPic = getConstCharPtr(shipsPics, ship.type);
+ 
+  for(auto &laser : ship.weapon.lasers) {
+    laser.sprite.pPic = getConstCharPtr(laserPics, ship.weapon.level);
+  }
 }
 
 void initStars(void)
 {
   // init only speed as next drawStars() call will reinit all params
-  for(auto &pStar: stars)
-    pStar.speed = RN % STAR_STEP + 1;
+  for(auto &star : stars)
+    star.speed = RN % STAR_STEP + 1;
 }
 
 void initRand(void)

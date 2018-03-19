@@ -69,7 +69,7 @@ void drawCurrentShipSelection(void)
 
     // update ship pic
     ship.type = currentShip-1;
-    ship.pBodyPic = getConstCharPtr(shipsPics, ship.type);
+    ship.sprite.pPic = getConstCharPtr(shipsPics, ship.type);
 
     posX = characterIconStep*(previousShip-1) + CHARACTER_ICON_OFFSET_X;
     tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, COLOR_BLACK);
@@ -133,9 +133,9 @@ void pauseMenu(void)
     if(!pauseState) { // is it already stopped?
       pauseState = !pauseState;
       disableAllTasks();
-      updateTaskStatus(updateBtnStates, true);
-      updateTaskStatus(pauseMenu, true);
-      updateTaskStatus(playMusic, true);
+      enableTask(playMusic);
+      enableTask(updateBtnStates);
+      enableTask(pauseMenu);
       pauseWindow();
     }
     
@@ -148,7 +148,8 @@ void pauseMenu(void)
       enableAllTasks();
       disableWeaponGift(); // fix glitch
       // remove "Pause" text
-      fillRectFast(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, PAUSE_TEXT_W, PAUSE_TEXT_H);
+      //fillRectFast(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, PAUSE_TEXT_W, PAUSE_TEXT_H);
+      tftFillRect(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, PAUSE_TEXT_W, PAUSE_TEXT_H, currentBackGroundColor);
       continue();
     }
   }
@@ -234,19 +235,19 @@ bool checkShipSelect(void)
 bool drawStory(void)
 {
   if(getBtnState(BUTTON_B)) {
+    resetBtnStates();
 #if ADD_SOUND
     sfxPlayCancel();
 #endif
-    resetBtnStates();
     if(dogeDialogs < STORY_DOGE_TEXT_SIZE) {
       drawTextWindow(getConstCharPtr(dogePA, dogeDialogs), buttonB);
 
       switch(++dogeDialogs) {
         case 5: {
-          updateTaskStatus(drawStaticNoise, true);
+          enableTask(drawStaticNoise);
         } break;
         case 7: {
-          updateTaskStatus(drawRandomDoge, false);
+          disableTask(drawRandomDoge);
         } break;
         default: break;
       }
@@ -384,7 +385,7 @@ void prepareLevelSelect(void)
 
   drawGalaxy();
   // add level select tasks
-  addTasksArray_P(levelSelectTasksArr, LVL_SEL_TASKS_COUNT);
+  addTasksArray_P(levelSelectTasksArr);
   drawTextWindow(getConstCharPtr(worldPA, i-1), buttonA); // name of current world
 
   do {
@@ -440,7 +441,7 @@ void printScore(void)
   tftPrintAt(80, 60, itoa(score, buf, 10));
 
   // draw hi score
-  uint16_t hiScore = gameSaveData.score;
+  int16_t hiScore = gameSaveData.score;
   if(score > hiScore) {
     gameSaveData.score = score;
     hiScore = score;
@@ -464,7 +465,7 @@ void gameOver(void)
   printScore();
 
   // add game over tasks
-  addTasksArray_P(gameOverTasksArr, GAME_OVER_TASKS_COUNT);
+  addTasksArray_P(gameOverTasksArr);
   resetBtnStates();
 
   curretLevel =0;

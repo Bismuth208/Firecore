@@ -31,17 +31,17 @@ typedef struct { // 4 bytes RAM
 
 typedef const uint8_t pic_t;
 
-typedef struct {  // need for collision check
-  position_t Base;
+typedef struct {  // 4 bytes
+  position_t Old;
   position_t New;
-} objPosition_t;
+} objPosition_t;   // need for collision check
 
-typedef struct {
+typedef struct {  // 6 bytes
   objPosition_t pos;
   pic_t *pPic;
 } sprite_t;
 
-typedef struct {
+typedef struct {  // 7 bytes
   position_t P0;
   position_t P1;
   position_t P2;
@@ -53,39 +53,33 @@ typedef struct {
   uint8_t step;
 } bezierLine_t;
 
-typedef struct {  // 5 bytes RAM
+//---------------------------------------------------------------------------//
+typedef struct {  // 4 bytes
   position_t pos;
   uint8_t color; // as we use 8bit palette, store only color id
   uint8_t speed;
 } star_t;
 
-typedef struct {  // 5 bytes RAM
-  position_t pos;
+typedef struct {  // 7 bytes
+  sprite_t sprite;
   struct {
     uint8_t onUse   :1;
-    uint8_t state   :1;
-    uint8_t freeRam :6;
+    uint8_t freeRam :7;
   };
 } rocket_t;
 
-typedef struct {
-  rocket_t deathRay;
+typedef struct {  // 9 bytes
+  rocket_t ray;
   uint16_t timeToShoot;
 } deathRay_t;
-
-typedef struct {  // 8 bytes RAM
-  objPosition_t pos;
-  pic_t *pPic;
-  bezierLine_t bezLine;
-} gift_t;
 
 typedef struct {
   //uint8_t bombsLeft;
   //uint8_t rocketsLeft;
-  pic_t *pPic;
+  rocket_t lasers[MAX_PEW_PEW];
   struct {
-    uint8_t overHeated;//    :1;
-    uint8_t state;//         :1;
+    //uint8_t overHeated;//    :1;
+    //uint8_t state;//         :1;
     //uint8_t bombsUnlocked :1;
     uint8_t level;//         :3;
     //uint8_t freeRam       :3;
@@ -98,25 +92,28 @@ typedef struct {
   int8_t durability;
 } shipStats_t;
 
-typedef struct {  // 8 + 5 + 5 bytes RAM
-  objPosition_t pos;
-  pic_t *pBodyPic;
+//---------------------------------------------------------------------------//
+typedef struct {  // 8 bytes
+  sprite_t sprite;
+  bezierLine_t bezLine;
+} gift_t;
+
+typedef struct {
+  sprite_t sprite;
   shipStats_t states;
   weapon_t weapon;
-  rocket_t lasers[MAX_PEW_PEW];
   int16_t health;
   uint8_t type;
   bool flameState;
 } ship_t;
 
-typedef struct {  // 8 + 6 + 5 bytes RAM
-  objPosition_t pos;
+typedef struct {
+  sprite_t sprite;
   bezierLine_t bezLine;
   deathRay_t weapon;
   struct {
-    uint8_t state;//   :1;     // Pic what we draw
-    uint8_t alive;//   :1;
-    //uint8_t freeRam :6;
+    uint8_t alive   :1;
+    uint8_t freeRam :7;
   };
   int16_t health;
   uint16_t timeToShoot;
@@ -128,6 +125,7 @@ typedef struct {
   deathRay_t weapons[ALIEN_BOSS_DEATH_RAYS];
 } inVaderBoss_t;
 
+//---------------------------------------------------------------------------//
 typedef struct {
   union {
   	uint8_t zBtn; // for fast reset only
@@ -167,4 +165,4 @@ typedef union {
 } // extern "C"
 #endif
 
-#endif  /*_COMMON_H*/
+#endif  /*_TYPES_H*/
