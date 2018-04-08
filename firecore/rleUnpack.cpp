@@ -46,11 +46,7 @@
  *  ORIGINAL ARTICLE
  */
 
-#include <esploraAPI.h>
-
 #include "rleUnpack.h"
-#include "types.h"     // for wordData_t
-#include "pics.h"      // for palette_RAM[]
 
 //---------------------------------------------------------------------------//
 #define DATA_MARK        0x7f
@@ -159,14 +155,14 @@ uint8_t *unpackBuf_RLE(const uint8_t *pDict, uint16_t dataSize)
 }
 
 // extended RLE, a bit slower but better compression
-void drawBMP_ERLE_P(uint8_t x, uint8_t y, const uint8_t *pPic)
+void drawBMP_ERLE_P(uint8_t x, uint8_t y, pic_t *pPic)
 {
   auto tmpData = getPicSize(pPic, 0);
   tftSetAddrWindow(x, y, x+tmpData.u8Data1, y+tmpData.u8Data2);
   
   uint8_t tmpByte;
   uint16_t unfoldPos;
-  const uint8_t *pDict = &pPic[3]; // save dictionary pointer
+  auto pDict = &pPic[3]; // save dictionary pointer
   pPic += getPicByte(&pPic[2]);    // make offset to picture data
   
   for(;;) { // endless cycle here is bad architecture... but it's works!
@@ -197,7 +193,7 @@ void drawBMP_ERLE_P(uint8_t x, uint8_t y, const uint8_t *pPic)
 
 // =============================================================== //
 // old version, faster, but less comression
-void drawBMP_RLE_P(uint8_t x, uint8_t y, const uint8_t *pPic)
+void drawBMP_RLE_P(uint8_t x, uint8_t y, pic_t *pPic)
 {
   uint16_t repeatColor;
   uint8_t tmpInd, repeatTimes;

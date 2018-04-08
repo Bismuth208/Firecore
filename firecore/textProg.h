@@ -15,60 +15,40 @@
 #ifndef _TEXTPROG_H
 #define _TEXTPROG_H
 
+#include "types.h"
+
 //---------------------------------------------------------------------------//
 
 #define STORY_DOGE_TEXT_SIZE  7
 
-extern const uint8_t emptyText[];
-extern const uint8_t pauseP0[];
-extern const uint8_t pressAtext[];
-extern const uint8_t versionP0[];
-extern const uint8_t creditP0[];
-extern const uint8_t gameOverP[];
-extern const uint8_t levelClearP[];
-extern const uint8_t victoryP[];
-extern const uint8_t scoreP[];
-extern const uint8_t maxScoreP[];
-extern const uint8_t bossWarningP[];
+extern text_t emptyText[];
+extern text_t pauseP0[];
+extern text_t pressAtext[];
+extern text_t versionP0[];
+extern text_t gameOverP[];
+extern text_t levelClearP[];
+extern text_t victoryP[];
+extern text_t scoreP[];
+extern text_t maxScoreP[];
+extern text_t bossWarningP[];
+extern text_t creditP0[];
+extern text_t historyTextP[];
 
-extern const uint8_t selectShipP[];
-extern const uint8_t shipSpeedStatP[];
-extern const uint8_t shipPowerStatP[];
-extern const uint8_t shipDurabStatP[];
+extern text_t selectShipP[];
+extern text_t shipSpeedStatP[];
+extern text_t shipPowerStatP[];
+extern text_t shipDurabStatP[];
 
-extern const uint8_t buttonA[];
-extern const uint8_t buttonB[];
-extern const uint8_t buttonX[];
-extern const uint8_t buttonY[];
-extern const uint8_t * const buttonsAll[];
+extern text_t buttonA[];
+extern text_t buttonB[];
+extern text_t buttonX[];
+extern text_t buttonY[];
 
-extern const uint8_t dogeP1[];
-extern const uint8_t dogeP2[];
-extern const uint8_t dogeP3[];
-extern const uint8_t dogeP4[];
-extern const uint8_t dogeP5[];
-extern const uint8_t dogeP6[];
-extern const uint8_t dogeP7[];
-extern const uint8_t * const dogePA[];
-
-
-extern const uint8_t modeP1[];
-extern const uint8_t modeP2[];
-extern const uint8_t * const modePA[];
-
-
-extern const uint8_t historyTextP[];
-
-
-extern const uint8_t worldP1[];
-extern const uint8_t worldP2[];
-extern const uint8_t worldP3[];
-extern const uint8_t worldP4[];
-extern const uint8_t worldP5[];
-extern const uint8_t worldP6[];
-extern const uint8_t worldP7[];
-extern const uint8_t worldP8[];
-extern const uint8_t * const worldPA[];
+extern text_t * const buttonsAll[];
+extern text_t * const dogePA[];
+extern text_t * const modePA[];
+extern text_t * const worldPA[];
+extern text_t * const creditsPA[];
 
 //---------------------------------------------------------------------------//
 

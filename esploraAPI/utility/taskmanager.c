@@ -94,7 +94,7 @@ __attribute__ ((noreturn)) void runTasks(void)
       defragNextMs = TIMER_FUNC + AUTO_DEFRAG_TIMEOUT;
     }
 #endif
-    
+
 #if USE_NO_TASK_PANIC
     if(PAC) {
 #endif
@@ -114,11 +114,12 @@ __attribute__ ((noreturn)) void runTasks(void)
           }
         }
       }
-
-      ++pCurArr;
+      
       if(++currentTaskNum >= PAC) {
         currentTaskNum =0;
         pCurArr = &PAA[0];
+      } else {
+        ++pCurArr;
       }
 #if USE_NO_TASK_PANIC
     } else {
@@ -248,9 +249,9 @@ void addTask_P(const taskParams_t *pTaskP)
   // aaand place params to new index
   // increase total tasks
   taskFunc_t *ptr = &PAA[PAC++]; // reduce instructions by acces pointer
-  ptr->task.pFunc = (pFunc_t)pgm_read_word(&pTaskP->pFunc);
-  ptr->task.timeOut = pgm_read_word(&pTaskP->timeOut);
-  //memcpy_P(&ptr->task, pTaskP, sizeof(taskParams_t));
+  // ptr->task.pFunc = (pFunc_t)pgm_read_word(&pTaskP->pFunc);
+  // ptr->task.timeOut = pgm_read_word(&pTaskP->timeOut);
+  memcpy_P(&ptr->task, pTaskP, sizeof(taskParams_t));
   ptr->nextCallTime = 0; // every fuction will call immediately
   ptr->execute = true; // always true...
 }
@@ -287,12 +288,12 @@ void deleteAllTasks(void)
     *pBuf++ = 0x00;
   } while(--size);
   
+  PAC = 0;
+  resetTaskCount = true;
 #if USE_DYNAMIC_MEM
   free(PAA);
   PAA = NULL;
 #endif /*USE_DYNAMIC_MEM*/
-  PAC = 0;
-  resetTaskCount = true;
 }
 
 /**
@@ -520,7 +521,7 @@ uint8_t searchTask(pFunc_t pTask)
   tmpOne.pFunc = pTask; // tmpOne.pFunc use only r20,r21
 
   do {
-    tmpTwo.pFunc = (uint16_t)ptr->task.pFunc; // store addr to r24,r25
+    tmpTwo.pFunc = (pFunc_t)ptr->task.pFunc; // store addr to r24,r25
     // compare addr separetly, reque less instructions
     if(tmpOne.hi == tmpTwo.hi) { // compare r24,r21
       if(tmpOne.low == tmpTwo.low) { // compare r25,r20

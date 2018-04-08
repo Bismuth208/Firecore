@@ -26,7 +26,7 @@ uint8_t titleRowLPosX = PIC_TITLE_L_BASE_X;
 star_t stars[MAX_STARS];
 bool startState = true;
 
-const uint8_t *pTextDialoge = NULL;
+text_t *pTextDialoge = NULL;
 uint8_t textDialogePosX =0;
 uint8_t textHistoryPosX =0;
 
@@ -51,7 +51,8 @@ void printDialogeText(void)
   if(tmpChar != '\0') {
     ++pTextDialoge;
     // 6 is width of font is size will == 1
-    tftPrintCharAt(TEXT_WINDOW_X + (textDialogePosX*6), TEXT_WINDOW_Y, tmpChar);
+    //tftPrintCharAt(TEXT_WINDOW_X + (textDialogePosX*6), TEXT_WINDOW_Y, tmpChar);
+    tftPrintChar(tmpChar);
     ++textDialogePosX;
 #if ADD_SOUND
     sfxPlayPattern(beepPattern, SFX_CH_0);
@@ -64,7 +65,7 @@ void printDialogeText(void)
   }
 }
 
-void drawTextWindow(const uint8_t *text, const uint8_t *btnText)
+void drawTextWindow(text_t *text, text_t*btnText)
 {
   drawFrame(TEXT_FRAME_X, TEXT_FRAME_Y,  TEXT_FRAME_W, TEXT_FRAME_H, INDIGO_COLOR, COLOR_WHITE);
   //drawBMP_ERLE_P(TEXT_FRAME_X, TEXT_FRAME_Y, textWindowPic);
@@ -72,12 +73,13 @@ void drawTextWindow(const uint8_t *text, const uint8_t *btnText)
 
   pTextDialoge = text; // draw this text later
   textDialogePosX =0;  // reset position
+  tftSetCursor(TEXT_WINDOW_X, TEXT_WINDOW_Y);
   enableTask(printDialogeText); // It is so epic retro !!!!
 }
 
 
 //---------------------------------------------------------------------------//
-void drawText(uint8_t posX, uint8_t posY, uint8_t textSize, const uint8_t *pText)
+void drawText(uint8_t posX, uint8_t posY, uint8_t textSize, text_t*pText)
 {
   tftSetTextSize(textSize);
   tftSetTextColor(COLOR_WHITE);
@@ -140,6 +142,29 @@ void rocketEpxlosion(rocket_t *pRocket)
 
   //fillRectFast(posX, posY, EXPLOSION_PIC_WH, EXPLOSION_PIC_WH);
 }
+
+// void rocketEpxlosion(rocket_t *pRocket)
+// {
+//   // Please, don`t say anything about this...
+
+//   pRocket->onUse = false;
+//   uint8_t posX = pRocket->sprite.pos.Old.x;
+//   uint8_t posY = pRocket->sprite.pos.Old.y;
+
+//   for(uint8_t i = 0; i < 10; i++) { // base formation
+//     drawBMP_ERLE_P(posX, posY, explosion1);
+//   }
+
+// #if ADD_SOUND
+//   sfxPlayPattern(enemyHitPattern, SFX_CH_1); // veeery tyny delay
+// #endif
+
+//   for(uint8_t i = 20; i > 0; i--) { // something ?
+//     drawBMP_ERLE_P(posX, posY, explosion2);
+//   }
+
+//   fillRectFast(&pRocket->sprite.pos.Old, explosion2);
+// }
 // --------------------------------------------------------------- //
 
 // draws in ~3.6 - 4.7ms
@@ -177,7 +202,7 @@ void drawShipExplosion(void)
 #endif
 }
 
-void drawPlayerRockets(void)
+void drawPlayerWeapon(void)
 {
   for(auto &laser : ship.weapon.lasers) {
     if(laser.onUse) {

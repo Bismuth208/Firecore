@@ -23,6 +23,7 @@
 
 #include "rleUnpack.h"
 #include "types.h"
+#include "textProg.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -36,6 +37,15 @@ extern "C"{
 
 #define STAR_STEP                6  // move speed for stars
 #define MAX_STARS               40  // how much stars we see on screen
+#define STARS_MAX_POS_Y         (TFT_H-9)
+#define RAND_STAR_CLR           (((RN % 3)+1)<<4) | (RN & 0x7)
+
+#define ASTEROID_STEP           4  // same as stars
+#define MAX_ASTEROIDS           10  // same as stars
+#define ASTEROID_MAX_POS_Y      (TFT_H-20)
+#define ASTEROIDS_TO_DEFEAT     250
+#define ASTEROID_SPEED_MOVE     1
+//---------------------------------------------------------------------------//
 
 #define PLAYER_ROCKET_SPEED     16  //(16/difficult)     // in future will be based on ship type
 #define PLAYER_ROCKET_COST       1  //(5*difficult)      // in future will be based on ship type
@@ -59,10 +69,6 @@ extern "C"{
 #define RC             RNDCLR(RND_POS_X,RND_POS_Y)
 #define TS             tftSetTextSize(1)
 #define DC(a)          tftDrawCharInt(a)
-
-
-#define STARS_MAX_POS_Y (TFT_H-9)
-#define RAND_STAR_CLR   (((RN % 3)+1)<<4) | (RN & 0x7)
 
 // this macros remove monstro constructions...
 #define getConstCharPtr(a, b) (const uint8_t*)pgm_read_word(&(a[b]))
@@ -268,9 +274,12 @@ extern "C"{
 #define WORLD_8_POS_X   150
 #define WORLD_8_POS_Y   65
 
-#define MAX_WORLDS      9
+#define WORLD_E_POS_X   0
+#define WORLD_E_POS_Y   0
 
-#define HOME_PLANET_ID  8
+#define MAX_WORLDS      13
+
+#define HOME_PLANET_ID  12
 //---------------------------------------------------------------------------//
 
 extern bool pauseState;
@@ -301,6 +310,7 @@ extern bezier_t      bezierLine;
 extern saveData_t    gameSaveData;
 extern star_t        stars[MAX_STARS];
 extern inVader_t     aliens[MAX_ALIENS];
+extern asteroid_t    asteroids[MAX_ASTEROIDS];
 //---------------------------------------------------------------------------//
 
 extern const uint16_t enemyShotPattern[];
@@ -327,6 +337,7 @@ void victory(void);
 void gameOver(void);
 void levelClear(void);
 void drawSomeGUI(void);
+void drawCredits(void);
 
 void waitOk(void);
 void waitEnd(void);
@@ -392,15 +403,22 @@ void moveShip(void);
 void drawShip(void);
 void checkShipDamage(void);
 
-void drawPlayerRockets(void);
+void drawPlayerWeapon(void);
 
 void checkFireButton(void);
 void checkShipHealth(void);
 //---------------------------------------------------------------------------//
 
+
+void initAsteroids(void);
+void moveAsteroids(void);
+void respawnAsteroids(void);
+void checkAsteroids(void);
+//---------------------------------------------------------------------------//
+
 // core graphics
-void drawTextWindow(const uint8_t *text, const uint8_t *btnText);
-void drawText(uint8_t posX, uint8_t posY, uint8_t textSize, const uint8_t *pText);
+void drawTextWindow(text_t *text, text_t *btnText);
+void drawText(uint8_t posX, uint8_t posY, uint8_t textSize, text_t *pText);
 
 void printDialogeText(void);
 void printHistory(void);
@@ -452,10 +470,12 @@ void applyNewPosition(position_t *objOne, position_t *objTwo, uint8_t picW, uint
 void setMainFreq(uint8_t ps);
 
 
-void done(const uint8_t *text);
+void done(text_t *text);
 
 void applyShipDamage(rocket_t *pWeapon);
 bool checkSpriteCollision(sprite_t *pSprOne, sprite_t *pSprTwo);
+
+void moveEnemyV(position_t *pPos, uint8_t moveSize);
 
 void playMusic(void);
 
@@ -470,6 +490,8 @@ void addShipSelectTasks(void);
 void addGameTasks(void);
 void addBossTasks(void);
 void addGiftTasks(void);
+void addAsteroidsTasks(void);
+void addCreditsTasks(void);
 
 //---------------------------------------------------------------------------//
 
@@ -495,6 +517,8 @@ extern tasksArr_t gameTasksArr[];
 extern tasksArr_t bossTasksArr[];
 extern tasksArr_t giftTasksArr[];
 extern tasksArr_t gameOverTasksArr[];
+extern tasksArr_t asteroidFieldTasksArr[];
+extern tasksArr_t creditsTasksArr[];
 
 
 extern TASK_N(printDialogeText);
@@ -503,6 +527,7 @@ extern TASK_N(playMusic);
 extern TASK_N(drawRows);
 extern TASK_N(waitEnd);
 extern TASK_N(waitOk);
+extern TASK_N(drawCredits);
 
 extern TASK_N(moveGift);
 extern TASK_N(drawGift);

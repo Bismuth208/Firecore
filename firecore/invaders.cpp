@@ -46,11 +46,6 @@ void setDeathRayState(rocket_t *deathRay, position_t *pPos, bool state)
   deathRay->sprite.pos.Old = {pPos->x, pPos->y+5};// +5 is offset to make center align
 }
 
-void moveEnemyV(position_t *pPos, uint8_t moveSize)
-{
-  pPos->y += (int8_t)((moveSize + difficultyIncrement)*((ship.sprite.pos.Old.y > pPos->y) ? 1 : -1));
-}
-
 void checkTimeToShoot(deathRay_t &pWeapon, position_t &pPos)
 {
   if((pWeapon.timeToShoot--) == 0) {  // decrease timeout to shoot; Captain Obvious :)
@@ -72,7 +67,6 @@ void checkDeathRay(deathRay_t &pWeapon)
     removeSprite(&pWeapon.ray.sprite);
         
     if((pWeapon.ray.sprite.pos.Old.x -= (DEATH_RAY_SPEED+difficultyIncrement)) < TFT_W) {
-      //pWeapon.ray.state = !pWeapon.ray.state;
       pWeapon.ray.sprite.pPic = ((RN & 1) ? deathRayHiPic : deathRayLowPic);
 
       drawSprite(&pWeapon.ray.sprite);
@@ -88,6 +82,8 @@ void checkDeathRay(deathRay_t &pWeapon)
 
 void initInvaders(void)
 {
+  totalRespawns = ALIEN_KILLS_TO_BOSS + difficultyIncrement;
+
   for(auto &alien : aliens) {
     setInvaderValue(&alien, ((RN & 1) ? false : true));
     setDeathRayState(&alien.weapon.ray, &alien.sprite.pos.New, false);
@@ -170,29 +166,31 @@ void checkInVaders(void)
   // recalc all collisions between player's rockets and each alien
   // i.e. rounds = MAX_PEW_PEW x MAX_ALIENS (in worst case of course)
   for(auto &laser : ship.weapon.lasers) {
-    for(auto &alien : aliens) {
-      if((laser.onUse) && (alien.alive)) {
-        if(checkSpriteCollision(&laser.sprite, &alien.sprite)) {
+    if(laser.onUse) {
+      for(auto &alien : aliens) {
+        if(alien.alive) {
+          if(checkSpriteCollision(&laser.sprite, &alien.sprite)) {
 
-          rocketEpxlosion(&laser);
-            
-          if((alien.health -= ship.states.power) <= 0) { // alien absorb damage
-#if ADD_SOUND
-            sfxPlayPattern(enemyDestroyPattern, SFX_CH_0);
-#endif
-            // if it dead, remove body from battleground
-            removeSprite(&alien.sprite);
- 
-            alien.alive = false;       // actually now it dead
-            score += SCORE_VAL;        // get cookies
-            // check total respawns
-            if(--totalRespawns <= 0) { // No more respawns left, all army defeated
-              totalRespawns =0;
-              replaceTask(checkInVadersRespawn, checkAliveAliens, 8 SEC, true);
-              drawText(40, 40, 2, bossWarningP);
+            rocketEpxlosion(&laser);
+              
+            if((alien.health -= ship.states.power) <= 0) { // alien absorb damage
+  #if ADD_SOUND
+              sfxPlayPattern(enemyDestroyPattern, SFX_CH_0);
+  #endif
+              // if it dead, remove body from battleground
+              removeSprite(&alien.sprite);
+   
+              alien.alive = false;       // actually now it dead
+              score += SCORE_VAL;        // get cookies
+              // check total respawns
+              if(--totalRespawns <= 0) { // No more respawns left, all army defeated
+                totalRespawns =0;
+                replaceTask(checkInVadersRespawn, checkAliveAliens, 8 SEC, true);
+                drawText(40, 40, 2, bossWarningP);
+              }
             }
+            break; // exit from aliens loop to ship.weapon.lasers loop
           }
-          return; // because only one shot can be at one position!
         }
       }
     }
@@ -202,7 +200,7 @@ void checkInVaders(void)
 //---------------------------------------------------------------------------//
 void checkInVadersCollision(void)
 {
-  auto gopher = rocket_t{0,0}; // Do you see it? No? But it's exist!
+  decltype(aliens[0].weapon.ray) gopher; // Do you see it? No? But it's exist! 
 
   for(auto &alien : aliens) {
     if(alien.alive) {
@@ -228,6 +226,7 @@ void bossInit(void)
 
   setInvaderValue(pAlien, true);
   setDeathRayState(&pAlien->weapon.ray, &pAlien->sprite.pos.New, false);
+  pAlien->weapon.ray.sprite.pPic = deathRayBossPic;
 
   pAlien->health = ALIEN_BOSS_HEALTH;
   pAlien->sprite.pPic = bossShip;

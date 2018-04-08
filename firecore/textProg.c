@@ -18,67 +18,93 @@
 
 //---------------------------------------------------------------------------//
 
-const uint8_t emptyText[] PROGMEM = {" "};
-const uint8_t pauseP0[] PROGMEM = {"PAUSE"};
-const uint8_t pressAtext[] PROGMEM = {"PRESS A"};
-const uint8_t versionP0[] PROGMEM = {"V0.3A"};
-const uint8_t creditP0[] PROGMEM = {"2017 @BISMUTH208"};
-const uint8_t scoreP[] PROGMEM = {"SCORE: "};
-const uint8_t maxScoreP[] PROGMEM = {"MAX: "};
+text_t emptyText[] PROGMEM = {" "};
+text_t pauseP0[] PROGMEM = {"PAUSE"};
+text_t pressAtext[] PROGMEM = {"PRESS A"};
+text_t versionP0[] PROGMEM = {"V0.3B"};
+text_t scoreP[] PROGMEM = {"SCORE: "};
+text_t maxScoreP[] PROGMEM = {"MAX: "};
 
-const uint8_t selectShipP[] PROGMEM = {"SELECT SHIP"};
-const uint8_t shipSpeedStatP[] PROGMEM = {"SPEED: "};
-const uint8_t shipPowerStatP[] PROGMEM = {"POWER: "};
-const uint8_t shipDurabStatP[] PROGMEM = {"ARMOR: "};
-
-
-const uint8_t gameOverP[] PROGMEM = {"GAME OOVER"};
-const uint8_t levelClearP[] PROGMEM = {"LEVEL CLEAR"};
-const uint8_t victoryP[] PROGMEM = {"VICTORY!"};
-
-const uint8_t bossWarningP[] PROGMEM = {"!WARNING!"};
+text_t selectShipP[] PROGMEM = {"SELECT SHIP"};
+text_t shipSpeedStatP[] PROGMEM = {"SPEED: "};
+text_t shipPowerStatP[] PROGMEM = {"POWER: "};
+text_t shipDurabStatP[] PROGMEM = {"ARMOR: "};
 
 
-const uint8_t buttonA[] PROGMEM = {"'A'"};
-const uint8_t buttonB[] PROGMEM = {"'B'"};
-const uint8_t buttonX[] PROGMEM = {"'X'"};
-const uint8_t buttonY[] PROGMEM = {"'Y'"};
-const uint8_t * const buttonsAll[] PROGMEM = {buttonA, buttonB, buttonX, buttonY};
+text_t gameOverP[] PROGMEM = {"GAME OOVER"};
+text_t levelClearP[] PROGMEM = {"LEVEL CLEAR"};
+text_t victoryP[] PROGMEM = {"VICTORY!"};
+
+text_t bossWarningP[] PROGMEM = {"!WARNING!"};
 
 
-const uint8_t dogeP1[] PROGMEM = {"WOOF WOOF, I'M DOGE, WOW!"};
-const uint8_t dogeP2[] PROGMEM = {"HERO, YOU MUST TO"};
-const uint8_t dogeP3[] PROGMEM = {"SAVE THE GALAXY!"};
-const uint8_t dogeP4[] PROGMEM = {"AND OUR HOME PLANET!"};
-const uint8_t dogeP5[] PROGMEM = {"'STATIC NOISE...'"};
-const uint8_t dogeP6[] PROGMEM = {"INVADERS ARE COMING..."};
-const uint8_t dogeP7[] PROGMEM = {"..WE...EED YO..R...ELP!"};
-const uint8_t * const dogePA[] PROGMEM = {
+text_t buttonA[] PROGMEM = {"'A'"};
+text_t buttonB[] PROGMEM = {"'B'"};
+text_t buttonX[] PROGMEM = {"'X'"};
+text_t buttonY[] PROGMEM = {"'Y'"};
+text_t * const buttonsAll[] PROGMEM = {buttonA, buttonB, buttonX, buttonY};
+
+
+text_t dogeP1[] PROGMEM = {"WOOF WOOF, I'M DOGE, WOW!"};
+text_t dogeP2[] PROGMEM = {"HERO, YOU MUST TO"};
+text_t dogeP3[] PROGMEM = {"SAVE THE GALAXY!"};
+text_t dogeP4[] PROGMEM = {"AND OUR HOME PLANET!"};
+text_t dogeP5[] PROGMEM = {"'STATIC NOISE...'"};
+text_t dogeP6[] PROGMEM = {"INVADERS ARE COMING..."};
+text_t dogeP7[] PROGMEM = {"..WE...EED YO..R...ELP!"};
+text_t * const dogePA[] PROGMEM = {
 	dogeP1, dogeP2, dogeP3,
 	dogeP4,	dogeP5, dogeP6,
 	dogeP7
 };
 
 
-const uint8_t modeP1[] PROGMEM = {"STORY"};
-const uint8_t modeP2[] PROGMEM = {"ENDLESS"};
-const uint8_t * const modePA[] PROGMEM = {modeP1, modeP2};
+text_t modeP1[] PROGMEM = {" STORY"};
+text_t modeP2[] PROGMEM = {"ENDLESS"};
+text_t modeP3[] PROGMEM = {"CREDITS"};
+text_t * const modePA[] PROGMEM = {modeP1, modeP2, modeP3};
 
-const uint8_t historyTextP[] PROGMEM = {"IN FAR FAR AWAY GALAXY,\nAFTER LAST HOLYWAR, WHAT\nWAS THOUSANDS YEARS AGO,\nTWO SPECIES LIVES IN\nDIFFERENT PARTS OF\nTHE GALAXY.\nIN SILENCE AND PEACE.\s\s\s\s\s\s\s\s\s\s\s\r\fUNTIL NOW..."};
+text_t historyTextP[] PROGMEM = {"IN FAR FAR AWAY GALAXY,\nAFTER LAST HOLYWAR, WHAT\nWAS THOUSANDS YEARS AGO,\nTWO SPECIES LIVES IN\nDIFFERENT PARTS OF\nTHE GALAXY.\nIN SILENCE AND PEACE.\a\a\a\a\a\a\a\a\a\a\a\r\fUNTIL NOW..."};
 
-const uint8_t worldP1[] PROGMEM = {"NAUTREM 3"};
-const uint8_t worldP2[] PROGMEM = {"RHAOD"};
-const uint8_t worldP3[] PROGMEM = {"UMIGOGAN"};
-const uint8_t worldP4[] PROGMEM = {"ILICON 5"};
-const uint8_t worldP5[] PROGMEM = {"ARCEUS 10"};
-const uint8_t worldP6[] PROGMEM = {"VULKAN"};
-const uint8_t worldP7[] PROGMEM = {"MYRI"};
-const uint8_t worldP8[] PROGMEM = {"UNICLYA"};
-const uint8_t worldP9[] PROGMEM = {"HOME WORLD"};
-const uint8_t * const worldPA[] PROGMEM = {
-	worldP1, worldP2, worldP3, worldP4,
-	worldP5, worldP6, worldP7, worldP8,
+text_t worldP0[] PROGMEM = {"ASTEROIDS!!!"};
+text_t worldP1[] PROGMEM = {"NAUTREM 3"};
+text_t worldP2[] PROGMEM = {"RHAOD"};
+text_t worldP3[] PROGMEM = {"UMIGOGAN"};
+text_t worldP4[] PROGMEM = {"ILICON 5"};
+text_t worldP5[] PROGMEM = {"ARCEUS 10"};
+text_t worldP6[] PROGMEM = {"VULKAN"};
+text_t worldP7[] PROGMEM = {"MYRI"};
+text_t worldP8[] PROGMEM = {"UNICLYA"};
+text_t worldP9[] PROGMEM = {"HOME WORLD"};
+text_t * const worldPA[] PROGMEM = {
+	worldP1, worldP2,
+  worldP0,
+  worldP3, worldP4,
+  worldP0,
+	worldP5, worldP6,
+  worldP0,
+  worldP7, worldP8,
+  worldP0,
 	worldP9
+};
+
+text_t creditP0[] PROGMEM = {"2017 @BISMUTH208"};
+
+text_t creditsTextP0[] PROGMEM = {"THANK YOU\n\tFOR PLAYING\n\t\tTHIS GAME!"};
+text_t creditsTextP1[] PROGMEM = {"BONUS SHIP\n\tIS NOW\n\t\tUNLOCKED!"};
+text_t creditsTextP2[] PROGMEM = {"ORIGINAL\n\tGAME LOCATION\n\t\t\tIS HERE"};
+text_t creditsTextP3[] PROGMEM = {"PROGRAMER:\n\tME (@BISMUTH208)"};
+text_t creditsTextP4[] PROGMEM = {"ARTIST1:\n\tME (@BISMUTH208)"};
+text_t creditsTextP5[] PROGMEM = {"ARTIST2:\n\tMY WIFE (@VOKALOID18)"};
+text_t creditsTextP6[] PROGMEM = {"SPECIAL\n\tTHANKS TO:\n\t\tMY WIFE!"};
+text_t creditsTextP7[] PROGMEM = {"WHO\n\tWAS MY\n\t\tBETA TESTER!"};
+text_t creditsTextP8[] PROGMEM = {"AND\n\tWHO INSPIRE ME\n\t\tALL THIS TIME!"};
+text_t * const creditsPA[] PROGMEM = {
+  creditsTextP0, creditsTextP1,
+  creditsTextP2, creditsTextP3,
+  creditsTextP4, creditsTextP5,
+  creditsTextP6, creditsTextP7,
+  creditsTextP8, 0
 };
 
 //---------------------------------------------------------------------------//

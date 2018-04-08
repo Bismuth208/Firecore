@@ -42,10 +42,11 @@ TASK(drawSomeGUI, 500);
 TASK(pauseMenu, 500);
 TASK(drawTitleText, 1 SEC);
 TASK(drawStart, 500);
+TASK(drawCredits, 5 SEC);
 
 TASK(drawShip, 40);
 TASK(moveShip, 40);
-TASK(drawPlayerRockets, 60);
+TASK(drawPlayerWeapon, 60);
 TASK(checkShipHealth, 400);
 TASK(drawShipExplosion, 250);
 
@@ -70,6 +71,10 @@ TASK(moveGift, 120);
 TASK(drawGift, 150);
 TASK(checkGift, 100);
 TASK(dropWeaponGift, 10 SEC);
+
+TASK(moveAsteroids, 60);
+TASK(checkAsteroids, 80);
+TASK(respawnAsteroids, 200);
 
 TASK(playMusic, 50);
 
@@ -106,7 +111,7 @@ TASK_ARR( game ) = {
   TASK_P(drawShip),
   TASK_P(checkFireButton),
   TASK_P(pauseMenu),
-  TASK_P(drawPlayerRockets),
+  TASK_P(drawPlayerWeapon),
   TASK_P(checkShipHealth),
   TASK_P(drawSomeGUI),
   TASK_P(checkInVaders),
@@ -127,7 +132,7 @@ TASK_ARR( boss )= {
   TASK_P(drawShip),
   TASK_P(checkFireButton),
   TASK_P(pauseMenu),
-  TASK_P(drawPlayerRockets),
+  TASK_P(drawPlayerWeapon),
   TASK_P(checkShipHealth),
   TASK_P(drawSomeGUI),
   TASK_P(drawBoss),
@@ -145,7 +150,7 @@ TASK_ARR( gift ) = {
   TASK_P(moveShip),
   TASK_P(drawShip),
   TASK_P(checkFireButton),
-  TASK_P(drawPlayerRockets),
+  TASK_P(drawPlayerWeapon),
   TASK_P(drawBossExplosion),
   TASK_P(moveGift),
   TASK_P(drawGift),
@@ -198,5 +203,28 @@ TASK_ARR( gameOver ) = {
   TASK_P(playMusic),
   TASK_P(waitEnd),
   TASK_P(drawShipExplosion),
+  TASK_END
+};
+
+TASK_ARR( asteroidField ) = {
+  TASK_P(updateBtnStates),
+  TASK_P(playMusic),
+  TASK_P(drawStars),
+  TASK_P(moveShip),
+  TASK_P(drawShip),
+  TASK_P(checkFireButton),
+  TASK_P(pauseMenu),
+  TASK_P(drawPlayerWeapon),
+  TASK_P(drawSomeGUI),
+  TASK_P(respawnAsteroids),
+  TASK_P(moveAsteroids),
+  TASK_P(checkAsteroids),
+  TASK_END
+};
+
+TASK_ARR( credits ) = {
+  TASK_P(playMusic),
+  TASK_P(printDialogeText),
+  TASK_P(drawCredits),
   TASK_END
 };

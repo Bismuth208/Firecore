@@ -516,37 +516,58 @@ void tftPrintCharAt(int16_t x, int16_t y, uint8_t c)
   tftPrintChar(c);
 }
 
+void tftCheckWrapX(void)
+{
+  if (wrap && (cursor_x > (_width - textsize*6))) {
+    cursor_y += textsize*8;
+    cursor_x = 0;
+  }
+}
+
+void tftCheckWrapY(void)
+{
+  if (wrap && (cursor_y > (_height - textsize*8))) {
+    cursor_y = 0;
+    cursor_x += textsize*5;
+  }
+}
+
 void tftPrintChar(uint8_t c)
 {
   switch(c) {
-    case '\n': {
+    case '\n': { // 'LINE FEED'
       cursor_y += textsize*8;
       cursor_x  = 0;
     } break;
       
-    case '\r': {
+    case '\t': { // 'CHARACTER TABULATION'
+      cursor_x += (textsize*5)<<2; // 4 spaces
+    } break;
+      
+    case '\r': { // 'CARRIAGE RETURN'
       cursor_x  = 0;
     } break;
       
-    case '\f': {
+    case '\f': { // 'FORM FEED' - used as clear screen
       tftFillScreen(COLOR_BLACK);
     } break;
       
-    case '\s': {
+    case '\a': { // instead sound 'BELL', make delay :/
       _delayMS(50);
     } break;
+      
+    case '\b': { // 'BACKSPACE'
+      cursor_x  = 0;
+    } break;
+      
+//    case '\e': { // 'ESCAPE'
+//    } break;
       
     default: {
       tftDrawCharInt(cursor_x, cursor_y, c);
       cursor_x += textsize*6;
-      if (wrap && (cursor_y > (_height - textsize*8))) {
-        cursor_y = 0;
-        cursor_x += textsize*5;
-      }
-      if (wrap && (cursor_x > (_width - textsize*6))) {
-        cursor_y += textsize*8;
-        cursor_x = 0;
-      }
+      tftCheckWrapY();
+      tftCheckWrapX();
     } break;
   }
 }

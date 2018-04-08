@@ -15,6 +15,8 @@
 #ifndef _TYPES_H
 #define _TYPES_H
 
+#include "stdbool.h"
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -24,12 +26,13 @@ extern "C"{
 #define ALIEN_BOSS_DEATH_RAYS    4
 
 //---------------------------------------------------------------------------//
+typedef const uint8_t pic_t;  // Yes, they are same, but lets 
+typedef const uint8_t text_t; // separeate them for easy life...
+
 typedef struct { // 4 bytes RAM
   uint8_t x;
   uint8_t y;
 } position_t;
-
-typedef const uint8_t pic_t;
 
 typedef struct {  // 4 bytes
   position_t Old;
@@ -59,6 +62,17 @@ typedef struct {  // 4 bytes
   uint8_t color; // as we use 8bit palette, store only color id
   uint8_t speed;
 } star_t;
+
+typedef struct {
+  sprite_t sprite;
+  uint8_t speed;
+  struct {
+    uint8_t onUse   :1;
+    //uint8_t bonus   :1;
+    uint8_t type    :2;
+    uint8_t freeRam :5;
+  };
+} asteroid_t;
 
 typedef struct {  // 7 bytes
   sprite_t sprite;
@@ -105,6 +119,7 @@ typedef struct {
   int16_t health;
   uint8_t type;
   bool flameState;
+  bool lowHealthState;
 } ship_t;
 
 typedef struct {

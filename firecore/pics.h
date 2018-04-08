@@ -16,6 +16,7 @@
 #define _PICS_H
 
 #include <avr/pgmspace.h>
+#include "types.h"
 
 //---------------------------------------------------------------------------//
 
@@ -57,44 +58,38 @@ extern uint16_t palette_RAM[];
 extern uint16_t currentBackGroundColor;
 extern uint8_t currentBackGroundColorId;
 extern uint8_t replaceColorId;
-extern const uint8_t lvlColors[];
+extern pic_t lvlColors[];
 //---------------------------------------------------------------------------//
 
 #define LASER_PIC_W 16
 #define LASER_PIC_H 8
 
-extern const uint8_t weaponLaserPic1[];
-extern const uint8_t weaponLaserPic2[];
-extern const uint8_t weaponLaserPic3[];
-extern const uint8_t weaponLaserPic4[];
-extern const uint8_t weaponLaserPic5[];
-
-extern const uint8_t * const laserPics[];
+extern pic_t* const laserPics[];
 //---------------------------------------------------------------------------//
 
 #define GIFT_PIC_W 16
 #define GIFT_PIC_H 16
 
-extern const uint8_t giftHeartPic[];
-extern const uint8_t giftWeaponPic[];
+extern pic_t giftHeartPic[];
+extern pic_t giftWeaponPic[];
 //---------------------------------------------------------------------------//
 
 #define HUD_GUI_PIC_W   128
 #define HUD_GUI_PIC_H     8
 
-extern const uint8_t hudGuiPic[];
+extern pic_t hudGuiPic[];
 //---------------------------------------------------------------------------//
 
 #define TEXT_WINDOW_PIC_W   160
 #define TEXT_WINDOW_PIC_H    40
 
-extern const uint8_t textWindowPic[];
+extern pic_t textWindowPic[];
 //---------------------------------------------------------------------------//
 
 #define DOGE_PIC_W     50
 #define DOGE_PIC_H     50
 
-extern const uint8_t cityDogePic[];
+extern pic_t cityDogePic[];
 //---------------------------------------------------------------------------//
 
 #define CHARACTER_ICON_W 32
@@ -108,12 +103,7 @@ extern const uint8_t cityDogePic[];
 #define CHARACTER_ICON_STEP 50
 #define CHARACTER_ICON_NUM   3
 
-extern const uint8_t chiiCatPic[];
-extern const uint8_t groompyCatPic[];
-extern const uint8_t pushenCatPic[];
-extern const uint8_t bonusCatPic[];
-
-extern const uint8_t * const catsPics[];
+extern pic_t * const catsPics[];
 //---------------------------------------------------------------------------//
 
 #define GALAXY_PIC_W     160
@@ -121,73 +111,82 @@ extern const uint8_t * const catsPics[];
 
 // orig size 11200 * 2 = 22400
 // RLE compress ratio 5.9448
-extern const uint8_t galaxyPic[];
+extern pic_t galaxyPic[];
 //---------------------------------------------------------------------------//
 
 #define DEATHRAY_BOSS_PIC_W 16
 #define DEATHRAY_BOSS_PIC_H 8
 
-extern const uint8_t deathRayBossPic[];
+extern pic_t deathRayBossPic[];
 
 
 #define DEATHRAY_PIC_W 8
 #define DEATHRAY_PIC_H 8
 
-extern const uint8_t deathRayHiPic[];
-extern const uint8_t deathRayLowPic[];
+extern pic_t deathRayHiPic[];
+extern pic_t deathRayLowPic[];
 //---------------------------------------------------------------------------//
 
 #define ALIEN_SHIP_FLAME_WH 4
 
-extern const uint8_t alienShipFireHi[];
-extern const uint8_t alienShipFireLow[];
+extern pic_t alienShipFireHi[];
+extern pic_t alienShipFireLow[];
 
 
 #define ALIEN_SHIP_PIC_W   32
 #define ALIEN_SHIP_PIC_H   16
 
-extern const uint8_t alienShipV2[];
+extern pic_t alienShipV2[];
 
 #define ALIEN_SHIP_BOSS_PIC_W 22
 #define ALIEN_SHIP_BOSS_PIC_H 30
 
-extern const uint8_t bossShip[];
+extern pic_t bossShip[];
 //---------------------------------------------------------------------------//
 
 #define SHIP_PIC_W   32
 #define SHIP_PIC_H   16
 
-extern const uint8_t shipVSpeedPic[];
-extern const uint8_t shipVPowerPic[];
-extern const uint8_t shipVArmorPic[];
-extern const uint8_t shipBounsPic[];
-
-extern const uint8_t * const shipsPics[];
+extern pic_t * const shipsPics[];
 //---------------------------------------------------------------------------//
 
 #define FLAMES_PIC_W 6
 #define FLAMES_PIC_H 4
 
-extern const uint8_t flameFireHiPic[];
-extern const uint8_t flameFireLowPic[];
+extern pic_t flameFireHiPic[];
+extern pic_t flameFireLowPic[];
 //---------------------------------------------------------------------------//
 
 #define TEXT_TITLE_HI_W    115
 #define TEXT_TITLE_HI_H    18
 
-extern const uint8_t titleTextPic[];
+extern pic_t titleTextPic[];
 //---------------------------------------------------------------------------//
 
 #define PIC_TITLE_ROW_WH      16
 
-extern const uint8_t rowsLeftPic[];
-extern const uint8_t rowsRightPic[];
+extern pic_t rowsLeftPic[];
+extern pic_t rowsRightPic[];
 //---------------------------------------------------------------------------//
 
 #define EXPLOSION_PIC_WH 10
 
-extern const uint8_t explosion1[];
-extern const uint8_t explosion2[];
+extern pic_t explosion1[];
+extern pic_t explosion2[];
+//---------------------------------------------------------------------------//
+
+
+#define ASTEROID_SM_PIC_WH 8
+#define ASTEROID_L_PIC_WH  10
+
+extern pic_t * const asteroidsPics[];
+//---------------------------------------------------------------------------//
+
+#define CREDIT_PHOTO_WH 50
+
+extern pic_t creditPicQR[];
+extern pic_t creditPicOne[];
+extern pic_t creditPicTwo[];
 //---------------------------------------------------------------------------//
 
 #endif /*_PICS_H*/ 

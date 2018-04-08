@@ -10,17 +10,17 @@
  *  Arduino IDE:  1.8.5   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  22,490
+ * Program size:  25,078
  *  pics:         5,202
  *  code:         17,288
- * Used RAM:      1,422 bytes
- * Free RAM:      1,138 bytes
+ * Used RAM:      1,490 bytes
+ * Free RAM:      1,070 bytes
  *
  * Language:      C and C++
  * 
  * Author: Antonov Alexandr (Bismuth208)
  * Date:   2 June, 2017
- * Last:   17 Mar, 2018
+ * Last:   8 Apr, 2018
  * e-mail: bismuth20883@gmail.com
  * 
  *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
@@ -44,9 +44,7 @@ tasksContainer_t taskArr;
 taskFunc_t pArr[MAX_GAME_TASKS];
 //---------------------------------------------------------------------------//
 
-bool lowHealthState = false;
 bool pauseState = false;
-bool weaponLasers = false;
 bool weaponGift = false;
 
 int8_t menuItem =0;
@@ -81,12 +79,20 @@ const uint8_t lineCurves[] PROGMEM = {
 const uint8_t lvlCoordinates[] PROGMEM = {
   WORLD_0_POS_X, WORLD_0_POS_Y,
   WORLD_1_POS_X, WORLD_1_POS_Y,
+  WORLD_E_POS_X, WORLD_E_POS_X, // ASTEROIDS!!!
+
   WORLD_2_POS_X, WORLD_2_POS_Y,
   WORLD_3_POS_X, WORLD_3_POS_Y,
+  WORLD_E_POS_X, WORLD_E_POS_X, // ASTEROIDS!!!
+
   WORLD_4_POS_X, WORLD_4_POS_Y,
   WORLD_5_POS_X, WORLD_5_POS_Y,
+  WORLD_E_POS_X, WORLD_E_POS_X, // ASTEROIDS!!!
+
   WORLD_6_POS_X, WORLD_6_POS_Y,
   WORLD_7_POS_X, WORLD_7_POS_Y,
+  WORLD_E_POS_X, WORLD_E_POS_X, // ASTEROIDS!!!
+
   WORLD_8_POS_X, WORLD_8_POS_Y
 };
 
@@ -195,11 +201,16 @@ bool checkSpriteCollision(sprite_t *pSprOne, sprite_t *pSprTwo)
   }
 }
 
+void moveEnemyV(position_t *pPos, uint8_t moveSize)
+{
+  pPos->y += (int8_t)((moveSize)*((ship.sprite.pos.Old.y > pPos->y) ? 1 : -1));
+}
+
 void playMusic(void)
 {
 #if ADD_SOUND
   // 1/20s or every 50ms
-  sfxUpdateAll(); // update sound each frame, as sound engine is frame Oldd
+  sfxUpdateAll(); // update sound each frame, as sound engine is frame based
 #endif
 }
 
@@ -243,8 +254,8 @@ void applyShipDamage(rocket_t *pWeapon)
 void checkShipHealth(void)
 {
   if(ship.health <  DENGER_HEALTH_LVL) {
-    lowHealthState = !lowHealthState;
-    setLEDValue(LED_R, lowHealthState); // yyess... every time set this...
+    ship.lowHealthState = !ship.lowHealthState;
+    setLEDValue(LED_R, ship.lowHealthState); // yyess... every time set this...
 
     if(ship.health <= 0) {
       gameOver();  // GameOver!
@@ -265,7 +276,7 @@ void moveShip(void)
       pos.x += speed;
     } else {
       pos.x -= speed;
-    } 
+    }
   }
   //applyShipDirection(ship.posNew.x, calJoysticX, LINE_X);
 
@@ -370,7 +381,6 @@ void createNextLevel(void)
     victory();
     addTask_P(T(&waitEnd));
   } else {
-    totalRespawns = ALIEN_KILLS_TO_BOSS + difficultyIncrement;
     if(++difficultyIncrement > MAX_DIFFICULT_INCREMENT) { // increase speed of all each lvl
       difficultyIncrement = MAX_DIFFICULT_INCREMENT;
     }
@@ -384,13 +394,27 @@ void createNextLevel(void)
 
 void levelBaseInit(void)
 {
-  lowHealthState = false;
+  ship.lowHealthState = false;
   setLEDValue(LED_R, false);
   initShip();
   initInvaders();
 }
 
 // --------------------------------------------------------------- //
+void addCreditsTasks(void)
+{
+  screenSliderEffect(COLOR_BLACK);
+  addTasksArray_P(creditsTasksArr);
+}
+
+void addAsteroidsTasks(void)
+{
+  ship.sprite.pos.New = {SHIP_GAME_POS_X, SHIP_GAME_POS_Y};
+
+  initAsteroids();
+  addTasksArray_P(asteroidFieldTasksArr);
+}
+
 void addGameTasks(void)
 {
   addTasksArray_P(gameTasksArr);

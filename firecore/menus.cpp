@@ -22,6 +22,8 @@ int8_t currentShip = 2;
 int8_t previousShip =0;
 uint8_t dogeDialogs =0;
 uint8_t menuSwitchSelectState =0;
+uint8_t creditsSwitchState =0;
+
 bool iconState = false;
 bool rndFlag = false;
 
@@ -46,7 +48,7 @@ void drawShipSelectionMenu(void)
   addShipSelectTasks();
 }
 
-void drawShipStats(uint8_t yPerk, uint8_t yText, uint8_t perk, uint8_t maxPerkVal, const uint8_t *perkText)
+void drawShipStats(uint8_t yPerk, uint8_t yText, uint8_t perk, uint8_t maxPerkVal, text_t *perkText)
 {
   uint8_t lineSize = mapVal(perk, 0, maxPerkVal, 0, 40);
   tftDrawFastHLine(BASE_STATS_POS_X, yPerk, lineSize, COLOR_WHITE);
@@ -101,7 +103,7 @@ void getShipItem(void)
 
 void updateShipStates(void)
 {
-  auto state = shipStats_t{0,0,0};
+  decltype(ship.states) state;
 
   switch(currentShip) {
     case 1: { // speed
@@ -261,7 +263,7 @@ bool drawStory(void)
   return false;
 }
 
-bool drawLevelSelect(void)
+bool drawNewLevel(void)
 {
   if(getBtnState(BUTTON_A)) {
     resetBtnStates();
@@ -270,7 +272,25 @@ bool drawLevelSelect(void)
 #endif
     
     screenSliderEffect(currentBackGroundColor);
-    addGameTasks();
+
+    switch(curretLevel) {
+      case 0: case 1: 
+      case 3: case 4:
+      case 6: case 7:
+      case 9: case 10:
+      case 12: {
+        addGameTasks();
+      } break;
+
+      case 2: case 5:
+      case 8: case 11: {
+        addAsteroidsTasks();
+      } break;
+
+      default: {
+        addGameTasks();
+      } break;
+    }
   }
   return false;
 }
@@ -300,7 +320,7 @@ void menuSwitchSelect(void)
   } break;
 
   case M_SWITCH_LVL_SELECT: {
-    switchSate = drawLevelSelect();
+    switchSate = drawNewLevel();
   } break;  
 
   default: break; // do nothing
@@ -373,8 +393,10 @@ void blinkLevelPointer(void)
 {
   auto tmpData = getPicSize(lvlCoordinates, curretLevel*2);
 
-  iconState = !iconState;  // reuse
-  tftDrawCircle(tmpData.u8Data1, tmpData.u8Data2, CIRCLE_PONITER_MAP_SIZE, (iconState ? COLOR_RED : COLOR_WHITE));
+  if(tmpData.wData) { // not asteroids?
+    iconState = !iconState;  // reuse
+    tftDrawCircle(tmpData.u8Data1, tmpData.u8Data2, CIRCLE_PONITER_MAP_SIZE, (iconState ? COLOR_RED : COLOR_WHITE));
+  }
 }
 
 //---------------------------------------------------------------------------//
@@ -391,11 +413,54 @@ void prepareLevelSelect(void)
   do {
     --i;
     auto tmpData = getPicSize(lvlCoordinates, i*2);
-    tftDrawCircle(tmpData.u8Data1, tmpData.u8Data2, CIRCLE_PONITER_MAP_SIZE, COLOR_WHITE);
+    if(tmpData.wData) {  // not asteroids?
+      tftDrawCircle(tmpData.u8Data1, tmpData.u8Data2, CIRCLE_PONITER_MAP_SIZE, COLOR_WHITE);
+    }    
   } while(i);
   
   resetBtnStates();
 }
+//---------------------------------------------------------------------------//
+
+void drawCredits(void)
+{  
+  drawBMP_ERLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, galaxyPic);
+  drawTextWindow(getConstCharPtr(creditsPA, creditsSwitchState), emptyText);
+
+  if(creditsSwitchState == 5) { // fix for qr code...
+    tftFillRect(6, 32, 52, 53, COLOR_BLACK);
+    drawBMP_ERLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, galaxyPic);
+  }
+
+  switch(creditsSwitchState) {
+    case 0: case 1: {
+      drawBMP_ERLE_P(7, 33, cityDogePic);
+    } break;
+
+    case 2: {
+      tftFillRect(6, 32, 52, 53, COLOR_WHITE);
+      tftDrawXBitmap(7, 33, creditPicQR, 50, 50, COLOR_BLACK);
+    } break;
+
+    case 3: case 4: {
+      tftFillRect(6, 32, 52, 53, COLOR_WHITE);
+      drawBMP_ERLE_P(7, 33, creditPicOne);
+    } break;
+
+    case 5: case 6: case 7: case 8: {
+      tftFillRect(104, 32, 52, 53, COLOR_WHITE);
+      drawBMP_ERLE_P(105, 33, creditPicTwo);
+    } break;
+
+    default: break;
+  }
+
+  if(getConstCharPtr(creditsPA, creditsSwitchState++) == 0) {
+    creditsSwitchState =0;
+    baseTitleTask();
+  }
+}
+
 //---------------------------------------------------------------------------//
 
 void drawSomeGUI(void)
@@ -417,7 +482,7 @@ void waitEnd(void)
 #if ADD_SOUND
     sfxPlayCancel();
 #endif
-    baseTitleTask();
+    addCreditsTasks();
   }
 }
 
@@ -484,6 +549,6 @@ void victory(void)
   menuSwitchSelectState = 0;
   gameSaveData.bonusUnlocked =1;
 
-  done(victoryP);
+  drawText(20, 40, 2, victoryP);
   printScore();
 }
