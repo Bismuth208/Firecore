@@ -15,23 +15,22 @@
 #ifndef _TEXTPROG_H
 #define _TEXTPROG_H
 
-#include "types.h"
+#include <esploraAPI.h>
 
 //---------------------------------------------------------------------------//
-
-#define STORY_DOGE_TEXT_SIZE  7
-
 extern text_t emptyText[];
 extern text_t pauseP0[];
 extern text_t pressAtext[];
+extern text_t creditP0[];
 extern text_t versionP0[];
+
 extern text_t gameOverP[];
-extern text_t levelClearP[];
 extern text_t victoryP[];
+extern text_t levelClearP[];
+
 extern text_t scoreP[];
 extern text_t maxScoreP[];
 extern text_t bossWarningP[];
-extern text_t creditP0[];
 extern text_t historyTextP[];
 
 extern text_t selectShipP[];

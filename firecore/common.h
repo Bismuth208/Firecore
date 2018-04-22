@@ -17,11 +17,9 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
-#include <avr/eeprom.h>
 
 #include <esploraAPI.h>
 
-#include "rleUnpack.h"
 #include "types.h"
 #include "textProg.h"
 
@@ -31,30 +29,20 @@ extern "C"{
 
 //---------------------------------------------------------------------------//
 
-#define TFT_W    160
-#define TFT_H    128
-//---------------------------------------------------------------------------//
-
 #define STAR_STEP                6  // move speed for stars
 #define MAX_STARS               40  // how much stars we see on screen
 #define STARS_MAX_POS_Y         (TFT_H-9)
 #define RAND_STAR_CLR           (((RN % 3)+1)<<4) | (RN & 0x7)
-
-#define ASTEROID_STEP           4  // same as stars
-#define MAX_ASTEROIDS           10  // same as stars
-#define ASTEROID_MAX_POS_Y      (TFT_H-20)
-#define ASTEROIDS_TO_DEFEAT     250
-#define ASTEROID_SPEED_MOVE     1
 //---------------------------------------------------------------------------//
 
-#define PLAYER_ROCKET_SPEED     16  //(16/difficult)     // in future will be based on ship type
-#define PLAYER_ROCKET_COST       1  //(5*difficult)      // in future will be based on ship type
-#define PLAYER_ROCKET_REFILL    10  //(4/difficult)      //
-#define SHIP_HEALTH            180  // Left it as is
-#define DAMAGE_TO_SHIP          20  //(20*difficult)     //
-#define RAND_GIFT_SPAWN_TIME    ((RN % (15 SEC) + 10 SEC))
-#define PLAYER_ROCKET_CD_REFILL  2  // Global cooldown
-#define DENGER_HEALTH_LVL       30  // when RGB LED  start to blink
+#define ASTEROID_STEP           4  // same as stars
+#define MAX_ASTEROIDS           20  // same as stars
+#define ASTEROID_MAX_POS_Y      (TFT_H-20)
+#define ASTEROIDS_TO_DEFEAT     200
+#define ASTEROID_SPEED_MOVE     1
+#define ASTEROID_SHIP_DAMAGE    30 // actually its inversed...
+//---------------------------------------------------------------------------//
+
 #define MAX_DIFFICULT_INCREMENT  2
 
 #define SCORE_VAL               20
@@ -70,17 +58,12 @@ extern "C"{
 #define TS             tftSetTextSize(1)
 #define DC(a)          tftDrawCharInt(a)
 
-// this macros remove monstro constructions...
-#define getConstCharPtr(a, b) (const uint8_t*)pgm_read_word(&(a[b]))
-#define getConstWordPtr(a, b) (const uint16_t*)pgm_read_word(&(a[b]))
-
 #define RND_POS_X ((RN % 26) * 6)
 #define RND_POS_Y ((RN & 15) * 8)
 
 #define continue() {CHECK_RULE}
 
 //---------------------------------------------------------------------------//
-#define ADD_SOUND             1
 #define BEZIER_FIXED_MATH     0
 //---------------------------------------------------------------------------//
 
@@ -92,19 +75,8 @@ extern "C"{
 
 //---------------------------------------------------------------------------//
 
-// adrr range used: 0x00 - 0x08
-#define EE_ADDR_SAVE_DATA  0x00
 #define HI_SCORE_MARK      0x41
 
-#define getSaveData(addr, val)  eeprom_read_block((void*)val, (void*)addr, sizeof(saveData_t));
-#define setSaveData(addr, val)  eeprom_update_block((void*)val, (void*)addr, sizeof(saveData_t));
-//---------------------------------------------------------------------------//
-
-#define BASE_STATS_POS_X    50
-#define BASE_STATS_POS_Y    60
-
-#define MIN_SHIP_ITEM        1
-#define MAX_SHIP_ITEM        3
 //---------------------------------------------------------------------------//
 
 #define SCORE_POS_X         90
@@ -129,20 +101,34 @@ extern "C"{
 
 #define GIFT_MOVE_SPEED      2
 #define GIFT_MOVE_ID         8
+
+#define RAND_GIFT_SPAWN_TIME    ((RN % (15 SEC) + 10 SEC))
 //---------------------------------------------------------------------------//
 
-#define ROCKET_OFFSET_X     20
-#define ROCKET_OFFSET_Y      4
+#define MIN_SHIP_ITEM        1
+#define MAX_SHIP_ITEM        3
 
 #define WEAPON_ROCKET_DMG   10 // additional damage from rockets
 #define MAX_WEAPON_LVL       4
 #define WEAPON_GIFT_BONUS    5
-//---------------------------------------------------------------------------//
 
 #define SHIP_BASE_SPEED      6
 #define SHIP_BASE_DAMAGE    35
 #define SHIP_BASE_DURAB     60
-//---------------------------------------------------------------------------//
+
+#define BASE_STATS_POS_X    50
+#define BASE_STATS_POS_Y    60
+
+#define PLAYER_ROCKET_CD_REFILL  2  // Global cooldown
+#define PLAYER_ROCKET_SPEED     16  //(16/difficult)     // in future will be based on ship type
+#define PLAYER_ROCKET_COST       1  //(5*difficult)      // in future will be based on ship type
+#define PLAYER_ROCKET_REFILL    10  //(4/difficult)      //
+#define SHIP_HEALTH            180  // Left it as is
+#define DAMAGE_TO_SHIP          20  //(20*difficult)     //
+#define DENGER_HEALTH_LVL       30  // when RGB LED  start to blink
+
+#define ROCKET_OFFSET_X     20
+#define ROCKET_OFFSET_Y      4
 
 #define SHIP_FLAME_OFFSET_X  0
 #define SHIP_FLAME_OFFSET_Y  6
@@ -180,7 +166,6 @@ extern "C"{
 
 #define PIC_TITLE_L_BASE_X 66
 #define PIC_TITLE_R_BASE_X 78
-//---------------------------------------------------------------------------//
 
 #define TITLE_PIC_POS_X    22
 #define TITLE_PIC_POS_Y    15
@@ -200,7 +185,7 @@ extern "C"{
 #define TEXT_FRAME_X        0
 #define TEXT_FRAME_Y       88
 #define TEXT_FRAME_W      159
-#define TEXT_FRAME_H       40
+#define TEXT_FRAME_H       39
 
 #define TEXT_OK_X         138
 #define TEXT_OK_Y         116
@@ -292,7 +277,6 @@ extern uint8_t dogeDialogs;
 extern uint8_t textHistoryPosX;
 
 extern uint8_t someCount;
-extern int8_t  totalRespawns;
 
 extern int16_t score;
 
@@ -305,12 +289,10 @@ extern const uint8_t lvlCoordinates[];
 extern ship_t        ship;
 extern gift_t        gift;
 extern inVaderBoss_t alienBoss;
-extern btnStatus_t   btnStates;
 extern bezier_t      bezierLine;
 extern saveData_t    gameSaveData;
 extern star_t        stars[MAX_STARS];
 extern inVader_t     aliens[MAX_ALIENS];
-extern asteroid_t    asteroids[MAX_ASTEROIDS];
 //---------------------------------------------------------------------------//
 
 extern const uint16_t enemyShotPattern[];
@@ -323,6 +305,9 @@ extern const uint16_t playerShotPattern[];
 
 extern const uint16_t beepPattern[];
 extern const uint16_t unfoldPattern[];
+//---------------------------------------------------------------------------//
+
+extern pFunc_t pCallBackWaitEvent;
 //---------------------------------------------------------------------------//
 
 // Core GUI
@@ -339,8 +324,7 @@ void levelClear(void);
 void drawSomeGUI(void);
 void drawCredits(void);
 
-void waitOk(void);
-void waitEnd(void);
+void waitScreen(void);
 
 void drawStaticNoise(void);
 void blinkLevelPointer(void);
@@ -357,9 +341,10 @@ void disableWeaponGift(void);
 void initBaseGameParams(void);
 
 void levelBaseInit(void);
-void createNextLevel(void);
 
+void createNextLevel(void);
 void prepareLevelSelect(void);
+bool drawNewLevel(void);
 //---------------------------------------------------------------------------//
 
 void menuSwitchSelect(void);
@@ -418,7 +403,6 @@ void checkAsteroids(void);
 
 // core graphics
 void drawTextWindow(text_t *text, text_t *btnText);
-void drawText(uint8_t posX, uint8_t posY, uint8_t textSize, text_t *pText);
 
 void printDialogeText(void);
 void printHistory(void);
@@ -429,32 +413,13 @@ void pauseWindow(void);
 
 void drawRows(void);
 void drawTitleText(void);
-void screenSliderEffect(uint16_t color);
-
-void drawFrame(uint8_t posX, uint8_t posY,
-	            uint8_t w, uint8_t h, uint16_t clr1, uint16_t clr2);
-
-void fillRectFast(position_t *pPos, pic_t *pPic);
-
-void drawPixelFast(position_t *pPos, uint8_t colorId);
-
-void updateSprite(sprite_t *pSprite);
-void drawSprite(sprite_t *pSprite);
-void moveSprite(sprite_t *pSprite);
-void removeSprite(sprite_t *pSprite);
 
 void rocketEpxlosion(rocket_t *pRocket);
 
 void drawRandomDoge(void);
-void printDutyDebug(uint32_t duration);
 //---------------------------------------------------------------------------//
 
 // Helpfull functions
-void resetBtnStates(void);
-void updateBtnStates(void);
-bool getBtnState(uint8_t btn);
-uint8_t getJoyStickValue(uint8_t pin);
-
 void readEEpromScore(void);
 void resetScore(void);
 
@@ -467,17 +432,12 @@ int8_t checkShipPosition(int8_t pos, uint8_t min, uint8_t max);
 bool checkNewPosition(position_t *objOne, position_t *objTwo);
 void applyNewPosition(position_t *objOne, position_t *objTwo, uint8_t picW, uint8_t picH);
 
-void setMainFreq(uint8_t ps);
-
-
 void done(text_t *text);
 
+void makeHorribleMagic(uint8_t magicValue);
 void applyShipDamage(rocket_t *pWeapon);
-bool checkSpriteCollision(sprite_t *pSprOne, sprite_t *pSprTwo);
 
 void moveEnemyV(position_t *pPos, uint8_t moveSize);
-
-void playMusic(void);
 
 //---------------------------------------------------------------------------//
 //---------------------------------------------------------------------------//
@@ -516,7 +476,7 @@ extern tasksArr_t levelSelectTasksArr[];
 extern tasksArr_t gameTasksArr[];
 extern tasksArr_t bossTasksArr[];
 extern tasksArr_t giftTasksArr[];
-extern tasksArr_t gameOverTasksArr[];
+extern tasksArr_t waitCallBackTasksArr[];
 extern tasksArr_t asteroidFieldTasksArr[];
 extern tasksArr_t creditsTasksArr[];
 
@@ -525,9 +485,9 @@ extern TASK_N(printDialogeText);
 extern TASK_N(updateBtnStates);
 extern TASK_N(playMusic);
 extern TASK_N(drawRows);
-extern TASK_N(waitEnd);
-extern TASK_N(waitOk);
+extern TASK_N(waitScreen);
 extern TASK_N(drawCredits);
+extern TASK_N(drawShipExplosion);
 
 extern TASK_N(moveGift);
 extern TASK_N(drawGift);

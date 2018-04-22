@@ -26,7 +26,7 @@ uint8_t titleRowLPosX = PIC_TITLE_L_BASE_X;
 star_t stars[MAX_STARS];
 bool startState = true;
 
-text_t *pTextDialoge = NULL;
+text_t *pTextDialoge = nullptr;
 uint8_t textDialogePosX =0;
 uint8_t textHistoryPosX =0;
 
@@ -60,15 +60,15 @@ void printDialogeText(void)
   } else {
     // all text printed
     disableTask(printDialogeText);
-    pTextDialoge = NULL;
+    pTextDialoge = nullptr;
     textDialogePosX =0;
   }
 }
 
-void drawTextWindow(text_t *text, text_t*btnText)
+void drawTextWindow(text_t *text, text_t *btnText)
 {
-  drawFrame(TEXT_FRAME_X, TEXT_FRAME_Y,  TEXT_FRAME_W, TEXT_FRAME_H, INDIGO_COLOR, COLOR_WHITE);
-  //drawBMP_ERLE_P(TEXT_FRAME_X, TEXT_FRAME_Y, textWindowPic);
+  // drawFrame(TEXT_FRAME_X, TEXT_FRAME_Y,  TEXT_FRAME_W, TEXT_FRAME_H, INDIGO_COLOR, COLOR_WHITE);
+  drawPico_DIC_P(TEXT_FRAME_X, TEXT_FRAME_Y, textWindowPic);
   drawText(TEXT_OK_X, TEXT_OK_Y, 1, btnText);
 
   pTextDialoge = text; // draw this text later
@@ -77,21 +77,6 @@ void drawTextWindow(text_t *text, text_t*btnText)
   enableTask(printDialogeText); // It is so epic retro !!!!
 }
 
-
-//---------------------------------------------------------------------------//
-void drawText(uint8_t posX, uint8_t posY, uint8_t textSize, text_t*pText)
-{
-  tftSetTextSize(textSize);
-  tftSetTextColor(COLOR_WHITE);
-  tftPrintAt_P(posX, posY, (const char *)pText);
-}
-//---------------------------------------------------------------------------//
-
-void drawFrame(uint8_t posX, uint8_t posY, uint8_t w, uint8_t h, uint16_t clr1, uint16_t clr2)
-{
-  tftFillRect(posX, posY, w, h, clr1);          // Frame 0
-  tftDrawRect(posX+1, posY+1, w-2, h-2, clr2);  // Frame 1
-}
 //---------------------------------------------------------------------------//
 // Arrrrrghh!!!!
 // How to make it faster?!?!
@@ -99,7 +84,7 @@ void drawStars(void)
 {
   // draw stars and blow your mind, if still not
   for(auto &star : stars) {
-    drawPixelFast(&star.pos, currentBackGroundColorId);
+    drawPixelFast(&star.pos, getAlphaReplaceColorId());
     
     // now move them
     if((star.pos.x -= star.speed) < TFT_W) {
@@ -109,6 +94,21 @@ void drawStars(void)
       star.color = RAND_STAR_CLR;
       star.speed = RN % STAR_STEP + 1;
     }
+  }
+}
+// --------------------------------------------------------------- //
+
+void drawSomeGUI(void)
+{
+  drawPico_DIC_P(0, 119, hudGuiPic);
+  
+  char buf[5]; // i'm pretty sure what 5 bytes will be enough...
+  tftSetTextSize(1);
+  tftFillRect(SCORE_POS_X, SCORE_POS_Y, 20, 7, currentBackGroundColor);
+  tftPrintAt(SCORE_POS_X, SCORE_POS_Y, itoa(score, buf, 10));
+
+  if(ship.health) {
+    tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_WHITE);
   }
 }
 // --------------------------------------------------------------- //
@@ -134,11 +134,11 @@ void rocketEpxlosion(rocket_t *pRocket)
     tftFillCircle(posX, posY, i*2, currentBackGroundColor);
   }
 
-  //drawBMP_ERLE_P(posX, posY, explosion1);
+  //drawPico_DIC_P(posX, posY, explosion1);
 #if ADD_SOUND
   sfxPlayPattern(enemyHitPattern, SFX_CH_1); // veeery tyny delay
 #endif
-  //drawBMP_ERLE_P(posX, posY, explosion2);
+  //drawPico_DIC_P(posX, posY, explosion2);
 
   //fillRectFast(posX, posY, EXPLOSION_PIC_WH, EXPLOSION_PIC_WH);
 }
@@ -152,7 +152,7 @@ void rocketEpxlosion(rocket_t *pRocket)
 //   uint8_t posY = pRocket->sprite.pos.Old.y;
 
 //   for(uint8_t i = 0; i < 10; i++) { // base formation
-//     drawBMP_ERLE_P(posX, posY, explosion1);
+//     drawPico_DIC_P(posX, posY, explosion1);
 //   }
 
 // #if ADD_SOUND
@@ -160,7 +160,7 @@ void rocketEpxlosion(rocket_t *pRocket)
 // #endif
 
 //   for(uint8_t i = 20; i > 0; i--) { // something ?
-//     drawBMP_ERLE_P(posX, posY, explosion2);
+//     drawPico_DIC_P(posX, posY, explosion2);
 //   }
 
 //   fillRectFast(&pRocket->sprite.pos.Old, explosion2);
@@ -173,7 +173,7 @@ void drawShip(void)
   ship.flameState = !ship.flameState;
 
   updateSprite(&ship.sprite);
-  drawBMP_ERLE_P(ship.sprite.pos.Old.x, ship.sprite.pos.Old.y+SHIP_FLAME_OFFSET_Y,
+  drawPico_DIC_P(ship.sprite.pos.Old.x, ship.sprite.pos.Old.y+SHIP_FLAME_OFFSET_Y,
                     (ship.flameState ? flameFireHiPic : flameFireLowPic));
 }
 
@@ -184,7 +184,7 @@ void shipHyperJump(void)
   while((sprite->pos.Old.x++) < SHIP_MAX_POS_X) {
     // this pic used to left red track on screen
     drawSprite(sprite);
-    drawBMP_ERLE_P(sprite->pos.Old.x, sprite->pos.Old.y+SHIP_FLAME_OFFSET_Y, flameFireHiPic);
+    drawPico_DIC_P(sprite->pos.Old.x, sprite->pos.Old.y+SHIP_FLAME_OFFSET_Y, flameFireHiPic);
   }
   moveSprite(sprite); // remove ship from screen
 }
@@ -238,7 +238,7 @@ void drawStart(void)
 
 void drawTitleText(void)
 {
-  drawBMP_ERLE_P(TITLE_PIC_POS_X, TITLE_PIC_POS_Y, titleTextPic);
+  drawPico_DIC_P(TITLE_PIC_POS_X, TITLE_PIC_POS_Y, titleTextPic);
 }
 
 // make unfold animation
@@ -254,18 +254,8 @@ void drawRows(void)
     
     addTitleTasks();
   } else {
-    drawBMP_ERLE_P(titleRowLPosX, PIC_ROW_L_POS_Y, rowsLeftPic);
-    drawBMP_ERLE_P(titleRowRPosX, PIC_ROW_R_POS_Y, rowsRightPic);
-  }
-}
-// --------------------------------------------------------------- //
-
-// hardware scrolling; blocks everything
-void screenSliderEffect(uint16_t color)
-{
-  for(int16_t i = TFT_W; i >= 0; i--) {
-    tftScrollSmooth(1, i-1, 2); // 2 - is delay in ms
-    tftDrawFastVLine(TFT_W-i-1, 0, TFT_H, color);
+    drawPico_DIC_P(titleRowLPosX, PIC_ROW_L_POS_Y, rowsLeftPic);
+    drawPico_DIC_P(titleRowRPosX, PIC_ROW_R_POS_Y, rowsRightPic);
   }
 }
 // ------------------------------------------ //
@@ -302,68 +292,3 @@ void getBezierCurve(uint8_t line)
 {
   memcpy_P(&bezierLine, &lineCurves[line*sizeof(bezier_t)], sizeof(bezier_t));
 }
-
-// --------------------------------------------------------------- //
-void updateSprite(sprite_t *pSprite)
-{
-  moveSprite(pSprite);
-  drawSprite(pSprite);
-}
-
-void moveSprite(sprite_t *pSprite)
-{
-  //is position changed?
-  if((pSprite->pos.Old.x != pSprite->pos.New.x) || (pSprite->pos.Old.y != pSprite->pos.New.y)) {
-    removeSprite(pSprite); // clear previos position
-    pSprite->pos.Old = pSprite->pos.New; // store new position
-  }
-}
-
-void drawSprite(sprite_t *pSprite)
-{
-  drawBMP_ERLE_P(pSprite->pos.Old.x, pSprite->pos.Old.y, pSprite->pPic);
-}
-
-void removeSprite(sprite_t *pSprite)
-{
-  fillRectFast(&pSprite->pos.Old, pSprite->pPic);
-}
-
-// --------------------------------------------------------------- //
-void fillRectFast(position_t *pPos, pic_t *pPic)
-{
-  auto tmpData = getPicSize(pPic, 0);
-
-  // -1 == convert to display addr size
-  tftSetAddrWindow(pPos->x, pPos->y, pPos->x+tmpData.u8Data1, pPos->y+tmpData.u8Data2);
-  uint16_t dataSize = (tmpData.u8Data1+1) * (tmpData.u8Data2+1);
-
-  do {
-#ifdef __AVR__  // really dirt trick... but... FOR THE PERFOMANCE!
-    SPDR_t in = {.val = currentBackGroundColor};
-    SPDR = in.msb;
-    SPDR_TX_WAIT;
-    SPDR = in.lsb;
-    SPDR_TX_WAIT;
-#else
-    pushColorFast(currentBackGroundColor);
-#endif
-  } while(--dataSize);
-}
-
-void drawPixelFast(position_t *pPos, uint8_t colorId)
-{
-  tftSetAddrPixel(pPos->x, pPos->y);
-  pushColorFast(palette_RAM[colorId]);
-}
-
-// --------------------------------------------------------------- //
-void printDutyDebug(uint32_t duration)
-{
-  char buf[10];
-
-  tftSetTextSize(1);
-  tftFillRect(0, 0, 36, 7, currentBackGroundColor);
-  tftPrintAt(0, 0, itoa(duration, buf, 10));
-}
-

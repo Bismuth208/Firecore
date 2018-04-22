@@ -16,13 +16,10 @@
 #define _PICS_H
 
 #include <avr/pgmspace.h>
+
+#include <esploraAPI.h>
 #include "types.h"
 
-//---------------------------------------------------------------------------//
-
-#define getPicByte(a)     pgm_read_byte(a)
-#define getPicWord(a, b)  pgm_read_word(&(a[b]))
-#define getPicSize(a, b)  wordData_t{.wData = getPicWord(a, b)}
 //---------------------------------------------------------------------------//
 
 // Color definitions
@@ -31,33 +28,9 @@
 #define INDIGO_COLOR   tftColor565(65, 3, 140)
 #define TXTRNCLR (((RN % 192 + 64) & 0xFC) << 3), COLOR_BLACK
 #define RNDCLR(a ,b) a, b, (RN % 255)
-
-//---------------------------------------------------------------------------//
-/*
- * Palette based on typical old-scool 8bit graphics.
- * Consist of 80 colors (actually 75; 5 transparent colors 0x0F-0x4F).
- *
- * 8 Gray colors 0x0D-0x3D; 0x1E-0x4E
- *
- * 0x0E pure black.
- * 0x4D pure white.
- * Suggest to use 0x0F-0x4F section for transparent.
- *
- * Colors represented in RGB565 color space.
- *
- * Color adress: 0x00 - 0x4F
- */
-
- #define PALETTE_SIZE 160
-
-// size: 160 ( 80 * sizeof(uint16_t) )
-extern const uint16_t palette_ext[];
-extern uint16_t palette_RAM[];
 //---------------------------------------------------------------------------//
 
 extern uint16_t currentBackGroundColor;
-extern uint8_t currentBackGroundColorId;
-extern uint8_t replaceColorId;
 extern pic_t lvlColors[];
 //---------------------------------------------------------------------------//
 
@@ -139,9 +112,10 @@ extern pic_t alienShipFireLow[];
 extern pic_t alienShipV2[];
 
 #define ALIEN_SHIP_BOSS_PIC_W 22
-#define ALIEN_SHIP_BOSS_PIC_H 30
+#define ALIEN_SHIP_BOSS_PIC_H 28
 
 extern pic_t bossShip[];
+//extern pic_t * const bossShipPics[];
 //---------------------------------------------------------------------------//
 
 #define SHIP_PIC_W   32

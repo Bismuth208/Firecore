@@ -27,9 +27,10 @@ void setAsteroidValue(asteroid_t &asteroid)
 {
   asteroid.onUse = (RN & 1);
   asteroid.speed = RN % ASTEROID_STEP + 1;
-  asteroid.sprite.pos.New = {TFT_W-10, RN % ASTEROID_MAX_POS_Y};
   asteroid.type = RN % 3;
-  asteroid.sprite.pPic = getConstCharPtr(asteroidsPics, asteroid.type);
+  asteroid.sprite.pos.New = {TFT_W-10, RN % ASTEROID_MAX_POS_Y};
+  asteroid.sprite.pPic = getPicPtr(asteroidsPics, asteroid.type);
+  //asteroid.endpoint = ship.sprite.pos.New;
 }
 
 void initAsteroids(void)
@@ -41,14 +42,23 @@ void initAsteroids(void)
   asteroidsToDefeat = ASTEROIDS_TO_DEFEAT;
 }
 
-void moveAsteroids(void)
+void rotateAsteroid(asteroid_t &asteroid)
+{
+  // i will add this in future...
+  if(RN & 1) {
+    //asteroid.sprite.pPic = getPicPtr(asteroidsPics, asteroid.type);
+    //asteroid.sprite.pPic = getPicPtr(getPicPtr(asteroidsPics, asteroid.type), asteroid.angle);
+    //++asteroid.angle;
+  }
+}
+
+void moveAsteroids(void) // also draw them
 {
   for(auto &asteroid : asteroids) {
     if(asteroid.onUse) {
       updateSprite(&asteroid.sprite);
 
       if((asteroid.sprite.pos.New.x -= asteroid.speed) > TFT_W) {
-        //asteroid.onUse = false;
         removeSprite(&asteroid.sprite); // moveSprite ?
         setAsteroidValue(asteroid);
       }
@@ -87,6 +97,7 @@ void checkAsteroids(void)
           }
         } else {
           if(checkSpriteCollision(&ship.sprite, &asteroid.sprite)) {
+            makeHorribleMagic(ASTEROID_SHIP_DAMAGE);
             collision = true;          
             score -= SCORE_PENALTY;   // lost my treasure! Again!
             if(score < 0) score = 0;
@@ -101,7 +112,7 @@ void checkAsteroids(void)
 
           if(asteroid.type > 0) { // can devide by smaller piece?
             --asteroid.type;
-            asteroid.sprite.pPic = getConstCharPtr(asteroidsPics, asteroid.type);
+            asteroid.sprite.pPic = getPicPtr(asteroidsPics, asteroid.type);
           } else { // nope it's already like a dust!
             asteroid.onUse = false;
           }

@@ -37,6 +37,7 @@ what live at edge of galaxy and ask him to save the galaxy and their home planet
 
 Developed only for *Arduino Esplora*!
 To upload game to board you need to install *esploraAPI* folder to *Arduino's* libs library!
+[Get it here:](https://github.com/Bismuth208/Esplora-API "Esplora API git") and place here:
 - OSX: ~/Documents/Arduino/libraries/
 - WIN: My Documents\Arduino\libraries\
 
@@ -46,6 +47,7 @@ Game and drivers was writen on C (maybe somewhere can be a tiny of C++).
 - whole game consume 22,490 bytes ROM and 1,422 RAM;
 - all graphics in game consume 5,233 bytes ROM;
 - there are 6,182 bytes of free ROM space to add any cool stuff! 
+- all pictures compresed whith my [picoPacker tool](https://github.com/Bismuth208/Pico-Packer "Pico Packer git").
 
 #### Hardware:
 - *Arduino Esplora* board;

@@ -79,8 +79,7 @@ TASK(respawnAsteroids, 200);
 TASK(playMusic, 50);
 
 TASK(drawRows, 10);
-TASK(waitEnd, 400);
-TASK(waitOk, 400);
+TASK(waitScreen, 400);
 TASK(printDialogeText, 40);
 TASK(printHistory, 40);
 TASK(drawStaticNoise, 50);
@@ -198,11 +197,10 @@ TASK_ARR( levelSelect ) = {
   TASK_END
 };
 
-TASK_ARR( gameOver ) = {
+TASK_ARR( waitCallBack ) = {
   TASK_P(updateBtnStates),
   TASK_P(playMusic),
-  TASK_P(waitEnd),
-  TASK_P(drawShipExplosion),
+  TASK_P(waitScreen),
   TASK_END
 };
 
@@ -215,7 +213,9 @@ TASK_ARR( asteroidField ) = {
   TASK_P(checkFireButton),
   TASK_P(pauseMenu),
   TASK_P(drawPlayerWeapon),
+  TASK_P(checkShipHealth),
   TASK_P(drawSomeGUI),
+  //TASK_P(rotateAsteroid),
   TASK_P(respawnAsteroids),
   TASK_P(moveAsteroids),
   TASK_P(checkAsteroids),

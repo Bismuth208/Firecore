@@ -18,10 +18,10 @@
 #include "textProg.h"
 #include "common.h"
 
-int8_t  totalRespawns = ALIEN_KILLS_TO_BOSS;
+int8_t  totalRespawns = 0;
+uint8_t someCount = 0;
 inVader_t aliens[MAX_ALIENS];
 inVaderBoss_t alienBoss;
-uint8_t someCount = 0;
 
 bool bossMoveDirect = false;
 
@@ -118,7 +118,7 @@ void drawInVaders(void)
   for(auto &alien : aliens) {
     if(alien.alive) { // ALIIIVEE! IT`S ALIIVEEE!
       updateSprite(&alien.sprite);
-      drawBMP_ERLE_P(alien.sprite.pos.Old.x+28, alien.sprite.pos.Old.y+6,
+      drawPico_DIC_P(alien.sprite.pos.Old.x+28, alien.sprite.pos.Old.y+6,
                    ((RN & 1) ? alienShipFireHi : alienShipFireLow));
     }
   }
@@ -344,10 +344,18 @@ void checkBossRays(void)
 
 void bossDie(void)
 {
-  // boss defeated and it's shot exploded. Why? Just because Simon say: "boom"!
-  for(auto &pWeapon : alienBoss.weapons)
-    rocketEpxlosion(&pWeapon.ray);
-  rocketEpxlosion(&alienBoss.base.weapon.ray);
+  bool invertState = true;
 
+  for(uint8_t i=0; i<3; i++) {
+    // boss defeated and it's shot exploded. Why? Just because Simon say: "boom"!
+    for(auto &pWeapon : alienBoss.weapons) {
+      tftSetInvertion(invertState);
+      rocketEpxlosion(&pWeapon.ray);
+
+      invertState = !invertState;
+    }
+    rocketEpxlosion(&alienBoss.base.weapon.ray);
+  }
+  tftSetInvertion(false);
   addGiftTasks();
 }

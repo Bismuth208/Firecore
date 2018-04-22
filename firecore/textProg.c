@@ -21,7 +21,7 @@
 text_t emptyText[] PROGMEM = {" "};
 text_t pauseP0[] PROGMEM = {"PAUSE"};
 text_t pressAtext[] PROGMEM = {"PRESS A"};
-text_t versionP0[] PROGMEM = {"V0.3B"};
+text_t versionP0[] PROGMEM = {"V0.4A"};
 text_t scoreP[] PROGMEM = {"SCORE: "};
 text_t maxScoreP[] PROGMEM = {"MAX: "};
 
@@ -55,7 +55,7 @@ text_t dogeP7[] PROGMEM = {"..WE...EED YO..R...ELP!"};
 text_t * const dogePA[] PROGMEM = {
 	dogeP1, dogeP2, dogeP3,
 	dogeP4,	dogeP5, dogeP6,
-	dogeP7
+	dogeP7, 0
 };
 
 
@@ -65,6 +65,7 @@ text_t modeP3[] PROGMEM = {"CREDITS"};
 text_t * const modePA[] PROGMEM = {modeP1, modeP2, modeP3};
 
 text_t historyTextP[] PROGMEM = {"IN FAR FAR AWAY GALAXY,\nAFTER LAST HOLYWAR, WHAT\nWAS THOUSANDS YEARS AGO,\nTWO SPECIES LIVES IN\nDIFFERENT PARTS OF\nTHE GALAXY.\nIN SILENCE AND PEACE.\a\a\a\a\a\a\a\a\a\a\a\r\fUNTIL NOW..."};
+text_t victoryTextP[] PROGMEM = {""};
 
 text_t worldP0[] PROGMEM = {"ASTEROIDS!!!"};
 text_t worldP1[] PROGMEM = {"NAUTREM 3"};
@@ -92,19 +93,18 @@ text_t creditP0[] PROGMEM = {"2017 @BISMUTH208"};
 
 text_t creditsTextP0[] PROGMEM = {"THANK YOU\n\tFOR PLAYING\n\t\tTHIS GAME!"};
 text_t creditsTextP1[] PROGMEM = {"BONUS SHIP\n\tIS NOW\n\t\tUNLOCKED!"};
-text_t creditsTextP2[] PROGMEM = {"ORIGINAL\n\tGAME LOCATION\n\t\t\tIS HERE"};
+//text_t creditsTextP2[] PROGMEM = {"ORIGINAL\n\tGAME LOCATION\n\t\t\tIS HERE"};
 text_t creditsTextP3[] PROGMEM = {"PROGRAMER:\n\tME (@BISMUTH208)"};
 text_t creditsTextP4[] PROGMEM = {"ARTIST1:\n\tME (@BISMUTH208)"};
 text_t creditsTextP5[] PROGMEM = {"ARTIST2:\n\tMY WIFE (@VOKALOID18)"};
 text_t creditsTextP6[] PROGMEM = {"SPECIAL\n\tTHANKS TO:\n\t\tMY WIFE!"};
-text_t creditsTextP7[] PROGMEM = {"WHO\n\tWAS MY\n\t\tBETA TESTER!"};
+text_t creditsTextP7[] PROGMEM = {"WHO\n\tWAS MY\n\t\tBETA TESTER,"};
 text_t creditsTextP8[] PROGMEM = {"AND\n\tWHO INSPIRE ME\n\t\tALL THIS TIME!"};
 text_t * const creditsPA[] PROGMEM = {
   creditsTextP0, creditsTextP1,
-  creditsTextP2, creditsTextP3,
+  /*creditsTextP2,*/ creditsTextP3,
   creditsTextP4, creditsTextP5,
   creditsTextP6, creditsTextP7,
   creditsTextP8, 0
 };
-
 //---------------------------------------------------------------------------//

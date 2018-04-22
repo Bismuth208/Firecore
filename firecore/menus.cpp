@@ -27,15 +27,17 @@ uint8_t creditsSwitchState =0;
 bool iconState = false;
 bool rndFlag = false;
 
+pFunc_t pCallBackWaitEvent = nullptr;
+
 // -------------------------- Main menu -------------------------- //
 void drawShipSelectionMenu(void)
 {
   uint8_t posX = CHARACTER_ICON_OFFSET_X;
   uint8_t characterIconStep = (TFT_W /(CHARACTER_ICON_NUM+gameSaveData.bonusUnlocked));
-  screenSliderEffect(currentBackGroundColor);
+  screenSliderEffect(getAlphaReplaceColorId());
 
   for(uint8_t count=0; count<(CHARACTER_ICON_NUM+gameSaveData.bonusUnlocked); count++) {
-    drawBMP_ERLE_P(posX, CHARACTER_ICON_OFFSET_Y, getConstCharPtr(catsPics, count));
+    drawPico_DIC_P(posX, CHARACTER_ICON_OFFSET_Y, getPicPtr(catsPics, count));
     tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, COLOR_BLACK);
 
     posX += characterIconStep;
@@ -71,7 +73,7 @@ void drawCurrentShipSelection(void)
 
     // update ship pic
     ship.type = currentShip-1;
-    ship.sprite.pPic = getConstCharPtr(shipsPics, ship.type);
+    ship.sprite.pPic = getPicPtr(shipsPics, ship.type);
 
     posX = characterIconStep*(previousShip-1) + CHARACTER_ICON_OFFSET_X;
     tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, COLOR_BLACK);
@@ -241,8 +243,11 @@ bool drawStory(void)
 #if ADD_SOUND
     sfxPlayCancel();
 #endif
-    if(dogeDialogs < STORY_DOGE_TEXT_SIZE) {
-      drawTextWindow(getConstCharPtr(dogePA, dogeDialogs), buttonB);
+    
+    text_t *pText = getConstCharPtr(dogePA, dogeDialogs);
+
+    if(pText) {
+      drawTextWindow(pText, buttonB);
 
       switch(++dogeDialogs) {
         case 5: {
@@ -271,17 +276,9 @@ bool drawNewLevel(void)
     sfxPlayOK();
 #endif
     
-    screenSliderEffect(currentBackGroundColor);
+    screenSliderEffect(COLOR_BLACK);
 
     switch(curretLevel) {
-      case 0: case 1: 
-      case 3: case 4:
-      case 6: case 7:
-      case 9: case 10:
-      case 12: {
-        addGameTasks();
-      } break;
-
       case 2: case 5:
       case 8: case 11: {
         addAsteroidsTasks();
@@ -337,14 +334,16 @@ void menuSwitchSelect(void)
 void drawGalaxyAt(uint8_t y)
 {
   screenSliderEffect(COLOR_BLACK);
-  drawBMP_ERLE_P(GALAXY_PIC_POS_X, y, galaxyPic);
+  drawPico_DIC_P(GALAXY_PIC_POS_X, y, galaxyPic);
 }
 
 void drawGalaxy(void)
 {
+  uint8_t colorId = getPicByte(lvlColors + curretLevel);
+  currentBackGroundColor = getPlatetteColor(colorId);
+
+  setAlphaReplaceColorId(colorId);
   drawGalaxyAt(GALAXY_PIC_POS_Y);
-  currentBackGroundColorId = getPicByte(lvlColors + curretLevel);
-  currentBackGroundColor = palette_RAM[currentBackGroundColorId];
 }
 
 //---------------------------------------------------------------------------//
@@ -361,7 +360,7 @@ void baseStory(void)
 void drawRandomDoge(void)
 {
   rndFlag = !rndFlag;
-  drawBMP_ERLE_P(7, 33+rndFlag, cityDogePic);
+  drawPico_DIC_P(7, 33+rndFlag, cityDogePic);
 
   uint16_t *ptr = (uint16_t*)0x0000; // base adress for random
   uint8_t dataSize = (RN & 31)+1;
@@ -400,6 +399,28 @@ void blinkLevelPointer(void)
 }
 
 //---------------------------------------------------------------------------//
+void createNextLevel(void)
+{
+  shipHyperJump();
+  addTasksArray_P(waitCallBackTasksArr);
+
+  if((++curretLevel) >= MAX_WORLDS) { // is it was final boss?
+    victory();
+  } else {
+    if(++difficultyIncrement > MAX_DIFFICULT_INCREMENT) { // increase speed of all each lvl
+      difficultyIncrement = MAX_DIFFICULT_INCREMENT;
+    }
+    levelClear();
+  }
+}
+
+void levelBaseInit(void)
+{
+  ship.lowHealthState = false;
+  setLEDValue(LED_R, ship.lowHealthState);
+  initShip();
+  initInvaders();
+}
 
 void prepareLevelSelect(void)
 {
@@ -420,36 +441,35 @@ void prepareLevelSelect(void)
   
   resetBtnStates();
 }
+
 //---------------------------------------------------------------------------//
+void drawCreditWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h, pic_t *pic)
+{
+  tftFillRect(x-1, y-1, w, h, COLOR_WHITE);
+  drawPico_DIC_P(x, y, pic);
+}
 
 void drawCredits(void)
-{  
-  drawBMP_ERLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, galaxyPic);
+{ 
+  tftFillScreen(COLOR_BLACK);
+  drawPico_DIC_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, galaxyPic);
   drawTextWindow(getConstCharPtr(creditsPA, creditsSwitchState), emptyText);
-
-  if(creditsSwitchState == 5) { // fix for qr code...
-    tftFillRect(6, 32, 52, 53, COLOR_BLACK);
-    drawBMP_ERLE_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, galaxyPic);
-  }
 
   switch(creditsSwitchState) {
     case 0: case 1: {
-      drawBMP_ERLE_P(7, 33, cityDogePic);
+      drawCreditWindow(7, 33, 52, 53, cityDogePic); // creditPicQR
     } break;
 
-    case 2: {
-      tftFillRect(6, 32, 52, 53, COLOR_WHITE);
-      tftDrawXBitmap(7, 33, creditPicQR, 50, 50, COLOR_BLACK);
+    // case 2: {
+    //   drawCreditWindow(7, 33, 52, 53, cityDogePic);
+    // } break;
+
+    case 2: case 3: {
+      drawCreditWindow(7, 33, 52, 53, creditPicOne);
     } break;
 
-    case 3: case 4: {
-      tftFillRect(6, 32, 52, 53, COLOR_WHITE);
-      drawBMP_ERLE_P(7, 33, creditPicOne);
-    } break;
-
-    case 5: case 6: case 7: case 8: {
-      tftFillRect(104, 32, 52, 53, COLOR_WHITE);
-      drawBMP_ERLE_P(105, 33, creditPicTwo);
+    case 4: case 5: case 6: case 7: {
+      drawCreditWindow(102, 33, 52, 53, creditPicTwo);
     } break;
 
     default: break;
@@ -462,38 +482,14 @@ void drawCredits(void)
 }
 
 //---------------------------------------------------------------------------//
-
-void drawSomeGUI(void)
-{
-  drawBMP_ERLE_P(0, 119, hudGuiPic);
-  
-  char buf[5]; // i'm pretty sure what 5 bytes will be enough...
-  tftSetTextSize(1);
-  tftFillRect(SCORE_POS_X, SCORE_POS_Y, 20, 7, currentBackGroundColor);
-  tftPrintAt(SCORE_POS_X, SCORE_POS_Y, itoa(score, buf, 10));
-
-  tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_WHITE);
-}
-
-void waitEnd(void)
+void waitScreen(void)
 {
   if(getBtnState(BUTTON_B)) {
     resetBtnStates();
 #if ADD_SOUND
     sfxPlayCancel();
 #endif
-    addCreditsTasks();
-  }
-}
-
-void waitOk(void)
-{
-  if(getBtnState(BUTTON_B)) {
-    resetBtnStates();
-#if ADD_SOUND
-    sfxPlayCancel();
-#endif
-    prepareLevelSelect();
+    pCallBackWaitEvent();
   }
 }
 
@@ -515,10 +511,10 @@ void printScore(void)
   tftPrintAt(80, 70, itoa(hiScore, buf, 10));
   score = 0;
 
-  setSaveData(EE_ADDR_SAVE_DATA, &gameSaveData.rawData[0]);
+  setSaveData(EE_ADDR_SAVE_DATA, &gameSaveData.rawData[0], saveData_t);
 }
 
-void done(const uint8_t *text) // fantasy end, bad name for function...
+void done(text_t *text) // fantasy end, bad name for function...
 {
   drawText(20, 40, 2, text);
   levelBaseInit();
@@ -530,17 +526,23 @@ void gameOver(void)
   printScore();
 
   // add game over tasks
-  addTasksArray_P(gameOverTasksArr);
+  addTasksArray_P(waitCallBackTasksArr);
+  addTask_P(T(&drawShipExplosion));
+
   resetBtnStates();
 
   curretLevel =0;
   menuSwitchSelectState = 0;
-  initBaseGameParams();
+  pCallBackWaitEvent = baseTitleTask;
 }
 
 void levelClear(void)
 {
   done(levelClearP);
+  addTask_P(T(&printDialogeText));
+  disableTask(printDialogeText);
+
+  pCallBackWaitEvent = prepareLevelSelect;
 }
 
 void victory(void)
@@ -548,6 +550,7 @@ void victory(void)
   curretLevel =0;
   menuSwitchSelectState = 0;
   gameSaveData.bonusUnlocked =1;
+  pCallBackWaitEvent = addCreditsTasks;
 
   drawText(20, 40, 2, victoryP);
   printScore();

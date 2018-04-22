@@ -15,7 +15,7 @@
 #ifndef _TYPES_H
 #define _TYPES_H
 
-#include "stdbool.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -26,37 +26,6 @@ extern "C"{
 #define ALIEN_BOSS_DEATH_RAYS    4
 
 //---------------------------------------------------------------------------//
-typedef const uint8_t pic_t;  // Yes, they are same, but lets 
-typedef const uint8_t text_t; // separeate them for easy life...
-
-typedef struct { // 4 bytes RAM
-  uint8_t x;
-  uint8_t y;
-} position_t;
-
-typedef struct {  // 4 bytes
-  position_t Old;
-  position_t New;
-} objPosition_t;   // need for collision check
-
-typedef struct {  // 6 bytes
-  objPosition_t pos;
-  pic_t *pPic;
-} sprite_t;
-
-typedef struct {  // 7 bytes
-  position_t P0;
-  position_t P1;
-  position_t P2;
-  uint8_t totalSteps;
-} bezier_t;
-
-typedef struct {
-  uint8_t id;
-  uint8_t step;
-} bezierLine_t;
-
-//---------------------------------------------------------------------------//
 typedef struct {  // 4 bytes
   position_t pos;
   uint8_t color; // as we use 8bit palette, store only color id
@@ -65,11 +34,13 @@ typedef struct {  // 4 bytes
 
 typedef struct {
   sprite_t sprite;
+  // position_t endpoint;
   uint8_t speed;
   struct {
     uint8_t onUse   :1;
     //uint8_t bonus   :1;
     uint8_t type    :2;
+    //uint8_t angle   :2;
     uint8_t freeRam :5;
   };
 } asteroid_t;
@@ -141,18 +112,6 @@ typedef struct {
 } inVaderBoss_t;
 
 //---------------------------------------------------------------------------//
-typedef struct {
-  union {
-  	uint8_t zBtn; // for fast reset only
-  	struct {
-  	  uint8_t aBtn :1;
-  	  uint8_t bBtn :1;
-  	  uint8_t xBtn :1;
-  	  uint8_t yBtn :1;
-  	  uint8_t freeRam :4;
-    };
-  };
-} btnStatus_t;
 
 typedef struct {
   union {
@@ -165,15 +124,6 @@ typedef struct {
     };
   };
 } saveData_t;
-
-typedef union {
-  uint16_t wData;
-  struct {
-    uint8_t u8Data1;
-    uint8_t u8Data2;
-  };
-} wordData_t;
-
 //---------------------------------------------------------------------------//
 
 #ifdef __cplusplus
