@@ -35,10 +35,10 @@
 // Thanks to macro below, only one pointer copy of each task are possible
 
 TASK(updateBtnStates, 25);
-TASK(checkFireButton, 190);
+TASK(checkFireButton, PLAYER_FIRE_CHECK);
 
 TASK(drawStars, 30);
-TASK(drawSomeGUI, 500);
+TASK(drawSomeGUI, 1 SEC);
 TASK(pauseMenu, 500);
 TASK(drawTitleText, 1 SEC);
 TASK(drawStart, 500);
@@ -81,7 +81,6 @@ TASK(playMusic, 50);
 TASK(drawRows, 10);
 TASK(waitScreen, 400);
 TASK(printDialogeText, 40);
-TASK(printHistory, 40);
 TASK(drawStaticNoise, 50);
 TASK(blinkLevelPointer, 250);
 TASK(drawRandomDoge, 80);
@@ -90,21 +89,7 @@ TASK(menuSwitchSelect, 400);
 
 //---------------------------------------------------------------------------//
 
-TASK_ARR( title ) = {
-  TASK_P(updateBtnStates),
-  TASK_P(playMusic),
-  TASK_P(menuSwitchSelect),  
-  TASK_P(drawStars),
-  TASK_P(drawShip),
-  TASK_P(drawStart),
-  TASK_P(drawTitleText),
-  TASK_END
-};
-//---------------------------------------------------------------------------//
-
 TASK_ARR( game ) = {
-  TASK_P(updateBtnStates),
-  TASK_P(playMusic),
   TASK_P(drawStars),
   TASK_P(moveShip),
   TASK_P(drawShip),
@@ -125,8 +110,6 @@ TASK_ARR( game ) = {
 //---------------------------------------------------------------------------//
 
 TASK_ARR( boss )= {
-  TASK_P(updateBtnStates),
-  TASK_P(playMusic),
   TASK_P(moveShip),
   TASK_P(drawShip),
   TASK_P(checkFireButton),
@@ -144,8 +127,6 @@ TASK_ARR( boss )= {
 //---------------------------------------------------------------------------//
 
 TASK_ARR( gift ) = {
-  TASK_P(updateBtnStates),
-  TASK_P(playMusic),
   TASK_P(moveShip),
   TASK_P(drawShip),
   TASK_P(checkFireButton),
@@ -158,55 +139,7 @@ TASK_ARR( gift ) = {
 };
 //---------------------------------------------------------------------------//
 
-TASK_ARR( shipSel ) = {
-  TASK_P(updateBtnStates),
-  TASK_P(playMusic),
-  TASK_P(drawShip),
-  TASK_P(drawCurrentShipSelection),
-  TASK_P(getShipItem),
-  TASK_P(menuSwitchSelect),
-  TASK_P(printDialogeText),
-  TASK_END
-};
-
-TASK_ARR( story ) = {
-  TASK_P(updateBtnStates),
-  TASK_P(playMusic),
-  TASK_P(menuSwitchSelect), 
-  TASK_P(blinkLevelPointer),
-  TASK_P(printDialogeText),
-  TASK_P(drawStaticNoise),
-  TASK_P(drawRandomDoge),
-  TASK_END
-};
-
-TASK_ARR( history ) = {
-  TASK_P(updateBtnStates),
-  TASK_P(playMusic),
-  TASK_P(printHistory),
-  TASK_P(menuSwitchSelect),
-  TASK_END
-};
-
-TASK_ARR( levelSelect ) = {
-  TASK_P(updateBtnStates),
-  TASK_P(playMusic),
-  TASK_P(menuSwitchSelect),
-  TASK_P(blinkLevelPointer),
-  TASK_P(printDialogeText),
-  TASK_END
-};
-
-TASK_ARR( waitCallBack ) = {
-  TASK_P(updateBtnStates),
-  TASK_P(playMusic),
-  TASK_P(waitScreen),
-  TASK_END
-};
-
 TASK_ARR( asteroidField ) = {
-  TASK_P(updateBtnStates),
-  TASK_P(playMusic),
   TASK_P(drawStars),
   TASK_P(moveShip),
   TASK_P(drawShip),
@@ -215,15 +148,66 @@ TASK_ARR( asteroidField ) = {
   TASK_P(drawPlayerWeapon),
   TASK_P(checkShipHealth),
   TASK_P(drawSomeGUI),
-  //TASK_P(rotateAsteroid),
   TASK_P(respawnAsteroids),
   TASK_P(moveAsteroids),
   TASK_P(checkAsteroids),
   TASK_END
 };
+//---------------------------------------------------------------------------//
+
+TASK_ARR( startup ) = {
+  TASK_P(drawRows),
+  TASK_END
+};
+//---------------------------------------------------------------------------//
+
+TASK_ARR( title ) = {
+  TASK_P(menuSwitchSelect),  
+  TASK_P(drawStars),
+  TASK_P(drawShip),
+  TASK_P(drawStart),
+  TASK_P(drawTitleText),
+  TASK_END
+};
+
+TASK_ARR( history ) = {
+  TASK_P(menuSwitchSelect),
+  TASK_P(printDialogeText),
+  TASK_END
+};
+
+TASK_ARR( shipSel ) = {
+  TASK_P(menuSwitchSelect),
+  TASK_P(drawShip),
+  TASK_P(drawCurrentShipSelection),
+  TASK_P(getShipItem),
+  TASK_P(printDialogeText),
+  TASK_END
+};
+
+TASK_ARR( story ) = {
+  TASK_P(menuSwitchSelect), 
+  TASK_P(blinkLevelPointer),
+  TASK_P(printDialogeText),
+  TASK_P(drawStaticNoise),
+  TASK_P(drawRandomDoge),
+  TASK_END
+};
+
+TASK_ARR( levelSelect ) = {
+  TASK_P(menuSwitchSelect),
+  TASK_P(blinkLevelPointer),
+  TASK_P(printDialogeText),
+  TASK_END
+};
+//---------------------------------------------------------------------------//
+
+TASK_ARR( waitCallBack ) = {
+  TASK_P(waitScreen),
+  TASK_END
+};
 
 TASK_ARR( credits ) = {
-  TASK_P(playMusic),
   TASK_P(printDialogeText),
   TASK_P(drawCredits),
   TASK_END

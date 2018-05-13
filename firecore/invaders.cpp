@@ -24,6 +24,7 @@ inVader_t aliens[MAX_ALIENS];
 inVaderBoss_t alienBoss;
 
 bool bossMoveDirect = false;
+bool advancedBoss = false;
 
 //---------------------------------- inVaders --------------------------------------------//
 void setInvaderValue(inVader_t *pAlien, bool state)
@@ -229,11 +230,14 @@ void bossInit(void)
   pAlien->weapon.ray.sprite.pPic = deathRayBossPic;
 
   pAlien->health = ALIEN_BOSS_HEALTH;
-  pAlien->sprite.pPic = bossShip;
+  pAlien->sprite.pPic = advancedBoss ? bossShip : ship_boss_v2;
+
   // move up or move down
   pAlien->bezLine.id = ((RN & 1) ? ALIEN_BOSS_MOVE_UP_ID : ALIEN_BOSS_MOVE_DOWN_ID);
   pAlien->bezLine.step = 25; // start animation at centere
   moveBezierCurve(&pAlien->sprite.pos.New, &pAlien->bezLine);
+
+  advancedBoss = !advancedBoss; // change pic every 2nd lvl boss
 
   for(auto &weapon : alienBoss.weapons)
     setDeathRayState(&weapon.ray, &pAlien->sprite.pos.New, false);

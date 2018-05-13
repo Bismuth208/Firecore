@@ -10,17 +10,17 @@
  *  Arduino IDE:  1.8.5   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  24,744
+ * Program size:  25,298
  *  pics:         5,202
  *  code:         17,288
- * Used RAM:      1,572 bytes
- * Free RAM:      988 bytes
+ * Used RAM:      1,544 bytes
+ * Free RAM:      1,016 bytes
  *
  * Language:      C and C++
  * 
  * Author: Antonov Alexandr (Bismuth208)
  * Date:   2 June, 2017
- * Last:   22 Apr, 2018
+ * Last:   13 May, 2018
  * e-mail: bismuth20883@gmail.com
  * 
  *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
@@ -55,6 +55,8 @@ int16_t score =0;
 uint16_t calJoysticX =0;
 uint16_t calJoysticY =0;
 
+uint16_t playerFireCheck = 0;
+
 ship_t ship;
 gift_t gift;
 saveData_t gameSaveData;
@@ -62,6 +64,10 @@ bezier_t bezierLine;
 
 // for bezier line
 // x1,y1, x2,y2, x3,y3, steps
+// x1,y1 - start point
+// x2,y2 - is imaginary for angle
+// x3,y3 - end point
+// steps - number of points to draw line
 const uint8_t lineCurves[] PROGMEM = {
   130, 40, 85,120,  0, 40,50,
   130, 95,115,130,  0,  0,50,
@@ -144,7 +150,7 @@ void makeHorribleMagic(uint8_t magicValue)
 {
   if(ship.health) { // this rule preserv us from GUI overflow glitch
     // clear previous level
-    tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_RED);
+    drawHealthStatusBar(COLOR_ID_RED);
 
     // Calc damage as: MAX_DURAB - (0.5 * SHIP_DURAB) - magicValue
     uint8_t damage = SHIP_BASE_DURAB - (ship.states.durability/2) - magicValue;
@@ -239,6 +245,8 @@ void checkGift(void)
           ship.states.power += WEAPON_GIFT_BONUS;
           if((++ship.weapon.level) > MAX_WEAPON_LVL) {
             ship.weapon.level = MAX_WEAPON_LVL;
+            playerFireCheck -= PLAYER_FIRE_CHECK_COST;
+            updateTaskTimeCheck(checkFireButton, playerFireCheck);
           }
           disableWeaponGift();
           return;
@@ -277,10 +285,20 @@ void dropWeaponGift(void)
 }
 
 // --------------------------------------------------------------- //
+void setGameTasks(tasksArr_t *pTasks)
+{
+  addTasksArray_P(pTasks);
+
+  // this two tasks always every where
+  addTask_P(T(&updateBtnStates));
+  addTask_P(T(&playMusic));
+}
+
 void addCreditsTasks(void)
 {
+  // setShakingAvatar(7, 33, cityDogePic); // creditPicQR
   screenSliderEffect(COLOR_ID_BLACK);
-  addTasksArray_P(creditsTasksArr);
+  setGameTasks(creditsTasksArr);
 }
 
 void addAsteroidsTasks(void)
@@ -288,12 +306,12 @@ void addAsteroidsTasks(void)
   ship.sprite.pos.New = {SHIP_GAME_POS_X, SHIP_GAME_POS_Y};
 
   initAsteroids();
-  addTasksArray_P(asteroidFieldTasksArr);
+  setGameTasks(asteroidFieldTasksArr);
 }
 
 void addGameTasks(void)
 {
-  addTasksArray_P(gameTasksArr);
+  setGameTasks(gameTasksArr);
 
   ship.sprite.pos.New = {SHIP_GAME_POS_X, SHIP_GAME_POS_Y};
   gift.bezLine = {GIFT_MOVE_ID, 0};
@@ -306,7 +324,7 @@ void addBossTasks(void)
   bossInit();
   tftFillScreen(currentBackGroundColor);
 
-  addTasksArray_P(bossTasksArr);
+  setGameTasks(bossTasksArr);
 }
 
 // drop gift from the boss
@@ -317,40 +335,45 @@ void addGiftTasks(void)
   gift.sprite.pPic = giftHeartPic;
   moveBezierCurve(&gift.sprite.pos.New, &gift.bezLine);
 
-  addTasksArray_P(giftTasksArr);
+  setGameTasks(giftTasksArr);
 }
 
 void addShipSelectTasks(void)
 {
   ship.sprite.pos.New = {SHIP_SELECT_POS_X, SHIP_SELECT_POS_Y};
-  addTasksArray_P(shipSelTasksArr);
+  setGameTasks(shipSelTasksArr);
 }
 
 void addStoryTasks(void)
 {
-  addTasksArray_P(storyTasksArr);
+  setGameTasks(storyTasksArr);
   disableTask(drawStaticNoise);
 }
 
 void addHistoryTasks(void)
 {
-  textHistoryPosX = 0;
-  addTasksArray_P(historyTasksArr);
+  // for history text
+  pTextDialoge = historyTextP;
+  tftSetTextColor(COLOR_WHITE);
+  tftSetTextSize(1);
+  tftSetCursor(0, 72);
+  updateWindowTextPos();
+
+  setGameTasks(historyTasksArr);
 }
 
 void addTitleTasks(void)
 {
-  addTasksArray_P(titleTasksArr);
+  setGameTasks(titleTasksArr);
 }
 
 void baseTitleTask(void)
 {
-  initBaseGameParams();
-
   tftFillScreen(currentBackGroundColor);
-  deleteAllTasks();
-  addTask_P(T(&drawRows));
-  addTask_P(T(&playMusic));
+
+  initBaseGameParams();
+  setGameTasks(startupTasksArr);
+  playerFireCheck = PLAYER_FIRE_CHECK;
 
 #if ADD_SOUND
   sfxPlayPattern(unfoldPattern, SFX_CH_0);
@@ -360,7 +383,7 @@ void baseTitleTask(void)
 // ------------- Init section ---------------------- //
 void readScore(void)
 {
-  getSaveData(EE_ADDR_SAVE_DATA, &gameSaveData.rawData[0], saveData_t);
+  getSaveData(SAVE_DATA_BLOCK, &gameSaveData.rawData[0], sizeof(saveData_t));
 
   if(gameSaveData.saveDataMark != HI_SCORE_MARK ) { // no save data in EEPROM?
     resetScore();
@@ -372,7 +395,7 @@ void resetScore(void)
   memset_F(&gameSaveData.rawData[0], 0x00, sizeof(saveData_t));
   gameSaveData.saveDataMark = HI_SCORE_MARK;
 
-  setSaveData(EE_ADDR_SAVE_DATA, &gameSaveData.rawData[0], saveData_t);
+  setSaveData(SAVE_DATA_BLOCK, &gameSaveData.rawData[0], sizeof(saveData_t));
 }
 
 void calibrateJoystick(void)

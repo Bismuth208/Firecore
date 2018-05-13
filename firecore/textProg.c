@@ -21,7 +21,7 @@
 text_t emptyText[] PROGMEM = {" "};
 text_t pauseP0[] PROGMEM = {"PAUSE"};
 text_t pressAtext[] PROGMEM = {"PRESS A"};
-text_t versionP0[] PROGMEM = {"V0.4A"};
+text_t versionP0[] PROGMEM = {"V0.4B"};
 text_t scoreP[] PROGMEM = {"SCORE: "};
 text_t maxScoreP[] PROGMEM = {"MAX: "};
 

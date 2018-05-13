@@ -27,89 +27,109 @@ star_t stars[MAX_STARS];
 bool startState = true;
 
 text_t *pTextDialoge = nullptr;
-uint8_t textDialogePosX =0;
-uint8_t textHistoryPosX =0;
+uint8_t textWinowPosX =0;
+uint8_t textWinowPosY =0;
+
+pic_t *pAvatarPic = nullptr;
+uint8_t avatarPicPosX = 0;
+uint8_t avatarPicPosY = 0;
+uint8_t avatarRndFlag = false;
 
 //---------------------------------------------------------------------------//
-void printHistory(void)
+void updateWindowTextPos(void)
 {
-  uint8_t tmpChar = pgm_read_byte(historyTextP + textHistoryPosX);
-  if(tmpChar != '\0') {
-    tftPrintChar(tmpChar);
-    ++textHistoryPosX;
-#if ADD_SOUND
-    sfxPlayPattern(beepPattern, SFX_CH_0);
-#endif
-  } else {
-    disableTask(printHistory);
-  }
+  textWinowPosX = tftGetCursorX();
+  textWinowPosY = tftGetCursorY();
 }
 
+// It is so epic retro !!!!
 void printDialogeText(void)
 {
-  uint8_t tmpChar = pgm_read_byte(pTextDialoge);
+  uint8_t tmpChar = pgm_read_byte(pTextDialoge++);
   if(tmpChar != '\0') {
-    ++pTextDialoge;
-    // 6 is width of font is size will == 1
-    //tftPrintCharAt(TEXT_WINDOW_X + (textDialogePosX*6), TEXT_WINDOW_Y, tmpChar);
-    tftPrintChar(tmpChar);
-    ++textDialogePosX;
+    tftPrintCharAt(textWinowPosX, textWinowPosY, tmpChar);
+    updateWindowTextPos(); // save new position; protection from multiple prints;
 #if ADD_SOUND
     sfxPlayPattern(beepPattern, SFX_CH_0);
 #endif
   } else {
     // all text printed
     disableTask(printDialogeText);
-    pTextDialoge = nullptr;
-    textDialogePosX =0;
+    // hmm... does it really need to reset?
+    // pTextDialoge = nullptr;
+    // textWinowPosX =0;
+    // textWinowPosY =0;
   }
 }
 
 void drawTextWindow(text_t *text, text_t *btnText)
 {
-  // drawFrame(TEXT_FRAME_X, TEXT_FRAME_Y,  TEXT_FRAME_W, TEXT_FRAME_H, INDIGO_COLOR, COLOR_WHITE);
-  drawPico_DIC_P(TEXT_FRAME_X, TEXT_FRAME_Y, textWindowPic);
+  drawFrame(TEXT_FRAME_X, TEXT_FRAME_Y,  TEXT_FRAME_W, TEXT_FRAME_H, INDIGO_COLOR, COLOR_WHITE);
+  // drawPico_DIC_P(TEXT_FRAME_X, TEXT_FRAME_Y, textWindowPic);
   drawText(TEXT_OK_X, TEXT_OK_Y, 1, btnText);
 
   pTextDialoge = text; // draw this text later
-  textDialogePosX =0;  // reset position
   tftSetCursor(TEXT_WINDOW_X, TEXT_WINDOW_Y);
-  enableTask(printDialogeText); // It is so epic retro !!!!
+  updateWindowTextPos();
+  enableTask(printDialogeText);
 }
 
 //---------------------------------------------------------------------------//
 // Arrrrrghh!!!!
 // How to make it faster?!?!
+void moveStar(star_t &star)
+{
+  // now move them
+  if((star.pos.x -= star.speed) < TFT_W) {
+    drawPixelFast(&star.pos, star.color);
+  } else {
+    star.pos = {TFT_W, RN % STARS_MAX_POS_Y};
+    star.color = RAND_STAR_CLR;
+    star.speed = RN % STAR_STEP + 1;
+  }
+}
+
 void drawStars(void)
 {
   // draw stars and blow your mind, if still not
   for(auto &star : stars) {
-    drawPixelFast(&star.pos, getAlphaReplaceColorId());
-    
-    // now move them
-    if((star.pos.x -= star.speed) < TFT_W) {
-      drawPixelFast(&star.pos, star.color);
-    } else {
-      star.pos = {TFT_W, RN % STARS_MAX_POS_Y};
-      star.color = RAND_STAR_CLR;
-      star.speed = RN % STAR_STEP + 1;
+    drawPixelFast(&star.pos, getAlphaReplaceColorId()); // remove previous
+    moveStar(star);
+  }
+}
+
+void drawStarsWarp(void)
+{
+  for(uint8_t i=0; i<MAX_STARS_WARP; i++) {
+    for(auto &star : stars) {    
+      moveStar(star);
+      moveStar(star);
     }
+    _delayMS(MAX_STARS_WARP-i); // maybe in future i raplace it by task...
   }
 }
 // --------------------------------------------------------------- //
+void drawHealthStatusBar(uint8_t colorId)
+{
+  if(ship.health) {
+    int8_t healthBar = (ship.health>>2);
+    if(healthBar < 0) {
+      healthBar = 0;
+    }
+    tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y, healthBar, SHIP_ENERGY_H, getPlatetteColor(colorId));
+  }
+}
 
 void drawSomeGUI(void)
 {
   drawPico_DIC_P(0, 119, hudGuiPic);
   
-  char buf[5]; // i'm pretty sure what 5 bytes will be enough...
+  char buf[SCORE_DIGITS];
   tftSetTextSize(1);
   tftFillRect(SCORE_POS_X, SCORE_POS_Y, 20, 7, currentBackGroundColor);
   tftPrintAt(SCORE_POS_X, SCORE_POS_Y, itoa(score, buf, 10));
 
-  if(ship.health) {
-    tftFillRect(SHIP_ENERGY_POS_X, SHIP_ENERGY_POS_Y, (ship.health>>2) - 4, SHIP_ENERGY_H, COLOR_WHITE);
-  }
+  drawHealthStatusBar(COLOR_ID_WHITE);
 }
 // --------------------------------------------------------------- //
 
@@ -181,6 +201,8 @@ void shipHyperJump(void)
 {
   auto sprite = &ship.sprite;
 
+  drawStarsWarp();
+
   while((sprite->pos.Old.x++) < SHIP_MAX_POS_X) {
     // this pic used to left red track on screen
     drawSprite(sprite);
@@ -222,6 +244,32 @@ void drawPlayerWeapon(void)
 void drawGift(void)
 {
   updateSprite(&gift.sprite);
+}
+// --------------------------------------------------------------- //
+
+void setShakingAvatar(uint8_t posX, uint8_t posY, pic_t *pPic)
+{
+  avatarPicPosX = posX;
+  avatarPicPosY = posY;
+  pAvatarPic = pPic;
+}
+
+void drawShankingAvatar(void)
+{
+  auto tmpData = getPicSize(pAvatarPic, 0);
+  uint16_t *ptr = (uint16_t*)0x0000; // base adress for random
+  uint8_t dataSize = (RN & 31)+1; // number of "noise dots"
+
+  avatarRndFlag = !avatarRndFlag;
+  drawPico_DIC_P(avatarPicPosX, avatarPicPosY+avatarRndFlag, pAvatarPic);
+
+  do {
+    ptr += RN; // make offset for random data
+    tftSetAddrPixel(avatarPicPosX+(RN%tmpData.u8Data1), avatarPicPosY+(RN%tmpData.u8Data2));
+    pushColorFast(pgm_read_word(ptr));
+  } while(--dataSize);
+
+  updateTaskTimeCheck(drawShankingAvatar, (RN & 63) + 40);
 }
 // --------------------------------------------------------------- //
 
@@ -291,4 +339,13 @@ void fixPosition(position_t *pPos)
 void getBezierCurve(uint8_t line)
 {
   memcpy_P(&bezierLine, &lineCurves[line*sizeof(bezier_t)], sizeof(bezier_t));
+}
+// ------------------------------------------ //
+
+void setNewBackgroundColor(void)
+{
+  uint8_t colorId = getPicByte(lvlColors + curretLevel);
+  currentBackGroundColor = getPlatetteColor(colorId);
+
+  setAlphaReplaceColorId(colorId);
 }

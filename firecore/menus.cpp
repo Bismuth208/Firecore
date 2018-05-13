@@ -178,10 +178,6 @@ bool titleAction(void)
     addHistoryTasks();
     shipHyperJump();
     drawGalaxyAt(0);
-    // for history text
-    tftSetTextColor(COLOR_WHITE);
-    tftSetTextSize(1);
-    tftSetCursor(0, 72);
     return true;
   }
 
@@ -276,7 +272,8 @@ bool drawNewLevel(void)
     sfxPlayOK();
 #endif
     
-    screenSliderEffect(COLOR_BLACK);
+    uint8_t colorId = getPicByte(lvlColors + curretLevel);
+    screenSliderEffect(colorId);
 
     switch(curretLevel) {
       case 2: case 5:
@@ -333,16 +330,13 @@ void menuSwitchSelect(void)
 //---------------------------------------------------------------------------//
 void drawGalaxyAt(uint8_t y)
 {
-  screenSliderEffect(COLOR_BLACK);
+  screenSliderEffect(COLOR_ID_BLACK);
   drawPico_DIC_P(GALAXY_PIC_POS_X, y, galaxyPic);
 }
 
 void drawGalaxy(void)
 {
-  uint8_t colorId = getPicByte(lvlColors + curretLevel);
-  currentBackGroundColor = getPlatetteColor(colorId);
-
-  setAlphaReplaceColorId(colorId);
+  setNewBackgroundColor();
   drawGalaxyAt(GALAXY_PIC_POS_Y);
 }
 
@@ -350,7 +344,7 @@ void drawGalaxy(void)
 void baseStory(void)
 {
   drawGalaxy();
-  drawTextWindow(emptyText, buttonB);
+  drawTextWindow(getConstCharPtr(dogePA, dogeDialogs++), buttonB);
   tftDrawRect(6, 32, 52, 53, COLOR_WHITE); // Frame Dodge
 
   curretLevel = HOME_PLANET_ID;
@@ -402,7 +396,8 @@ void blinkLevelPointer(void)
 void createNextLevel(void)
 {
   shipHyperJump();
-  addTasksArray_P(waitCallBackTasksArr);
+  setGameTasks(waitCallBackTasksArr);
+  updateTaskTimeCheck(checkFireButton, playerFireCheck);
 
   if((++curretLevel) >= MAX_WORLDS) { // is it was final boss?
     victory();
@@ -428,7 +423,7 @@ void prepareLevelSelect(void)
 
   drawGalaxy();
   // add level select tasks
-  addTasksArray_P(levelSelectTasksArr);
+  setGameTasks(levelSelectTasksArr);
   drawTextWindow(getConstCharPtr(worldPA, i-1), buttonA); // name of current world
 
   do {
@@ -447,6 +442,10 @@ void drawCreditWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h, pic_t *pic)
 {
   tftFillRect(x-1, y-1, w, h, COLOR_WHITE);
   drawPico_DIC_P(x, y, pic);
+
+  // auto tmpData = getPicSize(pic, 0);
+  // tftFillRect(x-1, y-1, tmpData.u8Data1+2, tmpData.u8Data1+3, COLOR_WHITE);
+  // setShakingAvatar(x, y, pPic);
 }
 
 void drawCredits(void)
@@ -495,7 +494,7 @@ void waitScreen(void)
 
 void printScore(void)
 {
-  char buf[5];
+  char buf[SCORE_DIGITS];
 
   tftSetTextSize(1);
   tftPrintAt_P(40, 60, (const char *)scoreP);
@@ -511,7 +510,7 @@ void printScore(void)
   tftPrintAt(80, 70, itoa(hiScore, buf, 10));
   score = 0;
 
-  setSaveData(EE_ADDR_SAVE_DATA, &gameSaveData.rawData[0], saveData_t);
+  setSaveData(SAVE_DATA_BLOCK, &gameSaveData.rawData[0], sizeof(saveData_t));
 }
 
 void done(text_t *text) // fantasy end, bad name for function...
@@ -522,18 +521,19 @@ void done(text_t *text) // fantasy end, bad name for function...
 
 void gameOver(void)
 {
-  done(gameOverP);
-  printScore();
-
-  // add game over tasks
-  addTasksArray_P(waitCallBackTasksArr);
-  addTask_P(T(&drawShipExplosion));
-
-  resetBtnStates();
-
   curretLevel =0;
   menuSwitchSelectState = 0;
   pCallBackWaitEvent = baseTitleTask;
+
+  done(gameOverP);
+  printScore();
+
+  resetBtnStates();
+  setNewBackgroundColor();
+
+  // add game over tasks
+  setGameTasks(waitCallBackTasksArr);
+  addTask_P(T(&drawShipExplosion));
 }
 
 void levelClear(void)

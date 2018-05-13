@@ -20,16 +20,23 @@
 
 
 asteroid_t asteroids[MAX_ASTEROIDS];
-uint8_t asteroidsToDefeat =0;
+int16_t asteroidsToDefeat =0;
 
 //---------------------------------------------------------------------------//
+inline pic_t *getAsteroidPic(asteroid_t &asteroid)
+{
+  uint16_t *asteroidsPicsPtr = getConstWordPtr(asteroidsPics, asteroid.type);
+  return getPicPtr(asteroidsPicsPtr, asteroid.angle);
+} 
+
 void setAsteroidValue(asteroid_t &asteroid)
 {
   asteroid.onUse = (RN & 1);
   asteroid.speed = RN % ASTEROID_STEP + 1;
   asteroid.type = RN % 3;
+  asteroid.angle = RN % 3;
   asteroid.sprite.pos.New = {TFT_W-10, RN % ASTEROID_MAX_POS_Y};
-  asteroid.sprite.pPic = getPicPtr(asteroidsPics, asteroid.type);
+  asteroid.sprite.pPic = getAsteroidPic(asteroid);
   //asteroid.endpoint = ship.sprite.pos.New;
 }
 
@@ -44,11 +51,9 @@ void initAsteroids(void)
 
 void rotateAsteroid(asteroid_t &asteroid)
 {
-  // i will add this in future...
   if(RN & 1) {
-    //asteroid.sprite.pPic = getPicPtr(asteroidsPics, asteroid.type);
-    //asteroid.sprite.pPic = getPicPtr(getPicPtr(asteroidsPics, asteroid.type), asteroid.angle);
-    //++asteroid.angle;
+    asteroid.sprite.pPic = getAsteroidPic(asteroid);
+    ++asteroid.angle;
   }
 }
 
@@ -57,6 +62,7 @@ void moveAsteroids(void) // also draw them
   for(auto &asteroid : asteroids) {
     if(asteroid.onUse) {
       updateSprite(&asteroid.sprite);
+      rotateAsteroid(asteroid);
 
       if((asteroid.sprite.pos.New.x -= asteroid.speed) > TFT_W) {
         removeSprite(&asteroid.sprite); // moveSprite ?
@@ -68,10 +74,15 @@ void moveAsteroids(void) // also draw them
 
 void respawnAsteroids(void)
 {
+  uint8_t totalAsteroids =0;
+
   for(auto &asteroid : asteroids) {
     if(!asteroid.onUse) {
-      if((--asteroidsToDefeat) == 0) {
-        createNextLevel();
+      if((--asteroidsToDefeat) <= 0) {
+        asteroidsToDefeat =0;
+        if(++totalAsteroids == MAX_ASTEROIDS) {
+          createNextLevel();
+        }
       } else {
         setAsteroidValue(asteroid);
       }
@@ -112,7 +123,7 @@ void checkAsteroids(void)
 
           if(asteroid.type > 0) { // can devide by smaller piece?
             --asteroid.type;
-            asteroid.sprite.pPic = getPicPtr(asteroidsPics, asteroid.type);
+            asteroid.sprite.pPic = getAsteroidPic(asteroid);
           } else { // nope it's already like a dust!
             asteroid.onUse = false;
           }

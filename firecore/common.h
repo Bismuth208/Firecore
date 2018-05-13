@@ -31,17 +31,20 @@ extern "C"{
 
 #define STAR_STEP                6  // move speed for stars
 #define MAX_STARS               40  // how much stars we see on screen
+#define MAX_STARS_WARP          20
 #define STARS_MAX_POS_Y         (TFT_H-9)
 #define RAND_STAR_CLR           (((RN % 3)+1)<<4) | (RN & 0x7)
 //---------------------------------------------------------------------------//
 
 #define ASTEROID_STEP           4  // same as stars
-#define MAX_ASTEROIDS           20  // same as stars
+#define MAX_ASTEROIDS           16  // same as stars
 #define ASTEROID_MAX_POS_Y      (TFT_H-20)
 #define ASTEROIDS_TO_DEFEAT     200
 #define ASTEROID_SPEED_MOVE     1
 #define ASTEROID_SHIP_DAMAGE    30 // actually its inversed...
 //---------------------------------------------------------------------------//
+
+#define SAVE_DATA_BLOCK          0
 
 #define MAX_DIFFICULT_INCREMENT  2
 
@@ -81,6 +84,8 @@ extern "C"{
 
 #define SCORE_POS_X         90
 #define SCORE_POS_Y        120
+
+#define SCORE_DIGITS         6 // now, i'm pretty sure, what 6 bytes will be enough...
 //---------------------------------------------------------------------------//
 
 #define MAX_BEZIER_LINES     6
@@ -274,13 +279,14 @@ extern uint16_t calJoysticY;
 
 extern int8_t  menuItem;
 extern uint8_t dogeDialogs;
-extern uint8_t textHistoryPosX;
+extern text_t *pTextDialoge;
 
 extern uint8_t someCount;
 
 extern int16_t score;
 
 extern uint8_t  difficultyIncrement;
+extern uint16_t playerFireCheck;
 
 extern uint8_t curretLevel;
 extern const uint8_t lineCurves[];
@@ -289,7 +295,6 @@ extern const uint8_t lvlCoordinates[];
 extern ship_t        ship;
 extern gift_t        gift;
 extern inVaderBoss_t alienBoss;
-extern bezier_t      bezierLine;
 extern saveData_t    gameSaveData;
 extern star_t        stars[MAX_STARS];
 extern inVader_t     aliens[MAX_ALIENS];
@@ -392,6 +397,8 @@ void drawPlayerWeapon(void);
 
 void checkFireButton(void);
 void checkShipHealth(void);
+
+void drawHealthStatusBar(uint8_t colorId);
 //---------------------------------------------------------------------------//
 
 
@@ -403,9 +410,9 @@ void checkAsteroids(void);
 
 // core graphics
 void drawTextWindow(text_t *text, text_t *btnText);
-
 void printDialogeText(void);
-void printHistory(void);
+void updateWindowTextPos(void);
+
 void drawStart(void);
 void drawStars(void);
 
@@ -417,6 +424,10 @@ void drawTitleText(void);
 void rocketEpxlosion(rocket_t *pRocket);
 
 void drawRandomDoge(void);
+void setShakingAvatar(uint8_t posX, uint8_t posY, pic_t *pPic);
+void drawShankingAvatar(void);
+
+void setNewBackgroundColor(void);
 //---------------------------------------------------------------------------//
 
 // Helpfull functions
@@ -453,6 +464,7 @@ void addGiftTasks(void);
 void addAsteroidsTasks(void);
 void addCreditsTasks(void);
 
+void setGameTasks(tasksArr_t *pTasks);
 //---------------------------------------------------------------------------//
 
 #define MAX_GAME_TASKS        20
@@ -467,18 +479,21 @@ void addCreditsTasks(void);
 #define GIFT_TASKS_COUNT      10
 #define GAME_OVER_TASKS_COUNT  4
 
+#define PLAYER_FIRE_CHECK      260
+#define PLAYER_FIRE_CHECK_COST 15
 
-extern tasksArr_t titleTasksArr[];
-extern tasksArr_t historyTasksArr[];
-extern tasksArr_t storyTasksArr[];
-extern tasksArr_t shipSelTasksArr[];
-extern tasksArr_t levelSelectTasksArr[];
-extern tasksArr_t gameTasksArr[];
-extern tasksArr_t bossTasksArr[];
-extern tasksArr_t giftTasksArr[];
-extern tasksArr_t waitCallBackTasksArr[];
-extern tasksArr_t asteroidFieldTasksArr[];
-extern tasksArr_t creditsTasksArr[];
+extern TASK_ARR_N( startup );
+extern TASK_ARR_N( title );
+extern TASK_ARR_N( history );
+extern TASK_ARR_N( story );
+extern TASK_ARR_N( shipSel );
+extern TASK_ARR_N( levelSelect );
+extern TASK_ARR_N( game );
+extern TASK_ARR_N( boss );
+extern TASK_ARR_N( gift );
+extern TASK_ARR_N( waitCallBack );
+extern TASK_ARR_N( asteroidField );
+extern TASK_ARR_N( credits );
 
 
 extern TASK_N(printDialogeText);

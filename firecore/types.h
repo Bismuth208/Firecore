@@ -38,10 +38,9 @@ typedef struct {
   uint8_t speed;
   struct {
     uint8_t onUse   :1;
-    //uint8_t bonus   :1;
     uint8_t type    :2;
-    //uint8_t angle   :2;
-    uint8_t freeRam :5;
+    uint8_t angle   :2;
+    uint8_t freeRam :3;
   };
 } asteroid_t;
 

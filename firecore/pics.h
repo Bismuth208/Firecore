@@ -115,7 +115,8 @@ extern pic_t alienShipV2[];
 #define ALIEN_SHIP_BOSS_PIC_H 28
 
 extern pic_t bossShip[];
-//extern pic_t * const bossShipPics[];
+extern pic_t ship_boss_v2[];
+// extern pic_t * const bossShipPics[];
 //---------------------------------------------------------------------------//
 
 #define SHIP_PIC_W   32
