@@ -81,7 +81,10 @@ void respawnAsteroids(void)
       if((--asteroidsToDefeat) <= 0) {
         asteroidsToDefeat =0;
         if(++totalAsteroids == MAX_ASTEROIDS) {
-          createNextLevel();
+          // if(endlessAsteroidField)
+          //   asteroidsToDefeat = MAX_ASTEROIDS;
+          // else
+            createNextLevel();
         }
       } else {
         setAsteroidValue(asteroid);

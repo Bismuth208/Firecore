@@ -10,7 +10,7 @@
  *  Arduino IDE:  1.8.5   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  25,298
+ * Program size:  24,390
  *  pics:         5,202
  *  code:         17,288
  * Used RAM:      1,544 bytes
@@ -19,8 +19,8 @@
  * Language:      C and C++
  * 
  * Author: Antonov Alexandr (Bismuth208)
- * Date:   2 June, 2017
- * Last:   13 May, 2018
+ * Created:   2 June, 2017
+ * Last edit: 23 June, 2018
  * e-mail: bismuth20883@gmail.com
  * 
  *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
@@ -40,8 +40,8 @@
 
 //---------------------------------------------------------------------------//
 // super puper duper ultra extreemely main structures, DO NOT TOUCH THEM!
-tasksContainer_t taskArr;
-taskFunc_t pArr[MAX_GAME_TASKS];
+tasksContainer_t tasksContainer;
+taskFunc_t tasksArr[MAX_GAME_TASKS];
 //---------------------------------------------------------------------------//
 
 bool pauseState = false;
@@ -153,7 +153,7 @@ void makeHorribleMagic(uint8_t magicValue)
     drawHealthStatusBar(COLOR_ID_RED);
 
     // Calc damage as: MAX_DURAB - (0.5 * SHIP_DURAB) - magicValue
-    uint8_t damage = SHIP_BASE_DURAB - (ship.states.durability/2) - magicValue;
+    uint8_t damage = SHIP_BASE_DURAB - (ship.states.durability>>1) - magicValue;
     ship.health -= damage;     // absorb damage
   }
 }
@@ -168,7 +168,7 @@ void checkShipHealth(void)
 {
   if(ship.health <= DENGER_HEALTH_LVL) {
     ship.lowHealthState = !ship.lowHealthState;
-    setLEDValue(LED_R, ship.lowHealthState); // yyess... every time set this...
+    setLEDValue(LED_R, ship.lowHealthState);
 
     if(ship.health <= 0) {
       gameOver();  // GameOver!
@@ -362,6 +362,20 @@ void addHistoryTasks(void)
   setGameTasks(historyTasksArr);
 }
 
+// void addGameModeSelectTasks(void)
+// {
+//   tftFillScreen(currentBackGroundColor);
+
+//   rowL.pos.New = {MENU_SELECT_ROW_L_POS_X, MENU_SELECT_ROW_L_POS_Y};
+//   rowR.pos.New = {MENU_SELECT_ROW_R_POS_X, MENU_SELECT_ROW_R_POS_Y};
+
+//   // drawMenuGameMode();
+
+//   // addTask_P(T(&rowsUnfold));
+//   // updateTaskTimeCheck(rowsUnfold, 5);
+//   // pCallBackWaitEvent = rowsAnimDone;
+// }
+
 void addTitleTasks(void)
 {
   setGameTasks(titleTasksArr);
@@ -373,7 +387,16 @@ void baseTitleTask(void)
 
   initBaseGameParams();
   setGameTasks(startupTasksArr);
+  // pCallBackWaitEvent = addTitleTasks;
   playerFireCheck = PLAYER_FIRE_CHECK;
+
+  rowL.pos.New = {PIC_TITLE_L_BASE_X, PIC_TITLE_L_BASE_Y};
+  rowL.pos.Old = rowL.pos.New;
+  rowL.pPic = rowsLeftPic;
+
+  rowR.pos.New = {PIC_TITLE_R_BASE_X, PIC_TITLE_R_BASE_Y};
+  rowR.pos.Old = rowR.pos.New;
+  rowR.pPic = rowsRightPic;
 
 #if ADD_SOUND
   sfxPlayPattern(unfoldPattern, SFX_CH_0);
@@ -416,7 +439,7 @@ void resetShip(void)
 {
   ship.health = SHIP_HEALTH;
   ship.weapon.level = 0;
-  ship.type = 3; // he he he
+  ship.type = SHIP_TYPE_BONUS; // he he he
   ship.sprite.pPic = getPicPtr(shipsPics, ship.type);
  
   for(auto &laser : ship.weapon.lasers) {
@@ -449,7 +472,7 @@ void initSys(void)
   calibrateJoystick();
   readScore();
 
-  initTasksArr(&taskArr, &pArr[0], MAX_GAME_TASKS);
+  initTasksArr(&tasksContainer, &tasksArr[0], MAX_GAME_TASKS);
   baseTitleTask(); // at start moment need only this task
 }
 

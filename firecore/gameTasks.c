@@ -89,7 +89,7 @@ TASK(menuSwitchSelect, 400);
 
 //---------------------------------------------------------------------------//
 
-TASK_ARR( game ) = {
+TASK_ARR( game ) = {  
   TASK_P(drawStars),
   TASK_P(moveShip),
   TASK_P(drawShip),

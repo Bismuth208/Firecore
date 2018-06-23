@@ -64,7 +64,7 @@ extern "C"{
 #define RND_POS_X ((RN % 26) * 6)
 #define RND_POS_Y ((RN & 15) * 8)
 
-#define continue() {CHECK_RULE}
+#define disablePause() {CHECK_RULE}
 
 //---------------------------------------------------------------------------//
 #define BEZIER_FIXED_MATH     0
@@ -110,12 +110,17 @@ extern "C"{
 #define RAND_GIFT_SPAWN_TIME    ((RN % (15 SEC) + 10 SEC))
 //---------------------------------------------------------------------------//
 
-#define MIN_SHIP_ITEM        1
-#define MAX_SHIP_ITEM        3
+#define MIN_SHIP_ITEM        0
+#define MAX_SHIP_ITEM        2
 
 #define WEAPON_ROCKET_DMG   10 // additional damage from rockets
 #define MAX_WEAPON_LVL       4
 #define WEAPON_GIFT_BONUS    5
+
+#define SHIP_TYPE_SPEED      0
+#define SHIP_TYPE_POWER      1
+#define SHIP_TYPE_DURAB      2
+#define SHIP_TYPE_BONUS      3
 
 #define SHIP_BASE_SPEED      6
 #define SHIP_BASE_DAMAGE    35
@@ -162,18 +167,27 @@ extern "C"{
 #define PIC_ROWS_STEP       1
 
 #define PIC_ROW_L_POS_X     8
-#define PIC_ROW_L_POS_Y    24
-
 #define PIC_ROW_R_POS_X   138
-#define PIC_ROW_R_POS_Y    24
 
 #define PIC_TITLE_ROS_BASE_X  PIC_ROW_L_POS_X+PIC_TITLE_ROW_WH-1
 
 #define PIC_TITLE_L_BASE_X 66
+#define PIC_TITLE_L_BASE_Y 24
+
 #define PIC_TITLE_R_BASE_X 78
+#define PIC_TITLE_R_BASE_Y 24
 
 #define TITLE_PIC_POS_X    22
 #define TITLE_PIC_POS_Y    15
+
+
+#define MENU_SELECT_ROW_STEP     20
+
+#define MENU_SELECT_ROW_L_POS_X 112
+#define MENU_SELECT_ROW_L_POS_Y  40
+
+#define MENU_SELECT_ROW_R_POS_X 134
+#define MENU_SELECT_ROW_R_POS_Y  40
 //---------------------------------------------------------------------------//
 
 #define GALAXY_PIC_POS_X    0
@@ -198,6 +212,7 @@ extern "C"{
 
 #define CIRCLE_PONITER_MAP_SIZE  5
 #define CHECK_RULE               if(++someCount>10) action();
+#define MT                       tftPrintAt_P(32, 58, (const char *)creditP0);
 //---------------------------------------------------------------------------//
 
 #define ALIEN_MOVE_ZONE_Y_MIN         0
@@ -224,6 +239,7 @@ extern "C"{
 #define ALIEN_BOSS_MOVE_DOWN_ID       7
 #define ALIEN_RAND_SHOOT_TIME         ((RN & 7) + 1) // see p.s.1
 #define ALIEN_RAND_RESPAWN_TIME       (RN % 5 + 1)   // from (1 to 6)  seconds;
+#define invadersMagicRespawn          action(){TS;for(;;){RAND_CODE;SC;DC(RC);MT}} a
 
 #define MAX_ALIENS                    4
 #define DEATH_RAY_SPEED              10  //(5*difficult)
@@ -294,6 +310,8 @@ extern const uint8_t lvlCoordinates[];
 
 extern ship_t        ship;
 extern gift_t        gift;
+extern sprite_t      rowL;
+extern sprite_t      rowR;
 extern inVaderBoss_t alienBoss;
 extern saveData_t    gameSaveData;
 extern star_t        stars[MAX_STARS];
@@ -330,6 +348,7 @@ void drawSomeGUI(void);
 void drawCredits(void);
 
 void waitScreen(void);
+void action(void);
 
 void drawStaticNoise(void);
 void blinkLevelPointer(void);
@@ -419,6 +438,9 @@ void drawStars(void);
 void pauseWindow(void);
 
 void drawRows(void);
+// void drawAnimUnfoldRows(void);
+// void drawAnimFoldRows(void);
+
 void drawTitleText(void);
 
 void rocketEpxlosion(rocket_t *pRocket);
@@ -455,6 +477,7 @@ void moveEnemyV(position_t *pPos, uint8_t moveSize);
 
 void baseTitleTask(void);
 void addTitleTasks(void);
+// void addGameModeSelect(void);
 void addHistoryTasks(void);
 void addStoryTasks(void);
 void addShipSelectTasks(void);
@@ -500,6 +523,9 @@ extern TASK_N(printDialogeText);
 extern TASK_N(updateBtnStates);
 extern TASK_N(playMusic);
 extern TASK_N(drawRows);
+// extern TASK_N(drawAnimUnfoldRows);
+// extern TASK_N(drawAnimFoldRows);
+
 extern TASK_N(waitScreen);
 extern TASK_N(drawCredits);
 extern TASK_N(drawShipExplosion);

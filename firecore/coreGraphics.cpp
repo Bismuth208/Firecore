@@ -19,9 +19,8 @@
 #include "common.h"
 
 //---------------------------------------------------------------------------//
-// to make cool unfold animation
-uint8_t titleRowRPosX = PIC_TITLE_R_BASE_X;
-uint8_t titleRowLPosX = PIC_TITLE_L_BASE_X;
+sprite_t rowL; // \__ to make cool unfold animation
+sprite_t rowR; // /
 
 star_t stars[MAX_STARS];
 bool startState = true;
@@ -289,25 +288,60 @@ void drawTitleText(void)
   drawPico_DIC_P(TITLE_PIC_POS_X, TITLE_PIC_POS_Y, titleTextPic);
 }
 
+// void drawMenuGameMode(void)
+// {
+//   for(uint8_t i=0; i<3; i++) { // draw placeholder for buttons
+//     rowL.pos.New.y += MENU_SELECT_ROW_STEP;
+//     rowR.pos.New.y += MENU_SELECT_ROW_STEP;
+
+//     drawSprite(&rowL);
+//     drawSprite(&rowR);
+//   }
+// }
+
 // make unfold animation
 void drawRows(void)
 {
-  titleRowLPosX -= PIC_ROWS_STEP;
-  titleRowRPosX += PIC_ROWS_STEP;
+  rowL.pos.New.x -= PIC_ROWS_STEP;
+  rowR.pos.New.x += PIC_ROWS_STEP;
   
-  if((titleRowLPosX <= PIC_ROW_L_POS_X ) || ( titleRowRPosX >= PIC_ROW_R_POS_X )) {
-    
-    titleRowLPosX = PIC_TITLE_L_BASE_X;
-    titleRowRPosX = PIC_TITLE_R_BASE_X;
-    
+  if((rowL.pos.Old.x <= PIC_ROW_L_POS_X ) || ( rowR.pos.Old.x >= PIC_ROW_R_POS_X )) {
     addTitleTasks();
   } else {
-    drawPico_DIC_P(titleRowLPosX, PIC_ROW_L_POS_Y, rowsLeftPic);
-    drawPico_DIC_P(titleRowRPosX, PIC_ROW_R_POS_Y, rowsRightPic);
+    drawSprite(&rowL);
+    drawSprite(&rowR);
+    rowL.pos.Old = rowL.pos.New;
+    rowR.pos.Old = rowR.pos.New;
   }
 }
-// ------------------------------------------ //
 
+// void drawAnimUnfoldRows(void)
+// {
+//   rowL.pos.New.x -= PIC_ROWS_STEP;
+//   rowR.pos.New.x += PIC_ROWS_STEP;
+  
+//   if((rowL.pos.Old.x <= PIC_ROW_L_POS_X ) || ( rowR.pos.Old.x >= PIC_ROW_R_POS_X )) {
+//     addTitleTasks();
+//   } else {
+//     updateSprite(&rowL);
+//     updateSprite(&rowR);
+//   }
+// }
+
+// void drawAnimFoldRows(void)
+// {
+//   rowL.pos.New.x += PIC_ROWS_STEP;
+//   rowR.pos.New.x -= PIC_ROWS_STEP;
+  
+//   if((rowL.pos.Old.x >= PIC_TITLE_L_BASE_X ) || ( rowR.pos.Old.x <= PIC_TITLE_R_BASE_X )) {
+//     addTitleTasks();
+//   } else {
+//     updateSprite(&rowL);
+//     updateSprite(&rowR);
+//   }
+// }
+
+// ------------------------------------------ //
 void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine)
 {
   auto pLine = &bezierLine;
@@ -322,12 +356,22 @@ void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine)
   // P0 - start point
   // P1 - angle-distance point
   // P2 - end point
-  // t  - number of step betwen P0 and P3
-  // B = ((1.0 - t)^2)P0 + 2t(1.0 - t)P2 + (t^2)P3
+  // t  - number of step betwen P0 and P2
+  // B = ((1.0 - t)^2)P0 + 2t(1.0 - t)P1 + (t^2)P2
   // t [>= 0 && <= 1]
-  float t = ((float)pItemLine->step)/((float)pLine->totalSteps);
-  pPos->x = (1.0 - t)*(1.0 - t)*pLine->P0.x + 2*t*(1.0 - t)*pLine->P1.x + t*t*pLine->P2.x;
-  pPos->y = (1.0 - t)*(1.0 - t)*pLine->P0.y + 2*t*(1.0 - t)*pLine->P1.y + t*t*pLine->P2.y;
+  fixedpt t = fixedpt_div( fixedpt_fromint(pItemLine->step), fixedpt_fromint(pLine->totalSteps) );
+  fixedpt tOne = fixedpt_sub(FIXEDPT_ONE, t);
+
+  auto getFixedPos = [&](fixedpt t, fixedpt tOne, uint8_t p0, uint8_t p1, uint8_t p2) {
+    return fixedpt_toint(
+    fixedpt_mul(fixedpt_mul(tOne, tOne), fixedpt_fromint(p0))
+      + fixedpt_mul(fixedpt_mul(fixedpt_mul(FIXEDPT_TWO, t), tOne), fixedpt_fromint(p1))
+      + fixedpt_mul(fixedpt_mul(t, t), fixedpt_fromint(p2))
+   );
+  };
+
+  pPos->x = getFixedPos(t, tOne, pLine->P0.x, pLine->P1.x, pLine->P2.x);
+  pPos->y = getFixedPos(t, tOne, pLine->P0.y, pLine->P1.y, pLine->P2.y);
 }
 
 void fixPosition(position_t *pPos)

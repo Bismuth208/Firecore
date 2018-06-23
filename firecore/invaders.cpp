@@ -57,6 +57,16 @@ void checkTimeToShoot(deathRay_t &pWeapon, position_t &pPos)
   }
 }
 
+// super fast respawn - aka magic
+void invadersMagicRespawn(void)
+{
+  for(auto &alien : aliens) {
+    if(!alien.alive) {
+      alien.respawnTime = 1;
+    }
+  }
+}
+
 void checkDeathRay(deathRay_t &pWeapon)
 {
   // check damage from deathRay
@@ -113,7 +123,7 @@ void moveInVaders(void)
   }
 }
 
-// each invader consume ~6ms in total for 4 = ~24ms
+// each invader consume ~6ms
 void drawInVaders(void)
 {
   for(auto &alien : aliens) {

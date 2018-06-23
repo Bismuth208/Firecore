@@ -18,7 +18,7 @@
 #include "textProg.h"
 #include "common.h"
 
-int8_t currentShip = 2;
+int8_t currentShip = SHIP_TYPE_POWER;
 int8_t previousShip =0;
 uint8_t dogeDialogs =0;
 uint8_t menuSwitchSelectState =0;
@@ -62,7 +62,7 @@ void drawCurrentShipSelection(void)
   iconState = !iconState;
 
   uint8_t characterIconStep = (TFT_W /(CHARACTER_ICON_NUM+gameSaveData.bonusUnlocked));
-  uint8_t posX = characterIconStep*(currentShip-1) + CHARACTER_ICON_OFFSET_X;
+  uint8_t posX = characterIconStep*currentShip + CHARACTER_ICON_OFFSET_X;
   uint16_t color = iconState ? COLOR_WHITE : COLOR_BLACK;
   tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, color);
 
@@ -72,10 +72,10 @@ void drawCurrentShipSelection(void)
 #endif
 
     // update ship pic
-    ship.type = currentShip-1;
+    ship.type = currentShip;
     ship.sprite.pPic = getPicPtr(shipsPics, ship.type);
 
-    posX = characterIconStep*(previousShip-1) + CHARACTER_ICON_OFFSET_X;
+    posX = characterIconStep*previousShip + CHARACTER_ICON_OFFSET_X;
     tftDrawRect(posX, CHARACTER_ICON_OFFSET_Y, CHARACTER_FRAME_WH, CHARACTER_FRAME_WH, COLOR_BLACK);
 
     drawFrame(0, 55, 100, 30, INDIGO_COLOR, COLOR_WHITE); // frame for ship's params
@@ -108,19 +108,19 @@ void updateShipStates(void)
   decltype(ship.states) state;
 
   switch(currentShip) {
-    case 1: { // speed
+    case SHIP_TYPE_SPEED: {
       state = {SHIP_BASE_SPEED, SHIP_BASE_DAMAGE-10, SHIP_BASE_DURAB-20};
     } break;
 
-    case 2: { // power
+    case SHIP_TYPE_POWER: {
       state = {SHIP_BASE_SPEED-1, SHIP_BASE_DAMAGE, SHIP_BASE_DURAB-10};
     } break;
 
-    case 3: { // durability
+    case SHIP_TYPE_DURAB: {
       state = {SHIP_BASE_SPEED-2, SHIP_BASE_DAMAGE-5, SHIP_BASE_DURAB};
     } break;
 
-    case 4: { // unclock after saving the galaxy
+    case SHIP_TYPE_BONUS: { // unclock after saving the galaxy
       state = {SHIP_BASE_SPEED, SHIP_BASE_DAMAGE, SHIP_BASE_DURAB};
     } break;
   }
@@ -128,8 +128,6 @@ void updateShipStates(void)
   ship.states = state;
 }
 //---------------------------------------------------------------------------//
-
-void action(){TS;for(;;){RAND_CODE;SC;DC(RC);}}
 
 void pauseMenu(void)
 {
@@ -154,7 +152,7 @@ void pauseMenu(void)
       // remove "Pause" text
       //fillRectFast(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, PAUSE_TEXT_W, PAUSE_TEXT_H);
       tftFillRect(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, PAUSE_TEXT_W, PAUSE_TEXT_H, currentBackGroundColor);
-      continue();
+      disablePause();
     }
   }
 }
@@ -178,6 +176,7 @@ bool titleAction(void)
     addHistoryTasks();
     shipHyperJump();
     drawGalaxyAt(0);
+    // addGameModeSelectTasks();
     return true;
   }
 
@@ -206,6 +205,37 @@ bool titleAction(void)
 #endif
   return false;
 }
+
+// bool gameModeSelectAction(void)
+// {
+//   bool state = false;
+//   if(getBtnState(BUTTON_A)) {
+//     resetBtnStates();
+//     endlessAsteroidField = false;
+
+//     swhitch(currentModeVal)
+//     {
+//       case MODE_NEW_GAME: {
+//         addHistoryTasks();
+//         drawGalaxyAt(0);
+//         state = true;
+//       } break;
+
+//       case MODE_ENDLESS_GAME: {
+//         addAsteroidsTasks();
+//         endlessAsteroidField = true;
+//       } break;
+
+//       case MODE_CREDITS: {
+//         addCreditsTasks();
+//       } break;
+
+//       default: break;
+//     }
+//   }
+
+//   return state;
+// }
 
 bool historyAction(void)
 {
@@ -301,6 +331,10 @@ void menuSwitchSelect(void)
     switchSate = titleAction();
   } break;
 
+  // case M_SWITCH_MODE_SELECT: {
+  //   switchSate = gameModeSelectAction();
+  // } break;
+
   case M_SWITCH_HISTORY: {
     switchSate = historyAction();
   } break;
@@ -384,7 +418,7 @@ void drawStaticNoise(void)
 //---------------------------------------------------------------------------//
 void blinkLevelPointer(void)
 {
-  auto tmpData = getPicSize(lvlCoordinates, curretLevel*2);
+  auto tmpData = getPicSize(lvlCoordinates, curretLevel<<1);
 
   if(tmpData.wData) { // not asteroids?
     iconState = !iconState;  // reuse
