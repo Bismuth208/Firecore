@@ -20,6 +20,7 @@
 
 #include <esploraAPI.h>
 
+//#include "tinySM_config.h"
 #include "types.h"
 #include "textProg.h"
 
@@ -490,8 +491,8 @@ void addCreditsTasks(void);
 void setGameTasks(tasksArr_t *pTasks);
 //---------------------------------------------------------------------------//
 
-#define MAX_GAME_TASKS        20
-
+// don't forget to setup correct number of tasks in TSM_CONFIG_NUM_WORK_TASKS
+// in "tinySM_config.h"
 #define TITLE_TASKS_COUNT      7
 #define HISTORY_TASKS_COUNT    4
 #define SHIP_SEL_TASKS_COUNT   7

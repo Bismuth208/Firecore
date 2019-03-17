@@ -53,7 +53,7 @@ void printDialogeText(void)
 #endif
   } else {
     // all text printed
-    disableTask(printDialogeText);
+    vTSMDisableTask(printDialogeText);
     // hmm... does it really need to reset?
     // pTextDialoge = nullptr;
     // textWinowPosX =0;
@@ -70,7 +70,7 @@ void drawTextWindow(text_t *text, text_t *btnText)
   pTextDialoge = text; // draw this text later
   tftSetCursor(TEXT_WINDOW_X, TEXT_WINDOW_Y);
   updateWindowTextPos();
-  enableTask(printDialogeText);
+  vTSMEnableTask(printDialogeText);
 }
 
 //---------------------------------------------------------------------------//
@@ -268,7 +268,7 @@ void drawShankingAvatar(void)
     pushColorFast(pgm_read_word(ptr));
   } while(--dataSize);
 
-  updateTaskTimeCheck(drawShankingAvatar, (RN & 63) + 40);
+  vTSMUpdateTaskTimeCheck(drawShankingAvatar, (RN & 63) + 40);
 }
 // --------------------------------------------------------------- //
 

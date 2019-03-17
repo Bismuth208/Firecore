@@ -134,10 +134,10 @@ void pauseMenu(void)
   if(getBtnState(BUTTON_Y)) {
     if(!pauseState) { // is it already stopped?
       pauseState = !pauseState;
-      disableAllTasks();
-      enableTask(playMusic);
-      enableTask(updateBtnStates);
-      enableTask(pauseMenu);
+      vTSMDisableAllTasks();
+      vTSMEnableTask(playMusic);
+      vTSMEnableTask(updateBtnStates);
+      vTSMEnableTask(pauseMenu);
       pauseWindow();
     }
     
@@ -147,7 +147,7 @@ void pauseMenu(void)
       sfxPlayOK();
 #endif
       pauseState = !pauseState;
-      enableAllTasks();
+      vTSMEnableAllTasks();
       disableWeaponGift(); // fix glitch
       // remove "Pause" text
       //fillRectFast(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, PAUSE_TEXT_W, PAUSE_TEXT_H);
@@ -277,10 +277,10 @@ bool drawStory(void)
 
       switch(++dogeDialogs) {
         case 5: {
-          enableTask(drawStaticNoise);
+          vTSMEnableTask(drawStaticNoise);
         } break;
         case 7: {
-          disableTask(drawRandomDoge);
+          vTSMDisableTask(drawRandomDoge);
         } break;
         default: break;
       }
@@ -320,7 +320,7 @@ bool drawNewLevel(void)
 }
 
 //---------------------------------------------------------------------------//
-// tiny state machine
+// We made for you tiny state machine which called by state machine, so, you can switch states
 void menuSwitchSelect(void)
 {
   bool switchSate = false;
@@ -399,7 +399,7 @@ void drawRandomDoge(void)
     pushColorFast(pgm_read_word(ptr));
   } while(--dataSize);
 
-  updateTaskTimeCheck(drawRandomDoge, (RN & 63) + 40);
+  vTSMUpdateTaskTimeCheck(drawRandomDoge, (RN & 63) + 40);
 }
 
 void drawStaticNoise(void)
@@ -431,7 +431,7 @@ void createNextLevel(void)
 {
   shipHyperJump();
   setGameTasks(waitCallBackTasksArr);
-  updateTaskTimeCheck(checkFireButton, playerFireCheck);
+  vTSMUpdateTaskTimeCheck(checkFireButton, playerFireCheck);
 
   if((++curretLevel) >= MAX_WORLDS) { // is it was final boss?
     victory();
@@ -567,14 +567,14 @@ void gameOver(void)
 
   // add game over tasks
   setGameTasks(waitCallBackTasksArr);
-  addTask_P(T(&drawShipExplosion));
+  vTSMAddTask_P(T(&drawShipExplosion));
 }
 
 void levelClear(void)
 {
   done(levelClearP);
-  addTask_P(T(&printDialogeText));
-  disableTask(printDialogeText);
+  vTSMAddTask_P(T(&printDialogeText));
+  vTSMDisableTask(printDialogeText);
 
   pCallBackWaitEvent = prepareLevelSelect;
 }

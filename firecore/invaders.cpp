@@ -196,7 +196,7 @@ void checkInVaders(void)
               // check total respawns
               if(--totalRespawns <= 0) { // No more respawns left, all army defeated
                 totalRespawns =0;
-                replaceTask(checkInVadersRespawn, checkAliveAliens, 8 SEC, true);
+                vTSMReplaceTask(checkInVadersRespawn, checkAliveAliens, 8 SEC, true);
                 drawText(40, 40, 2, bossWarningP);
               }
             }

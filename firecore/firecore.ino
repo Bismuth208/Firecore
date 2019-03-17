@@ -10,17 +10,17 @@
  *  Arduino IDE:  1.8.5   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  24,390
+ * Program size:  24,132
  *  pics:         5,202
  *  code:         17,288
- * Used RAM:      1,544 bytes
- * Free RAM:      1,016 bytes
+ * Used RAM:      1,505 bytes
+ * Free RAM:      1,055 bytes
  *
  * Language:      C and C++
  * 
  * Author: Antonov Alexandr (Bismuth208)
- * Created:   2 June, 2017
- * Last edit: 23 June, 2018
+ * Created:    2 June, 2017
+ * Last edit: 10 January, 2019
  * e-mail: bismuth20883@gmail.com
  * 
  *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
@@ -38,10 +38,6 @@
 #include "textProg.h"
 #include "common.h"
 
-//---------------------------------------------------------------------------//
-// super puper duper ultra extreemely main structures, DO NOT TOUCH THEM!
-tasksContainer_t tasksContainer;
-taskFunc_t tasksArr[MAX_GAME_TASKS];
 //---------------------------------------------------------------------------//
 
 bool pauseState = false;
@@ -246,7 +242,7 @@ void checkGift(void)
           if((++ship.weapon.level) > MAX_WEAPON_LVL) {
             ship.weapon.level = MAX_WEAPON_LVL;
             playerFireCheck -= PLAYER_FIRE_CHECK_COST;
-            updateTaskTimeCheck(checkFireButton, playerFireCheck);
+            vTSMUpdateTaskTimeCheck(checkFireButton, playerFireCheck);
           }
           disableWeaponGift();
           return;
@@ -267,31 +263,31 @@ void checkGift(void)
 
 void disableWeaponGift(void)
 {
-  disableTask(dropWeaponGift); // to be shure and pause fix
-  disableTask(moveGift);
-  disableTask(checkGift);
-  disableTask(drawGift);
+  vTSMDisableTask(dropWeaponGift); // to be shure and pause fix
+  vTSMDisableTask(moveGift);
+  vTSMDisableTask(checkGift);
+  vTSMDisableTask(drawGift);
 }
 
 void dropWeaponGift(void)
 {
   gift.sprite.pPic = giftWeaponPic;
   weaponGift = true;
-  disableTask(dropWeaponGift);
+  vTSMDisableTask(dropWeaponGift);
 
-  addTask_P(T(&moveGift));
-  addTask_P(T(&drawGift));
-  addTask_P(T(&checkGift));
+  vTSMAddTask_P(T(&moveGift));
+  vTSMAddTask_P(T(&drawGift));
+  vTSMAddTask_P(T(&checkGift));
 }
 
 // --------------------------------------------------------------- //
 void setGameTasks(tasksArr_t *pTasks)
 {
-  addTasksArray_P(pTasks);
+  vTSMAddTasksArray_P(pTasks);
 
   // this two tasks always every where
-  addTask_P(T(&updateBtnStates));
-  addTask_P(T(&playMusic));
+  vTSMAddTask_P(T(&updateBtnStates));
+  vTSMAddTask_P(T(&playMusic));
 }
 
 void addCreditsTasks(void)
@@ -316,7 +312,7 @@ void addGameTasks(void)
   ship.sprite.pos.New = {SHIP_GAME_POS_X, SHIP_GAME_POS_Y};
   gift.bezLine = {GIFT_MOVE_ID, 0};
   moveBezierCurve(&gift.sprite.pos.New, &gift.bezLine);
-  updateTaskTimeCheck(dropWeaponGift, RAND_GIFT_SPAWN_TIME);
+  vTSMUpdateTaskTimeCheck(dropWeaponGift, RAND_GIFT_SPAWN_TIME);
 }
 
 void addBossTasks(void)
@@ -347,7 +343,7 @@ void addShipSelectTasks(void)
 void addStoryTasks(void)
 {
   setGameTasks(storyTasksArr);
-  disableTask(drawStaticNoise);
+  vTSMDisableTask(drawStaticNoise);
 }
 
 void addHistoryTasks(void)
@@ -472,7 +468,8 @@ void initSys(void)
   calibrateJoystick();
   readScore();
 
-  initTasksArr(&tasksContainer, &tasksArr[0], MAX_GAME_TASKS);
+  // don't forget to setup correct number of tasks in TSM_CONFIG_NUM_WORK_TASKS
+  // in "tinySM_config.h"
   baseTitleTask(); // at start moment need only this task
 }
 
@@ -480,6 +477,6 @@ void initSys(void)
 __attribute__((noreturn)) int main(void)
 {
   initSys();
-  runTasks();
+  vTSMRunTasks();
 }
 //-----------------------------------------------------------------------------//

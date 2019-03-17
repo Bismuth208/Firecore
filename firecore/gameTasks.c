@@ -24,7 +24,7 @@
 /*
 #define T(a) a##Task
 #define TASK_N(a)     const taskParams_t T(a)
-#define TASK(a,b)     TASK_N(a) PROGMEM = {.pFunc=a, .timeOut=b}
+#define TASK(a,b)     TASK_N(a) PROGMEM = {.xFunc=a, .usTimeOut=b}
 #define TASK_P(a)     (taskParams_t*)&T(a)
 #define TASK_ARR_N(a) const tasksArr_t a##TasksArr[]
 #define TASK_ARR(a)   TASK_ARR_N(a) PROGMEM
