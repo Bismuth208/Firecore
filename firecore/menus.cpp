@@ -30,7 +30,7 @@ bool rndFlag = false;
 pFunc_t pCallBackWaitEvent = nullptr;
 
 // -------------------------- Main menu -------------------------- //
-void drawShipSelectionMenu(void)
+__attribute__ ((optimize("O2"))) void drawShipSelectionMenu(void)
 {
   uint8_t posX = CHARACTER_ICON_OFFSET_X;
   uint8_t characterIconStep = (TFT_W /(CHARACTER_ICON_NUM+gameSaveData.bonusUnlocked));
@@ -50,14 +50,14 @@ void drawShipSelectionMenu(void)
   addShipSelectTasks();
 }
 
-void drawShipStats(uint8_t yPerk, uint8_t yText, uint8_t perk, uint8_t maxPerkVal, text_t *perkText)
+__attribute__ ((optimize("O2"))) void drawShipStats(uint8_t yPerk, uint8_t yText, uint8_t perk, uint8_t maxPerkVal, text_t *perkText)
 {
   uint8_t lineSize = mapVal(perk, 0, maxPerkVal, 0, 40);
   tftDrawFastHLine(BASE_STATS_POS_X, yPerk, lineSize, COLOR_WHITE);
   tftPrintAt_P(4, yText, (const char*)perkText);
 }
 
-void drawCurrentShipSelection(void)
+__attribute__ ((optimize("O2"))) void drawCurrentShipSelection(void)
 {
   iconState = !iconState;
 
@@ -89,7 +89,7 @@ void drawCurrentShipSelection(void)
   }
 }
 
-void getShipItem(void)
+__attribute__ ((optimize("O2"))) void getShipItem(void)
 {
   uint16_t newValueXY = getStickVal(LINE_X);
   if(newValueXY != calJoysticY) {
@@ -103,7 +103,7 @@ void getShipItem(void)
   }
 }
 
-void updateShipStates(void)
+__attribute__ ((optimize("O2"))) void updateShipStates(void)
 {
   decltype(ship.states) state;
 
@@ -127,9 +127,9 @@ void updateShipStates(void)
 
   ship.states = state;
 }
-//---------------------------------------------------------------------------//
 
-void pauseMenu(void)
+//---------------------------------------------------------------------------//
+__attribute__ ((optimize("O2"))) void pauseMenu(void)
 {
   if(getBtnState(BUTTON_Y)) {
     if(!pauseState) { // is it already stopped?
@@ -157,7 +157,7 @@ void pauseMenu(void)
   }
 }
 
-void pauseWindow(void)
+__attribute__ ((optimize("O2"))) void pauseWindow(void)
 {
   tftSetTextSize(3);
   tftPrintAt_P(PAUSE_TEXT_POS_X, PAUSE_TEXT_POS_Y, (const char*)pauseP0);
@@ -165,7 +165,7 @@ void pauseWindow(void)
 
 //---------------------------------------------------------------------------//
 // switch from title to main menu
-bool titleAction(void)
+__attribute__ ((optimize("O2"))) bool titleAction(void)
 {
   uint8_t playOkSound = 0;
 
@@ -237,7 +237,7 @@ bool titleAction(void)
 //   return state;
 // }
 
-bool historyAction(void)
+__attribute__ ((optimize("O2"))) bool historyAction(void)
 {
   if(getBtnState(BUTTON_B)) {
     resetBtnStates();
@@ -247,7 +247,7 @@ bool historyAction(void)
   return false;
 }
 
-bool checkShipSelect(void)
+__attribute__ ((optimize("O2"))) bool checkShipSelect(void)
 {
   if(getBtnState(BUTTON_A)) {
     resetBtnStates();
@@ -262,7 +262,7 @@ bool checkShipSelect(void)
   return false;
 }
 
-bool drawStory(void)
+__attribute__ ((optimize("O2"))) bool drawStory(void)
 {
   if(getBtnState(BUTTON_B)) {
     resetBtnStates();
@@ -294,7 +294,7 @@ bool drawStory(void)
   return false;
 }
 
-bool drawNewLevel(void)
+__attribute__ ((optimize("O2"))) bool drawNewLevel(void)
 {
   if(getBtnState(BUTTON_A)) {
     resetBtnStates();
@@ -321,7 +321,7 @@ bool drawNewLevel(void)
 
 //---------------------------------------------------------------------------//
 // We made for you tiny state machine which called by state machine, so, you can switch states
-void menuSwitchSelect(void)
+__attribute__ ((optimize("O2"))) void menuSwitchSelect(void)
 {
   bool switchSate = false;
 
@@ -362,20 +362,20 @@ void menuSwitchSelect(void)
 }
 
 //---------------------------------------------------------------------------//
-void drawGalaxyAt(uint8_t y)
+__attribute__ ((optimize("O2"))) void drawGalaxyAt(uint8_t y)
 {
   screenSliderEffect(COLOR_ID_BLACK);
   drawPico_DIC_P(GALAXY_PIC_POS_X, y, galaxyPic);
 }
 
-void drawGalaxy(void)
+__attribute__ ((optimize("O2"))) void drawGalaxy(void)
 {
   setNewBackgroundColor();
   drawGalaxyAt(GALAXY_PIC_POS_Y);
 }
 
 //---------------------------------------------------------------------------//
-void baseStory(void)
+__attribute__ ((optimize("O2"))) void baseStory(void)
 {
   drawGalaxy();
   drawTextWindow(getConstCharPtr(dogePA, dogeDialogs++), buttonB);
@@ -385,7 +385,7 @@ void baseStory(void)
   addStoryTasks();
 }
 
-void drawRandomDoge(void)
+__attribute__ ((optimize("O2"))) void drawRandomDoge(void)
 {
   rndFlag = !rndFlag;
   drawPico_DIC_P(7, 33+rndFlag, cityDogePic);
@@ -402,7 +402,7 @@ void drawRandomDoge(void)
   vTSMUpdateTaskTimeCheck(drawRandomDoge, (RN & 63) + 40);
 }
 
-void drawStaticNoise(void)
+__attribute__ ((optimize("O2"))) void drawStaticNoise(void)
 {
   uint16_t *ptr = (uint16_t*)0x0000; // base adress for random
   uint16_t dataSize = 2500; // 50x50 == 2500
@@ -416,7 +416,7 @@ void drawStaticNoise(void)
 }
 
 //---------------------------------------------------------------------------//
-void blinkLevelPointer(void)
+__attribute__ ((optimize("O2"))) void blinkLevelPointer(void)
 {
   auto tmpData = getPicSize(lvlCoordinates, curretLevel<<1);
 
@@ -427,7 +427,7 @@ void blinkLevelPointer(void)
 }
 
 //---------------------------------------------------------------------------//
-void createNextLevel(void)
+__attribute__ ((optimize("O2"))) void createNextLevel(void)
 {
   shipHyperJump();
   setGameTasks(waitCallBackTasksArr);
@@ -443,7 +443,7 @@ void createNextLevel(void)
   }
 }
 
-void levelBaseInit(void)
+__attribute__ ((optimize("O2"))) void levelBaseInit(void)
 {
   ship.lowHealthState = false;
   setLEDValue(LED_R, ship.lowHealthState);
@@ -451,7 +451,7 @@ void levelBaseInit(void)
   initInvaders();
 }
 
-void prepareLevelSelect(void)
+__attribute__ ((optimize("O2"))) void prepareLevelSelect(void)
 {
   int8_t i = curretLevel+1;
 
@@ -472,7 +472,7 @@ void prepareLevelSelect(void)
 }
 
 //---------------------------------------------------------------------------//
-void drawCreditWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h, pic_t *pic)
+__attribute__ ((optimize("O2"))) void drawCreditWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h, pic_t *pic)
 {
   tftFillRect(x-1, y-1, w, h, COLOR_WHITE);
   drawPico_DIC_P(x, y, pic);
@@ -482,7 +482,7 @@ void drawCreditWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h, pic_t *pic)
   // setShakingAvatar(x, y, pPic);
 }
 
-void drawCredits(void)
+__attribute__ ((optimize("O2"))) void drawCredits(void)
 { 
   tftFillScreen(COLOR_BLACK);
   drawPico_DIC_P(GALAXY_PIC_POS_X, GALAXY_PIC_POS_Y, galaxyPic);
@@ -515,7 +515,7 @@ void drawCredits(void)
 }
 
 //---------------------------------------------------------------------------//
-void waitScreen(void)
+__attribute__ ((optimize("O2"))) void waitScreen(void)
 {
   if(getBtnState(BUTTON_B)) {
     resetBtnStates();
@@ -526,7 +526,7 @@ void waitScreen(void)
   }
 }
 
-void printScore(void)
+__attribute__ ((optimize("O2"))) void printScore(void)
 {
   char buf[SCORE_DIGITS];
 
@@ -547,13 +547,13 @@ void printScore(void)
   setSaveData(SAVE_DATA_BLOCK, &gameSaveData.rawData[0], sizeof(saveData_t));
 }
 
-void done(text_t *text) // fantasy end, bad name for function...
+__attribute__ ((optimize("O2"))) void done(text_t *text) // fantasy end, bad name for function...
 {
   drawText(20, 40, 2, text);
   levelBaseInit();
 }
 
-void gameOver(void)
+__attribute__ ((optimize("O2"))) void gameOver(void)
 {
   curretLevel =0;
   menuSwitchSelectState = 0;
@@ -570,7 +570,7 @@ void gameOver(void)
   vTSMAddTask_P(T(&drawShipExplosion));
 }
 
-void levelClear(void)
+__attribute__ ((optimize("O2"))) void levelClear(void)
 {
   done(levelClearP);
   vTSMAddTask_P(T(&printDialogeText));
@@ -579,7 +579,7 @@ void levelClear(void)
   pCallBackWaitEvent = prepareLevelSelect;
 }
 
-void victory(void)
+__attribute__ ((optimize("O2"))) void victory(void)
 {
   curretLevel =0;
   menuSwitchSelectState = 0;

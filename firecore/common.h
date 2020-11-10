@@ -290,6 +290,7 @@ extern "C"{
 //---------------------------------------------------------------------------//
 
 extern bool pauseState;
+extern bool weaponGift;
 
 extern uint16_t calJoysticX;
 extern uint16_t calJoysticY;

@@ -27,7 +27,7 @@ bool bossMoveDirect = false;
 bool advancedBoss = false;
 
 //---------------------------------- inVaders --------------------------------------------//
-void setInvaderValue(inVader_t *pAlien, bool state)
+__attribute__ ((optimize("O2"))) void setInvaderValue(inVader_t *pAlien, bool state)
 {
   pAlien->bezLine.step = 0; //RN % 10;
   pAlien->bezLine.id = RN % MAX_BEZIER_LINES;
@@ -40,14 +40,14 @@ void setInvaderValue(inVader_t *pAlien, bool state)
   pAlien->alive = state;
 }
 
-void setDeathRayState(rocket_t *deathRay, position_t *pPos, bool state)
+__attribute__ ((optimize("O2"))) void setDeathRayState(rocket_t *deathRay, position_t *pPos, bool state)
 {
   deathRay->onUse = state;
   //deathRay->state = ((RN & 1) ? false : true); // ste of picture
   deathRay->sprite.pos.Old = {pPos->x, pPos->y+5};// +5 is offset to make center align
 }
 
-void checkTimeToShoot(deathRay_t &pWeapon, position_t &pPos)
+__attribute__ ((optimize("O2"))) void checkTimeToShoot(deathRay_t &pWeapon, position_t &pPos)
 {
   if((pWeapon.timeToShoot--) == 0) {  // decrease timeout to shoot; Captain Obvious :)
     setDeathRayState(&pWeapon.ray, &pPos, true);
@@ -58,7 +58,7 @@ void checkTimeToShoot(deathRay_t &pWeapon, position_t &pPos)
 }
 
 // super fast respawn - aka magic
-void invadersMagicRespawn(void)
+__attribute__ ((optimize("O2"))) void invadersMagicRespawn(void)
 {
   for(auto &alien : aliens) {
     if(!alien.alive) {
@@ -67,7 +67,7 @@ void invadersMagicRespawn(void)
   }
 }
 
-void checkDeathRay(deathRay_t &pWeapon)
+__attribute__ ((optimize("O2"))) void checkDeathRay(deathRay_t &pWeapon)
 {
   // check damage from deathRay
   if(checkSpriteCollision(&pWeapon.ray.sprite, &ship.sprite)) {
@@ -90,8 +90,7 @@ void checkDeathRay(deathRay_t &pWeapon)
 }
 
 //---------------------------------------------------------------------------//
-
-void initInvaders(void)
+__attribute__ ((optimize("O2"))) void initInvaders(void)
 {
   totalRespawns = ALIEN_KILLS_TO_BOSS + difficultyIncrement;
 
@@ -102,7 +101,7 @@ void initInvaders(void)
 }
 //---------------------------------------------------------------------------//
 
-void moveInVaders(void)
+__attribute__ ((optimize("O2"))) void moveInVaders(void)
 {
   for(auto &alien : aliens) {
     if(alien.alive) {
@@ -124,7 +123,7 @@ void moveInVaders(void)
 }
 
 // each invader consume ~6ms
-void drawInVaders(void)
+__attribute__ ((optimize("O2"))) void drawInVaders(void)
 {
   for(auto &alien : aliens) {
     if(alien.alive) { // ALIIIVEE! IT`S ALIIVEEE!
@@ -135,7 +134,7 @@ void drawInVaders(void)
   }
 }
 
-void checkInVadersRespawn(void)
+__attribute__ ((optimize("O2"))) void checkInVadersRespawn(void)
 {
   for(auto &alien : aliens) {
     if(!alien.alive)
@@ -145,7 +144,7 @@ void checkInVadersRespawn(void)
 }
 
 //calc how much aliens on screen, if 0 then call Boss!
-void checkAliveAliens(void)
+__attribute__ ((optimize("O2"))) void checkAliveAliens(void)
 {
   uint8_t deadAliens=0;
 
@@ -158,7 +157,7 @@ void checkAliveAliens(void)
   }
 }
 
-void checkInVadersRay(void)
+__attribute__ ((optimize("O2"))) void checkInVadersRay(void)
 {
   for(auto &alien : aliens) {
     if(alien.weapon.ray.onUse) { // is it shoot already?
@@ -172,7 +171,7 @@ void checkInVadersRay(void)
 }
 
 // in worst case least ~120us; best case ~32us
-void checkInVaders(void)
+__attribute__ ((optimize("O2"))) void checkInVaders(void)
 {
   // recalc all collisions between player's rockets and each alien
   // i.e. rounds = MAX_PEW_PEW x MAX_ALIENS (in worst case of course)
@@ -209,7 +208,7 @@ void checkInVaders(void)
 }
 
 //---------------------------------------------------------------------------//
-void checkInVadersCollision(void)
+__attribute__ ((optimize("O2"))) void checkInVadersCollision(void)
 {
   decltype(aliens[0].weapon.ray) gopher; // Do you see it? No? But it's exist! 
 
@@ -230,8 +229,7 @@ void checkInVadersCollision(void)
 }
 
 //---------------------------------------------------------------------------//
-
-void bossInit(void)
+__attribute__ ((optimize("O2"))) void bossInit(void)
 {
   auto pAlien = &alienBoss.base;
 
@@ -253,7 +251,7 @@ void bossInit(void)
     setDeathRayState(&weapon.ray, &pAlien->sprite.pos.New, false);
 }
 
-void moveBossVertical(void)
+__attribute__ ((optimize("O2"))) void moveBossVertical(void)
 {
   auto pAlien = &alienBoss.base;
 
@@ -272,14 +270,14 @@ void moveBossVertical(void)
   }
 }
 
-void drawBoss(void)
+__attribute__ ((optimize("O2"))) void drawBoss(void)
 {
   if(alienBoss.base.alive) { // ALIIIVEE! IT`S ALIIVEEE!
     updateSprite(&alienBoss.base.sprite);
   }
 }
 
-void drawBossExplosion(void)
+__attribute__ ((optimize("O2"))) void drawBossExplosion(void)
 {
   // reuse death ray
   auto pAlien = &alienBoss.base;
@@ -290,7 +288,7 @@ void drawBossExplosion(void)
   rocketEpxlosion(&pAlien->weapon.ray);
 }
 
-void checkBossDamage(void)
+__attribute__ ((optimize("O2"))) void checkBossDamage(void)
 {
   auto pAlien = &alienBoss.base;
 
@@ -319,7 +317,7 @@ void checkBossDamage(void)
   }
 }
 
-void checkBossFire(void)
+__attribute__ ((optimize("O2"))) void checkBossFire(void)
 {
   auto pAlien = &alienBoss.base;
 
@@ -345,7 +343,7 @@ void checkBossFire(void)
   }
 }
 
-void checkBossRays(void)
+__attribute__ ((optimize("O2"))) void checkBossRays(void)
 {
   for(auto &pWeapon : alienBoss.weapons) {
     if(pWeapon.ray.onUse) { // is it shoot already?
@@ -356,7 +354,7 @@ void checkBossRays(void)
   }
 }
 
-void bossDie(void)
+__attribute__ ((optimize("O2"))) void bossDie(void)
 {
   bool invertState = true;
 

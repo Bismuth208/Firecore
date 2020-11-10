@@ -23,13 +23,13 @@ asteroid_t asteroids[MAX_ASTEROIDS];
 int16_t asteroidsToDefeat =0;
 
 //---------------------------------------------------------------------------//
-inline pic_t *getAsteroidPic(asteroid_t &asteroid)
+__attribute__ ((optimize("O2"))) inline pic_t *getAsteroidPic(asteroid_t &asteroid)
 {
   uint16_t *asteroidsPicsPtr = getConstWordPtr(asteroidsPics, asteroid.type);
   return getPicPtr(asteroidsPicsPtr, asteroid.angle);
 } 
 
-void setAsteroidValue(asteroid_t &asteroid)
+__attribute__ ((optimize("O2"))) void setAsteroidValue(asteroid_t &asteroid)
 {
   asteroid.onUse = (RN & 1);
   asteroid.speed = RN % ASTEROID_STEP + 1;
@@ -40,7 +40,7 @@ void setAsteroidValue(asteroid_t &asteroid)
   //asteroid.endpoint = ship.sprite.pos.New;
 }
 
-void initAsteroids(void)
+__attribute__ ((optimize("O2"))) void initAsteroids(void)
 {
   for(auto &asteroid : asteroids) {
     setAsteroidValue(asteroid);
@@ -49,7 +49,7 @@ void initAsteroids(void)
   asteroidsToDefeat = ASTEROIDS_TO_DEFEAT;
 }
 
-void rotateAsteroid(asteroid_t &asteroid)
+__attribute__ ((optimize("O2"))) void rotateAsteroid(asteroid_t &asteroid)
 {
   if(RN & 1) {
     asteroid.sprite.pPic = getAsteroidPic(asteroid);
@@ -57,7 +57,7 @@ void rotateAsteroid(asteroid_t &asteroid)
   }
 }
 
-void moveAsteroids(void) // also draw them
+__attribute__ ((optimize("O2"))) void moveAsteroids(void) // also draw them
 {
   for(auto &asteroid : asteroids) {
     if(asteroid.onUse) {
@@ -72,7 +72,7 @@ void moveAsteroids(void) // also draw them
   }
 }
 
-void respawnAsteroids(void)
+__attribute__ ((optimize("O2"))) void respawnAsteroids(void)
 {
   uint8_t totalAsteroids =0;
 
@@ -93,7 +93,7 @@ void respawnAsteroids(void)
   }
 }
 
-void checkAsteroids(void)
+__attribute__ ((optimize("O2"))) void checkAsteroids(void)
 {
   bool collision = false;
   rocket_t hamster;

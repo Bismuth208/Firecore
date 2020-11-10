@@ -10,17 +10,17 @@
  *  Arduino IDE:  1.8.5   (as plugin and compiler)
  * Board(CPU):    Arduino Esplora (ATmega32u4)
  * CPU speed:     16 MHz
- * Program size:  24,132
+ * Program size:  25,922
  *  pics:         5,202
  *  code:         17,288
- * Used RAM:      1,505 bytes
- * Free RAM:      1,055 bytes
+ * Used RAM:      1,502 bytes
+ * Free RAM:      1,058 bytes
  *
  * Language:      C and C++
  * 
  * Author: Antonov Alexandr (Bismuth208)
  * Created:    2 June, 2017
- * Last edit: 10 January, 2019
+ * Last edit: 11 October, 2020
  * e-mail: bismuth20883@gmail.com
  * 
  *  THIS PROJECT IS PROVIDED FOR EDUCATION/HOBBY USE ONLY
@@ -101,12 +101,12 @@ const uint8_t lvlCoordinates[] PROGMEM = {
 
 
 // --------------------------------------------------------------- //
-int8_t checkShipPosition(int8_t pos, uint8_t min, uint8_t max)
+__attribute__ ((optimize("O2"))) int8_t checkShipPosition(int8_t pos, uint8_t min, uint8_t max)
 { 
   return (pos < min) ? min : (pos > max) ? max : pos;
 }
 
-void applyShipDirection(uint16_t pos, uint16_t valOne, uint8_t line)
+__attribute__ ((optimize("O2"))) void applyShipDirection(uint16_t pos, uint16_t valOne, uint8_t line)
 {
   uint16_t newValueXY = getStickVal(line);
   if(newValueXY != valOne) {
@@ -114,13 +114,13 @@ void applyShipDirection(uint16_t pos, uint16_t valOne, uint8_t line)
   }  
 }
 
-void moveEnemyV(position_t *pPos, uint8_t moveSize)
+__attribute__ ((optimize("O2"))) void moveEnemyV(position_t *pPos, uint8_t moveSize)
 {
   pPos->y += (int8_t)((moveSize)*((ship.sprite.pos.Old.y > pPos->y) ? 1 : -1));
 }
 
 // --------------------------------------------------------------- //
-void checkFireButton(void)
+__attribute__ ((optimize("O2"))) void checkFireButton(void)
 {
   if(getBtnState(BUTTON_A)) {
     resetBtnStates();
@@ -142,7 +142,7 @@ void checkFireButton(void)
 }
 
 //---------------------------------------------------------------------------//
-void makeHorribleMagic(uint8_t magicValue)
+__attribute__ ((optimize("O2"))) void makeHorribleMagic(uint8_t magicValue)
 {
   if(ship.health) { // this rule preserv us from GUI overflow glitch
     // clear previous level
@@ -154,13 +154,13 @@ void makeHorribleMagic(uint8_t magicValue)
   }
 }
 
-void applyShipDamage(rocket_t *pWeapon)
+__attribute__ ((optimize("O2"))) void applyShipDamage(rocket_t *pWeapon)
 {
   rocketEpxlosion(pWeapon);
   makeHorribleMagic(DAMAGE_TO_SHIP);
 }
 
-void checkShipHealth(void)
+__attribute__ ((optimize("O2"))) void checkShipHealth(void)
 {
   if(ship.health <= DENGER_HEALTH_LVL) {
     ship.lowHealthState = !ship.lowHealthState;
@@ -173,7 +173,7 @@ void checkShipHealth(void)
 }
 //---------------------------------------------------------------------------//
 
-void moveShip(void)
+__attribute__ ((optimize("O2"))) void moveShip(void)
 {
   uint16_t newValueXY =0; // store temp value
   uint8_t speed = ship.states.speed;
@@ -204,7 +204,7 @@ void moveShip(void)
 }
 
 //---------------------------------------------------------------------------//
-void moveGift(void)
+__attribute__ ((optimize("O2"))) void moveGift(void)
 {
   moveBezierCurve(&gift.sprite.pos.New, &gift.bezLine);
 
@@ -219,13 +219,13 @@ void moveGift(void)
   }
 }
 
-void giftDone(void)
+__attribute__ ((optimize("O2"))) void giftDone(void)
 {
   score += GIFT_BONUS_SCORE;
   removeSprite(&gift.sprite); //remove gift from screen
 }
 
-void checkGift(void)
+__attribute__ ((optimize("O2"))) void checkGift(void)
 {
   if(weaponGift) {
     for(auto &laser : ship.weapon.lasers) {
@@ -261,7 +261,7 @@ void checkGift(void)
   }
 }
 
-void disableWeaponGift(void)
+__attribute__ ((optimize("O1"))) void disableWeaponGift(void)
 {
   vTSMDisableTask(dropWeaponGift); // to be shure and pause fix
   vTSMDisableTask(moveGift);
@@ -269,7 +269,7 @@ void disableWeaponGift(void)
   vTSMDisableTask(drawGift);
 }
 
-void dropWeaponGift(void)
+__attribute__ ((optimize("O1"))) void dropWeaponGift(void)
 {
   gift.sprite.pPic = giftWeaponPic;
   weaponGift = true;
@@ -280,127 +280,8 @@ void dropWeaponGift(void)
   vTSMAddTask_P(T(&checkGift));
 }
 
-// --------------------------------------------------------------- //
-void setGameTasks(tasksArr_t *pTasks)
-{
-  vTSMAddTasksArray_P(pTasks);
-
-  // this two tasks always every where
-  vTSMAddTask_P(T(&updateBtnStates));
-  vTSMAddTask_P(T(&playMusic));
-}
-
-void addCreditsTasks(void)
-{
-  // setShakingAvatar(7, 33, cityDogePic); // creditPicQR
-  screenSliderEffect(COLOR_ID_BLACK);
-  setGameTasks(creditsTasksArr);
-}
-
-void addAsteroidsTasks(void)
-{
-  ship.sprite.pos.New = {SHIP_GAME_POS_X, SHIP_GAME_POS_Y};
-
-  initAsteroids();
-  setGameTasks(asteroidFieldTasksArr);
-}
-
-void addGameTasks(void)
-{
-  setGameTasks(gameTasksArr);
-
-  ship.sprite.pos.New = {SHIP_GAME_POS_X, SHIP_GAME_POS_Y};
-  gift.bezLine = {GIFT_MOVE_ID, 0};
-  moveBezierCurve(&gift.sprite.pos.New, &gift.bezLine);
-  vTSMUpdateTaskTimeCheck(dropWeaponGift, RAND_GIFT_SPAWN_TIME);
-}
-
-void addBossTasks(void)
-{
-  bossInit();
-  tftFillScreen(currentBackGroundColor);
-
-  setGameTasks(bossTasksArr);
-}
-
-// drop gift from the boss
-void addGiftTasks(void)
-{
-  weaponGift = false;
-  gift.bezLine = {GIFT_MOVE_ID, 0};
-  gift.sprite.pPic = giftHeartPic;
-  moveBezierCurve(&gift.sprite.pos.New, &gift.bezLine);
-
-  setGameTasks(giftTasksArr);
-}
-
-void addShipSelectTasks(void)
-{
-  ship.sprite.pos.New = {SHIP_SELECT_POS_X, SHIP_SELECT_POS_Y};
-  setGameTasks(shipSelTasksArr);
-}
-
-void addStoryTasks(void)
-{
-  setGameTasks(storyTasksArr);
-  vTSMDisableTask(drawStaticNoise);
-}
-
-void addHistoryTasks(void)
-{
-  // for history text
-  pTextDialoge = historyTextP;
-  tftSetTextColor(COLOR_WHITE);
-  tftSetTextSize(1);
-  tftSetCursor(0, 72);
-  updateWindowTextPos();
-
-  setGameTasks(historyTasksArr);
-}
-
-// void addGameModeSelectTasks(void)
-// {
-//   tftFillScreen(currentBackGroundColor);
-
-//   rowL.pos.New = {MENU_SELECT_ROW_L_POS_X, MENU_SELECT_ROW_L_POS_Y};
-//   rowR.pos.New = {MENU_SELECT_ROW_R_POS_X, MENU_SELECT_ROW_R_POS_Y};
-
-//   // drawMenuGameMode();
-
-//   // addTask_P(T(&rowsUnfold));
-//   // updateTaskTimeCheck(rowsUnfold, 5);
-//   // pCallBackWaitEvent = rowsAnimDone;
-// }
-
-void addTitleTasks(void)
-{
-  setGameTasks(titleTasksArr);
-}
-
-void baseTitleTask(void)
-{
-  tftFillScreen(currentBackGroundColor);
-
-  initBaseGameParams();
-  setGameTasks(startupTasksArr);
-  // pCallBackWaitEvent = addTitleTasks;
-  playerFireCheck = PLAYER_FIRE_CHECK;
-
-  rowL.pos.New = {PIC_TITLE_L_BASE_X, PIC_TITLE_L_BASE_Y};
-  rowL.pos.Old = rowL.pos.New;
-  rowL.pPic = rowsLeftPic;
-
-  rowR.pos.New = {PIC_TITLE_R_BASE_X, PIC_TITLE_R_BASE_Y};
-  rowR.pos.Old = rowR.pos.New;
-  rowR.pPic = rowsRightPic;
-
-#if ADD_SOUND
-  sfxPlayPattern(unfoldPattern, SFX_CH_0);
-#endif
-}
-
 // ------------- Init section ---------------------- //
-void readScore(void)
+__attribute__ ((optimize("O1"))) void readScore(void)
 {
   getSaveData(SAVE_DATA_BLOCK, &gameSaveData.rawData[0], sizeof(saveData_t));
 
@@ -409,7 +290,7 @@ void readScore(void)
   }
 }
 
-void resetScore(void)
+__attribute__ ((optimize("O1"))) void resetScore(void)
 {
   memset_F(&gameSaveData.rawData[0], 0x00, sizeof(saveData_t));
   gameSaveData.saveDataMark = HI_SCORE_MARK;
@@ -417,21 +298,21 @@ void resetScore(void)
   setSaveData(SAVE_DATA_BLOCK, &gameSaveData.rawData[0], sizeof(saveData_t));
 }
 
-void calibrateJoystick(void)
+__attribute__ ((optimize("O1"))) void calibrateJoystick(void)
 {
   calJoysticX = getStickVal(LINE_X);
   calJoysticY = getStickVal(LINE_Y);
 }
 
 // call every new level
-void initShip(void)
+__attribute__ ((optimize("O2"))) void initShip(void)
 {
   ship.sprite.pos.New = {SHIP_TITLE_POS_X, SHIP_TITLE_POS_Y};
 
   memset_F(ship.weapon.lasers, 0x00, sizeof(rocket_t)*MAX_PEW_PEW);
 }
 
-void resetShip(void)
+__attribute__ ((optimize("O2"))) void resetShip(void)
 {
   ship.health = SHIP_HEALTH;
   ship.weapon.level = 0;
@@ -443,14 +324,14 @@ void resetShip(void)
   }
 }
 
-void initStars(void)
+__attribute__ ((optimize("O2"))) void initStars(void)
 {
   // init only speed as next drawStars() call will reinit all params
   for(auto &star : stars)
     star.speed = RN % STAR_STEP + 1;
 }
 
-void initBaseGameParams(void)
+__attribute__ ((optimize("O2"))) void initBaseGameParams(void)
 {
   initShip();
   initStars();
@@ -461,7 +342,7 @@ void initBaseGameParams(void)
   resetShip();
 }
 
-void initSys(void)
+__attribute__ ((optimize("O2"))) void initSys(void)
 {
   initEsplora();
   initEsploraGame();
@@ -474,7 +355,7 @@ void initSys(void)
 }
 
 //------------------------- yep, here's how it all began... -------------------//
-__attribute__((noreturn)) int main(void)
+__attribute__((noreturn, optimize("O2"))) int main(void)
 {
   initSys();
   vTSMRunTasks();

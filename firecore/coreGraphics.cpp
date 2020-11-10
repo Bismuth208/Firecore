@@ -35,14 +35,14 @@ uint8_t avatarPicPosY = 0;
 uint8_t avatarRndFlag = false;
 
 //---------------------------------------------------------------------------//
-void updateWindowTextPos(void)
+__attribute__ ((optimize("O2"))) void updateWindowTextPos(void)
 {
   textWinowPosX = tftGetCursorX();
   textWinowPosY = tftGetCursorY();
 }
 
 // It is so epic retro !!!!
-void printDialogeText(void)
+__attribute__ ((optimize("O2"))) void printDialogeText(void)
 {
   uint8_t tmpChar = pgm_read_byte(pTextDialoge++);
   if(tmpChar != '\0') {
@@ -61,7 +61,7 @@ void printDialogeText(void)
   }
 }
 
-void drawTextWindow(text_t *text, text_t *btnText)
+__attribute__ ((optimize("O2"))) void drawTextWindow(text_t *text, text_t *btnText)
 {
   drawFrame(TEXT_FRAME_X, TEXT_FRAME_Y,  TEXT_FRAME_W, TEXT_FRAME_H, INDIGO_COLOR, COLOR_WHITE);
   // drawPico_DIC_P(TEXT_FRAME_X, TEXT_FRAME_Y, textWindowPic);
@@ -76,7 +76,7 @@ void drawTextWindow(text_t *text, text_t *btnText)
 //---------------------------------------------------------------------------//
 // Arrrrrghh!!!!
 // How to make it faster?!?!
-void moveStar(star_t &star)
+__attribute__ ((optimize("O2"))) void moveStar(star_t &star)
 {
   // now move them
   if((star.pos.x -= star.speed) < TFT_W) {
@@ -88,7 +88,7 @@ void moveStar(star_t &star)
   }
 }
 
-void drawStars(void)
+__attribute__ ((optimize("O2"))) void drawStars(void)
 {
   // draw stars and blow your mind, if still not
   for(auto &star : stars) {
@@ -97,7 +97,7 @@ void drawStars(void)
   }
 }
 
-void drawStarsWarp(void)
+__attribute__ ((optimize("O2"))) void drawStarsWarp(void)
 {
   for(uint8_t i=0; i<MAX_STARS_WARP; i++) {
     for(auto &star : stars) {    
@@ -108,7 +108,7 @@ void drawStarsWarp(void)
   }
 }
 // --------------------------------------------------------------- //
-void drawHealthStatusBar(uint8_t colorId)
+__attribute__ ((optimize("O2"))) void drawHealthStatusBar(uint8_t colorId)
 {
   if(ship.health) {
     int8_t healthBar = (ship.health>>2);
@@ -119,7 +119,7 @@ void drawHealthStatusBar(uint8_t colorId)
   }
 }
 
-void drawSomeGUI(void)
+__attribute__ ((optimize("O2"))) void drawSomeGUI(void)
 {
   drawPico_DIC_P(0, 119, hudGuiPic);
   
@@ -132,7 +132,7 @@ void drawSomeGUI(void)
 }
 // --------------------------------------------------------------- //
 
-void rocketEpxlosion(rocket_t *pRocket)
+__attribute__ ((optimize("O2"))) void rocketEpxlosion(rocket_t *pRocket)
 {
   // Please, don`t say anything about this...
 
@@ -187,7 +187,7 @@ void rocketEpxlosion(rocket_t *pRocket)
 // --------------------------------------------------------------- //
 
 // draws in ~3.6 - 4.7ms
-void drawShip(void)
+__attribute__ ((optimize("O2"))) void drawShip(void)
 {
   ship.flameState = !ship.flameState;
 
@@ -196,7 +196,7 @@ void drawShip(void)
                     (ship.flameState ? flameFireHiPic : flameFireLowPic));
 }
 
-void shipHyperJump(void)
+__attribute__ ((optimize("O2"))) void shipHyperJump(void)
 {
   auto sprite = &ship.sprite;
 
@@ -210,7 +210,7 @@ void shipHyperJump(void)
   moveSprite(sprite); // remove ship from screen
 }
 
-void drawShipExplosion(void)
+__attribute__ ((optimize("O2"))) void drawShipExplosion(void)
 {
   auto pLaser = &ship.weapon.lasers[0]; // reuse
 
@@ -223,7 +223,7 @@ void drawShipExplosion(void)
 #endif
 }
 
-void drawPlayerWeapon(void)
+__attribute__ ((optimize("O2"))) void drawPlayerWeapon(void)
 {
   for(auto &laser : ship.weapon.lasers) {
     if(laser.onUse) {
@@ -240,20 +240,20 @@ void drawPlayerWeapon(void)
 }
 // --------------------------------------------------------------- //
 
-void drawGift(void)
+__attribute__ ((optimize("O2"))) void drawGift(void)
 {
   updateSprite(&gift.sprite);
 }
 // --------------------------------------------------------------- //
 
-void setShakingAvatar(uint8_t posX, uint8_t posY, pic_t *pPic)
+__attribute__ ((optimize("O2"))) void setShakingAvatar(uint8_t posX, uint8_t posY, pic_t *pPic)
 {
   avatarPicPosX = posX;
   avatarPicPosY = posY;
   pAvatarPic = pPic;
 }
 
-void drawShankingAvatar(void)
+__attribute__ ((optimize("O2"))) void drawShankingAvatar(void)
 {
   auto tmpData = getPicSize(pAvatarPic, 0);
   uint16_t *ptr = (uint16_t*)0x0000; // base adress for random
@@ -272,7 +272,7 @@ void drawShankingAvatar(void)
 }
 // --------------------------------------------------------------- //
 
-void drawStart(void)
+__attribute__ ((optimize("O2"))) void drawStart(void)
 {
   startState = !startState;
   tftSetTextColor(startState ? COLOR_WHITE : currentBackGroundColor);
@@ -283,7 +283,7 @@ void drawStart(void)
   tftPrintAt_P(64, 120, (const char *)creditP0);
 }
 
-void drawTitleText(void)
+__attribute__ ((optimize("O2"))) void drawTitleText(void)
 {
   drawPico_DIC_P(TITLE_PIC_POS_X, TITLE_PIC_POS_Y, titleTextPic);
 }
@@ -300,7 +300,7 @@ void drawTitleText(void)
 // }
 
 // make unfold animation
-void drawRows(void)
+__attribute__ ((optimize("O2"))) void drawRows(void)
 {
   rowL.pos.New.x -= PIC_ROWS_STEP;
   rowR.pos.New.x += PIC_ROWS_STEP;
@@ -342,7 +342,7 @@ void drawRows(void)
 // }
 
 // ------------------------------------------ //
-void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine)
+__attribute__ ((optimize("O2"))) void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine)
 {
   auto pLine = &bezierLine;
 
@@ -374,19 +374,19 @@ void moveBezierCurve(position_t *pPos, bezierLine_t *pItemLine)
   pPos->y = getFixedPos(t, tOne, pLine->P0.y, pLine->P1.y, pLine->P2.y);
 }
 
-void fixPosition(position_t *pPos)
+__attribute__ ((optimize("O2"))) void fixPosition(position_t *pPos)
 {
   // reduce power of move effect
   pPos->x -= (pPos->x >> 4);
 }
 
-void getBezierCurve(uint8_t line)
+__attribute__ ((optimize("O2"))) void getBezierCurve(uint8_t line)
 {
   memcpy_P(&bezierLine, &lineCurves[line*sizeof(bezier_t)], sizeof(bezier_t));
 }
 // ------------------------------------------ //
 
-void setNewBackgroundColor(void)
+__attribute__ ((optimize("O2"))) void setNewBackgroundColor(void)
 {
   uint8_t colorId = getPicByte(lvlColors + curretLevel);
   currentBackGroundColor = getPlatetteColor(colorId);
